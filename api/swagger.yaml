@@ -4,27 +4,11 @@ produces:
   - application/json
 swagger: "2.0"
 info:
-  title: Application
   version: 0.2.0
+  title: Application
 paths:
   /api/v1/auth/login:
     post:
-      responses:
-        "400":
-          schema:
-            $ref: '#/definitions/failureResponse'
-          description: Bad request
-        "500":
-          schema:
-            $ref: '#/definitions/errorResponse'
-          description: Server error
-        "200":
-          description: success
-          schema:
-            $ref: '#/definitions/loginRequest'
-      description: |
-        Authenticates a user from a username and password and returns a JWT in the response and inside a
-        signed cookie.
       tags:
         - auth
       summary: Login a user
@@ -35,74 +19,114 @@ paths:
           required: true
           schema:
             $ref: '#/definitions/loginRequest'
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/loginRequest'
+        "400":
+          description: Bad request
+          schema:
+            $ref: '#/definitions/failureResponse'
+        "500":
+          description: Server error
+          schema:
+            $ref: '#/definitions/errorResponse'
+      security:
+        - {}
+      description: |
+        Authenticates a user from a username and password and returns a JWT in the response and inside a
+        signed cookie.
   /api/v1/auth/logout:
     post:
+      responses:
+        "200":
+          description: success
+      security:
+        - {}
       description: |
         Invalidates an authenticated user's session and cookie
       tags:
         - auth
       summary: Logout the current user
       operationId: AuthLogout
-      responses:
-        "200":
-          description: success
   /healthz/liveness:
     get:
-      summary: Liveness probe for kubernetes health check. Returns 200 if the service
-        is alive.
-      operationId: HealthLiveness
       responses:
         "200":
           description: success
+      security:
+        - {}
       description: Liveness probe
       tags:
         - health
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service
+        is alive.
+      operationId: HealthLiveness
   /healthz/readiness:
     get:
-      description: "Readiness probe for kubernetes health check. Returns 200 if the
-        service is ready to serve requests. \nReturns 503 if the service is not ready
-        to serve requests (starting up or shutting down).\n"
-      tags:
-        - health
       summary: Readiness probe
       operationId: HealthReadiness
       responses:
         "200":
           description: success
         "503":
+          description: Not available
           schema:
             $ref: '#/definitions/errorResponse'
-          description: Not available
+      security:
+        - {}
+      description: "Readiness probe for kubernetes health check. Returns 200 if the
+        service is ready to serve requests. \nReturns 503 if the service is not ready
+        to serve requests (starting up or shutting down).\n"
+      tags:
+        - health
+  /api/v1/auth/check:
+    get:
+      description: |
+        Check if the user is authenticated
+      tags:
+        - auth
+      summary: Check if the user is authenticated
+      operationId: AuthCheck
+      responses:
+        "200":
+          description: success
+        "401":
+          description: unauthorized
+      security:
+        - hasPermission:
+            - auth:check
 definitions:
   errorResponse:
-    type: object
-    required:
-      - status
-      - message
     properties:
-      code:
-        maximum: !!float 599
-        minimum: !!float 100
-        type: integer
-      data:
-        type: object
       message:
         type: string
       status:
         type: string
         enum:
           - error
+      code:
+        type: integer
+        maximum: !!float 599
+        minimum: !!float 100
+      data:
+        type: object
+    type: object
+    required:
+      - status
+      - message
   failureResponse:
     required:
       - status
       - data
     properties:
+      data:
+        type: object
       status:
         type: string
         enum:
           - fail
-      data:
-        type: object
     type: object
   loginRequest:
     type: object
@@ -114,20 +138,16 @@ definitions:
         description: Email of user
         type: string
       password:
-        type: string
         description: Password of user
+        type: string
 securityDefinitions:
-  Bearer:
-    description: |-
-      Access token for application access, **must** include "Bearer " prefix.
-      Example: `Bearer b4a94a42-3ea2-4af3-9699-8bcbfee6e6d2`
-    type: apiKey
-    name: Authorization
-    in: header
-    x-keyPrefix: 'Bearer '
-  Management:
-    type: apiKey
-    name: mgmt-secret
-    in: query
-    description: Management secret, used for monitoring and infrastructure related
-      calls
+  hasPermission:
+    type: oauth2
+    flow: accessCode
+    authorizationUrl: https://example.com
+    tokenUrl: https://example.com
+    scopes:
+      auth:check: Check if the user is authenticated
+security:
+  - hasPermission:
+      - deny

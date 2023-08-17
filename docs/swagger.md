@@ -21,12 +21,39 @@
 ### Produces
   * application/json
 
+## Access control
+
+### Security Schemes
+
+#### hasPermission
+
+
+
+> **Type**: oauth2
+>
+> **Flow**: accessCode
+>
+> **Authorization URL**: https://example.com
+>
+> **Token URL**: https://example.com
+      
+
+##### Scopes
+
+Name | Description
+-----|-------------
+auth:check | Check if the user is authenticated
+
+### Security Requirements
+  * hasPermission: deny
+
 ## All endpoints
 
 ###  auth
 
 | Method  | URI     | Name   | Summary |
 |---------|---------|--------|---------|
+| GET | /api/v1/auth/check | [auth check](#auth-check) | Check if the user is authenticated |
 | POST | /api/v1/auth/login | [auth login](#auth-login) | Login a user |
 | POST | /api/v1/auth/logout | [auth logout](#auth-logout) | Logout the current user |
   
@@ -42,6 +69,37 @@
 
 
 ## Paths
+
+### <span id="auth-check"></span> Check if the user is authenticated (*AuthCheck*)
+
+```
+GET /api/v1/auth/check
+```
+
+Check if the user is authenticated
+
+
+#### Security Requirements
+  * hasPermission: auth:check
+
+#### All responses
+| Code | Status | Description | Has headers | Schema |
+|------|--------|-------------|:-----------:|--------|
+| [200](#auth-check-200) | OK | success |  | [schema](#auth-check-200-schema) |
+| [401](#auth-check-401) | Unauthorized | unauthorized |  | [schema](#auth-check-401-schema) |
+
+#### Responses
+
+
+##### <span id="auth-check-200"></span> 200 - success
+Status: OK
+
+###### <span id="auth-check-200-schema"></span> Schema
+
+##### <span id="auth-check-401"></span> 401 - unauthorized
+Status: Unauthorized
+
+###### <span id="auth-check-401-schema"></span> Schema
 
 ### <span id="auth-login"></span> Login a user (*AuthLogin*)
 

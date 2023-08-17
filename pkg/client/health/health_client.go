@@ -66,6 +66,7 @@ func (a *Client) HealthLiveness(ctx context.Context, params *HealthLivenessParam
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &HealthLivenessReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})
@@ -98,6 +99,7 @@ func (a *Client) HealthReadiness(ctx context.Context, params *HealthReadinessPar
 		Schemes:            []string{"http"},
 		Params:             params,
 		Reader:             &HealthReadinessReader{formats: a.formats},
+		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
 	})

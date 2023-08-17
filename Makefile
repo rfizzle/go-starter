@@ -7,10 +7,10 @@ GOVET=$(GOCMD) vet
 GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
-YAMLFMT=yamlfmt
 PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 PROJECT_PACKAGES=$(shell go list ./...)
 ROOT=$(shell pwd)
+YAMLFMT=yamlfmt -conf "${ROOT}/.yamlfmt"
 
 ifneq (,$(findstring 256color, ${TERM}))
 	RED     := $(shell tput -Txterm setaf 1)
@@ -38,7 +38,7 @@ endif
 all: help
 
 ## Build:
-build: fmt lint clean tidy swagger ## Build all binaries
+build: swagger fmt lint clean tidy ## Build all binaries
 	@echo "${MAGENTA}Building all distro packages...${RESET}"
 	@./scripts/build.bash --osx --linux --windows
 
@@ -69,6 +69,7 @@ fmt: ## Run gofmt on all source files
 	@echo "${MAGENTA}Running goimports...${RESET}"
 	@$(GOIMPORTS) -e -format-only -w -d $(PROJECT_GOFILES)
 	@echo "${MAGENTA}Running yamlfmt...${RESET}"
+	@$(YAMLFMT) api/*.yaml
 	@$(YAMLFMT) api/**/*.yaml
 
 lint: ## Run go vet and golangci-lint
@@ -161,11 +162,16 @@ swagger: ## Generate swagger files
 		--server-package="api" \
 		--principal="schema.Principal" \
 		--model-package="schema" \
+		--principal="github.com/rfizzle/go-starter/internal/entity.Entity" \
+		--principal-is-interface \
 		--existing-models="${APP_PACKAGE}/pkg/schema" \
 		--exclude-main \
 		--regenerate-configureapi \
 		-q
 	@rm -rf "${ROOT}/gen"
+	@echo "${MAGENTA}Formatting yaml files...${RESET}"
+	@$(YAMLFMT) "${ROOT}/api/*.yaml"
+	@$(YAMLFMT) "${ROOT}/api/**/*.yaml"
 
 ## Help:
 help: ## Show this help.

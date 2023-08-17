@@ -9,19 +9,21 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime/middleware"
+
+	"github.com/rfizzle/go-starter/internal/entity"
 )
 
 // HealthLivenessHandlerFunc turns a function with the right signature into a health liveness handler
-type HealthLivenessHandlerFunc func(HealthLivenessParams) middleware.Responder
+type HealthLivenessHandlerFunc func(HealthLivenessParams, entity.Entity) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn HealthLivenessHandlerFunc) Handle(params HealthLivenessParams) middleware.Responder {
-	return fn(params)
+func (fn HealthLivenessHandlerFunc) Handle(params HealthLivenessParams, principal entity.Entity) middleware.Responder {
+	return fn(params, principal)
 }
 
 // HealthLivenessHandler interface for that can handle valid health liveness params
 type HealthLivenessHandler interface {
-	Handle(HealthLivenessParams) middleware.Responder
+	Handle(HealthLivenessParams, entity.Entity) middleware.Responder
 }
 
 // NewHealthLiveness creates a new http.Handler for the health liveness operation
@@ -47,12 +49,25 @@ func (o *HealthLiveness) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 		*r = *rCtx
 	}
 	var Params = NewHealthLivenessParams()
+	uprinc, aCtx, err := o.Context.Authorize(r, route)
+	if err != nil {
+		o.Context.Respond(rw, r, route.Produces, route, err)
+		return
+	}
+	if aCtx != nil {
+		*r = *aCtx
+	}
+	var principal entity.Entity
+	if uprinc != nil {
+		principal = uprinc.(entity.Entity) // this is really a entity.Entity, I promise
+	}
+
 	if err := o.Context.BindValidRequest(r, route, &Params); err != nil { // bind params
 		o.Context.Respond(rw, r, route.Produces, route, err)
 		return
 	}
 
-	res := o.Handler.Handle(Params) // actually handle the request
+	res := o.Handler.Handle(Params, principal) // actually handle the request
 	o.Context.Respond(rw, r, route.Produces, route, res)
 
 }

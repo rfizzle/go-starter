@@ -21,6 +21,7 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/api/operations/auth"
 	"github.com/rfizzle/go-starter/internal/api/operations/health"
+	"github.com/rfizzle/go-starter/internal/entity"
 )
 
 // NewGostarterAPI creates a new Gostarter instance
@@ -45,18 +46,27 @@ func NewGostarterAPI(spec *loads.Document) *GostarterAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		AuthAuthLoginHandler: auth.AuthLoginHandlerFunc(func(params auth.AuthLoginParams) middleware.Responder {
+		AuthAuthCheckHandler: auth.AuthCheckHandlerFunc(func(params auth.AuthCheckParams, principal entity.Entity) middleware.Responder {
+			return middleware.NotImplemented("operation auth.AuthCheck has not yet been implemented")
+		}),
+		AuthAuthLoginHandler: auth.AuthLoginHandlerFunc(func(params auth.AuthLoginParams, principal entity.Entity) middleware.Responder {
 			return middleware.NotImplemented("operation auth.AuthLogin has not yet been implemented")
 		}),
-		AuthAuthLogoutHandler: auth.AuthLogoutHandlerFunc(func(params auth.AuthLogoutParams) middleware.Responder {
+		AuthAuthLogoutHandler: auth.AuthLogoutHandlerFunc(func(params auth.AuthLogoutParams, principal entity.Entity) middleware.Responder {
 			return middleware.NotImplemented("operation auth.AuthLogout has not yet been implemented")
 		}),
-		HealthHealthLivenessHandler: health.HealthLivenessHandlerFunc(func(params health.HealthLivenessParams) middleware.Responder {
+		HealthHealthLivenessHandler: health.HealthLivenessHandlerFunc(func(params health.HealthLivenessParams, principal entity.Entity) middleware.Responder {
 			return middleware.NotImplemented("operation health.HealthLiveness has not yet been implemented")
 		}),
-		HealthHealthReadinessHandler: health.HealthReadinessHandlerFunc(func(params health.HealthReadinessParams) middleware.Responder {
+		HealthHealthReadinessHandler: health.HealthReadinessHandlerFunc(func(params health.HealthReadinessParams, principal entity.Entity) middleware.Responder {
 			return middleware.NotImplemented("operation health.HealthReadiness has not yet been implemented")
 		}),
+
+		HasPermissionAuth: func(token string, scopes []string) (entity.Entity, error) {
+			return nil, errors.NotImplemented("oauth2 bearer auth (hasPermission) has not yet been implemented")
+		},
+		// default authorizer is authorized meaning no requests are blocked
+		APIAuthorizer: security.Authorized(),
 	}
 }
 
@@ -93,6 +103,15 @@ type GostarterAPI struct {
 	//   - application/json
 	JSONProducer runtime.Producer
 
+	// HasPermissionAuth registers a function that takes an access token and a collection of required scopes and returns a principal
+	// it performs authentication based on an oauth2 bearer token provided in the request
+	HasPermissionAuth func(string, []string) (entity.Entity, error)
+
+	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
+	APIAuthorizer runtime.Authorizer
+
+	// AuthAuthCheckHandler sets the operation handler for the auth check operation
+	AuthAuthCheckHandler auth.AuthCheckHandler
 	// AuthAuthLoginHandler sets the operation handler for the auth login operation
 	AuthAuthLoginHandler auth.AuthLoginHandler
 	// AuthAuthLogoutHandler sets the operation handler for the auth logout operation
@@ -178,6 +197,13 @@ func (o *GostarterAPI) Validate() error {
 		unregistered = append(unregistered, "JSONProducer")
 	}
 
+	if o.HasPermissionAuth == nil {
+		unregistered = append(unregistered, "HasPermissionAuth")
+	}
+
+	if o.AuthAuthCheckHandler == nil {
+		unregistered = append(unregistered, "auth.AuthCheckHandler")
+	}
 	if o.AuthAuthLoginHandler == nil {
 		unregistered = append(unregistered, "auth.AuthLoginHandler")
 	}
@@ -205,12 +231,22 @@ func (o *GostarterAPI) ServeErrorFor(operationID string) func(http.ResponseWrite
 
 // AuthenticatorsFor gets the authenticators for the specified security schemes
 func (o *GostarterAPI) AuthenticatorsFor(schemes map[string]spec.SecurityScheme) map[string]runtime.Authenticator {
-	return nil
+	result := make(map[string]runtime.Authenticator)
+	for name := range schemes {
+		switch name {
+		case "hasPermission":
+			result[name] = o.BearerAuthenticator(name, func(token string, scopes []string) (interface{}, error) {
+				return o.HasPermissionAuth(token, scopes)
+			})
+
+		}
+	}
+	return result
 }
 
 // Authorizer returns the registered authorizer
 func (o *GostarterAPI) Authorizer() runtime.Authorizer {
-	return nil
+	return o.APIAuthorizer
 }
 
 // ConsumersFor gets the consumers for the specified media types.
@@ -278,6 +314,10 @@ func (o *GostarterAPI) initHandlerCache() {
 		o.handlers = make(map[string]map[string]http.Handler)
 	}
 
+	if o.handlers["GET"] == nil {
+		o.handlers["GET"] = make(map[string]http.Handler)
+	}
+	o.handlers["GET"]["/api/v1/auth/check"] = auth.NewAuthCheck(o.context, o.AuthAuthCheckHandler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}

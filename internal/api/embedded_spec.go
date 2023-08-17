@@ -30,8 +30,36 @@ func init() {
     "version": "0.2.0"
   },
   "paths": {
+    "/api/v1/auth/check": {
+      "get": {
+        "security": [
+          {
+            "hasPermission": [
+              "auth:check"
+            ]
+          }
+        ],
+        "description": "Check if the user is authenticated\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check if the user is authenticated",
+        "operationId": "AuthCheck",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
+        "security": [
+          {}
+        ],
         "description": "Authenticates a user from a username and password and returns a JWT in the response and inside a\nsigned cookie.\n",
         "tags": [
           "auth"
@@ -72,6 +100,9 @@ func init() {
     },
     "/api/v1/auth/logout": {
       "post": {
+        "security": [
+          {}
+        ],
         "description": "Invalidates an authenticated user's session and cookie\n",
         "tags": [
           "auth"
@@ -87,6 +118,9 @@ func init() {
     },
     "/healthz/liveness": {
       "get": {
+        "security": [
+          {}
+        ],
         "description": "Liveness probe",
         "tags": [
           "health"
@@ -102,6 +136,9 @@ func init() {
     },
     "/healthz/readiness": {
       "get": {
+        "security": [
+          {}
+        ],
         "description": "Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. \nReturns 503 if the service is not ready to serve requests (starting up or shutting down).\n",
         "tags": [
           "health"
@@ -186,20 +223,23 @@ func init() {
     }
   },
   "securityDefinitions": {
-    "Bearer": {
-      "description": "Access token for application access, **must** include \"Bearer \" prefix.\nExample: ` + "`" + `Bearer b4a94a42-3ea2-4af3-9699-8bcbfee6e6d2` + "`" + `",
-      "type": "apiKey",
-      "name": "Authorization",
-      "in": "header",
-      "x-keyPrefix": "Bearer "
-    },
-    "Management": {
-      "description": "Management secret, used for monitoring and infrastructure related calls",
-      "type": "apiKey",
-      "name": "mgmt-secret",
-      "in": "query"
+    "hasPermission": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "https://example.com",
+      "tokenUrl": "https://example.com",
+      "scopes": {
+        "auth:check": "Check if the user is authenticated"
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "hasPermission": [
+        "deny"
+      ]
+    }
+  ]
 }`))
 	FlatSwaggerJSON = json.RawMessage([]byte(`{
   "consumes": [
@@ -214,8 +254,36 @@ func init() {
     "version": "0.2.0"
   },
   "paths": {
+    "/api/v1/auth/check": {
+      "get": {
+        "security": [
+          {
+            "hasPermission": [
+              "auth:check"
+            ]
+          }
+        ],
+        "description": "Check if the user is authenticated\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check if the user is authenticated",
+        "operationId": "AuthCheck",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        }
+      }
+    },
     "/api/v1/auth/login": {
       "post": {
+        "security": [
+          {}
+        ],
         "description": "Authenticates a user from a username and password and returns a JWT in the response and inside a\nsigned cookie.\n",
         "tags": [
           "auth"
@@ -256,6 +324,9 @@ func init() {
     },
     "/api/v1/auth/logout": {
       "post": {
+        "security": [
+          {}
+        ],
         "description": "Invalidates an authenticated user's session and cookie\n",
         "tags": [
           "auth"
@@ -271,6 +342,9 @@ func init() {
     },
     "/healthz/liveness": {
       "get": {
+        "security": [
+          {}
+        ],
         "description": "Liveness probe",
         "tags": [
           "health"
@@ -286,6 +360,9 @@ func init() {
     },
     "/healthz/readiness": {
       "get": {
+        "security": [
+          {}
+        ],
         "description": "Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. \nReturns 503 if the service is not ready to serve requests (starting up or shutting down).\n",
         "tags": [
           "health"
@@ -370,19 +447,22 @@ func init() {
     }
   },
   "securityDefinitions": {
-    "Bearer": {
-      "description": "Access token for application access, **must** include \"Bearer \" prefix.\nExample: ` + "`" + `Bearer b4a94a42-3ea2-4af3-9699-8bcbfee6e6d2` + "`" + `",
-      "type": "apiKey",
-      "name": "Authorization",
-      "in": "header",
-      "x-keyPrefix": "Bearer "
-    },
-    "Management": {
-      "description": "Management secret, used for monitoring and infrastructure related calls",
-      "type": "apiKey",
-      "name": "mgmt-secret",
-      "in": "query"
+    "hasPermission": {
+      "type": "oauth2",
+      "flow": "accessCode",
+      "authorizationUrl": "https://example.com",
+      "tokenUrl": "https://example.com",
+      "scopes": {
+        "auth:check": "Check if the user is authenticated"
+      }
     }
-  }
+  },
+  "security": [
+    {
+      "hasPermission": [
+        "deny"
+      ]
+    }
+  ]
 }`))
 }

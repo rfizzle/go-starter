@@ -17,6 +17,7 @@ import (
 	"github.com/rfizzle/go-starter/internal/api/operations"
 	"github.com/rfizzle/go-starter/internal/api/operations/auth"
 	"github.com/rfizzle/go-starter/internal/api/operations/health"
+	"github.com/rfizzle/go-starter/internal/entity"
 )
 
 type contextKey string
@@ -27,6 +28,9 @@ const AuthKey contextKey = "Auth"
 
 /* AuthAPI  */
 type AuthAPI interface {
+	/* AuthCheck Check if the user is authenticated */
+	AuthCheck(ctx context.Context, params auth.AuthCheckParams) middleware.Responder
+
 	/* AuthLogin Login a user */
 	AuthLogin(ctx context.Context, params auth.AuthLoginParams) middleware.Responder
 
@@ -58,6 +62,8 @@ type Config struct {
 	// and the principal was stored in the context in the "AuthKey" context value.
 	Authorizer func(*http.Request) error
 
+	// AuthHasPermission For OAuth2 authentication
+	AuthHasPermission func(token string, scopes []string) (entity.Entity, error)
 	// Authenticator to use for all APIKey authentication
 	APIKeyAuthenticator func(string, string, security.TokenAuthentication) runtime.Authenticator
 	// Authenticator to use for all Bearer authentication
@@ -104,20 +110,37 @@ func HandlerAPI(c Config) (http.Handler, *operations.GostarterAPI, error) {
 		api.JSONConsumer = runtime.JSONConsumer()
 	}
 	api.JSONProducer = runtime.JSONProducer()
-	api.AuthAuthLoginHandler = auth.AuthLoginHandlerFunc(func(params auth.AuthLoginParams) middleware.Responder {
+
+	api.HasPermissionAuth = func(token string, scopes []string) (entity.Entity, error) {
+		if c.AuthHasPermission == nil {
+			panic("you specified a custom principal type, but did not provide the authenticator to provide this")
+		}
+		return c.AuthHasPermission(token, scopes)
+	}
+	api.APIAuthorizer = authorizer(c.Authorizer)
+	api.AuthAuthCheckHandler = auth.AuthCheckHandlerFunc(func(params auth.AuthCheckParams, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
+		return c.AuthAPI.AuthCheck(ctx, params)
+	})
+	api.AuthAuthLoginHandler = auth.AuthLoginHandlerFunc(func(params auth.AuthLoginParams, principal entity.Entity) middleware.Responder {
+		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.AuthAPI.AuthLogin(ctx, params)
 	})
-	api.AuthAuthLogoutHandler = auth.AuthLogoutHandlerFunc(func(params auth.AuthLogoutParams) middleware.Responder {
+	api.AuthAuthLogoutHandler = auth.AuthLogoutHandlerFunc(func(params auth.AuthLogoutParams, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.AuthAPI.AuthLogout(ctx, params)
 	})
-	api.HealthHealthLivenessHandler = health.HealthLivenessHandlerFunc(func(params health.HealthLivenessParams) middleware.Responder {
+	api.HealthHealthLivenessHandler = health.HealthLivenessHandlerFunc(func(params health.HealthLivenessParams, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.HealthAPI.HealthLiveness(ctx, params)
 	})
-	api.HealthHealthReadinessHandler = health.HealthReadinessHandlerFunc(func(params health.HealthReadinessParams) middleware.Responder {
+	api.HealthHealthReadinessHandler = health.HealthReadinessHandlerFunc(func(params health.HealthReadinessParams, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
+		ctx = storeAuth(ctx, principal)
 		return c.HealthAPI.HealthReadiness(ctx, params)
 	})
 	api.ServerShutdown = func() {}
