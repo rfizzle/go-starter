@@ -19,7 +19,7 @@ responses:
   NotFound:
     description: Not found
     schema:
-        $ref: "../definitions/error.yaml#/definitions/ErrorResponse"
+      $ref: "../definitions/error.yaml#/definitions/ErrorResponse"
   NotAvailable:
     description: Not available
     schema:

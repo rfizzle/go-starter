@@ -5,9 +5,9 @@ info:
 paths:
   /healthz/readiness:
     get:
-      description: | 
-        Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. 
-        Returns 503 if the service is not ready to serve requests (starting up or shutting down).
+      description: "Readiness probe for kubernetes health check. Returns 200 if the
+        service is ready to serve requests. \nReturns 503 if the service is not ready
+        to serve requests (starting up or shutting down).\n"
       tags:
         - health
       summary: Readiness probe
@@ -22,7 +22,8 @@ paths:
       description: Liveness probe
       tags:
         - health
-      summary: Liveness probe for kubernetes health check. Returns 200 if the service is alive.
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service
+        is alive.
       operationId: HealthLiveness
       responses:
         "200":

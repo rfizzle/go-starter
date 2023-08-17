@@ -1,129 +1,133 @@
 consumes:
-    - application/json
+  - application/json
 produces:
-    - application/json
+  - application/json
 swagger: "2.0"
 info:
-    title: Application
-    version: 0.2.0
+  title: Application
+  version: 0.2.0
 paths:
-    /healthz/liveness:
-        get:
-            summary: Liveness probe for kubernetes health check. Returns 200 if the service is alive.
-            operationId: HealthLiveness
-            responses:
-                "200":
-                    description: success
-            description: Liveness probe
-            tags:
-                - health
-    /healthz/readiness:
-        get:
-            description: "Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. \nReturns 503 if the service is not ready to serve requests (starting up or shutting down).\n"
-            tags:
-                - health
-            summary: Readiness probe
-            operationId: HealthReadiness
-            responses:
-                "200":
-                    description: success
-                "503":
-                    schema:
-                        $ref: '#/definitions/errorResponse'
-                    description: Not available
-    /api/v1/auth/login:
-        post:
-            responses:
-                "400":
-                    schema:
-                        $ref: '#/definitions/failureResponse'
-                    description: Bad request
-                "500":
-                    schema:
-                        $ref: '#/definitions/errorResponse'
-                    description: Server error
-                "200":
-                    description: success
-                    schema:
-                        $ref: '#/definitions/loginRequest'
-            description: |
-                Authenticates a user from a username and password and returns a JWT in the response and inside a
-                signed cookie.
-            tags:
-                - auth
-            summary: Login a user
-            operationId: AuthLogin
-            parameters:
-                - name: body
-                  in: body
-                  required: true
-                  schema:
-                    $ref: '#/definitions/loginRequest'
-    /api/v1/auth/logout:
-        post:
-            description: |
-                Invalidates an authenticated user's session and cookie
-            tags:
-                - auth
-            summary: Logout the current user
-            operationId: AuthLogout
-            responses:
-                "200":
-                    description: success
+  /api/v1/auth/login:
+    post:
+      responses:
+        "400":
+          schema:
+            $ref: '#/definitions/failureResponse'
+          description: Bad request
+        "500":
+          schema:
+            $ref: '#/definitions/errorResponse'
+          description: Server error
+        "200":
+          description: success
+          schema:
+            $ref: '#/definitions/loginRequest'
+      description: |
+        Authenticates a user from a username and password and returns a JWT in the response and inside a
+        signed cookie.
+      tags:
+        - auth
+      summary: Login a user
+      operationId: AuthLogin
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/loginRequest'
+  /api/v1/auth/logout:
+    post:
+      description: |
+        Invalidates an authenticated user's session and cookie
+      tags:
+        - auth
+      summary: Logout the current user
+      operationId: AuthLogout
+      responses:
+        "200":
+          description: success
+  /healthz/liveness:
+    get:
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service
+        is alive.
+      operationId: HealthLiveness
+      responses:
+        "200":
+          description: success
+      description: Liveness probe
+      tags:
+        - health
+  /healthz/readiness:
+    get:
+      description: "Readiness probe for kubernetes health check. Returns 200 if the
+        service is ready to serve requests. \nReturns 503 if the service is not ready
+        to serve requests (starting up or shutting down).\n"
+      tags:
+        - health
+      summary: Readiness probe
+      operationId: HealthReadiness
+      responses:
+        "200":
+          description: success
+        "503":
+          schema:
+            $ref: '#/definitions/errorResponse'
+          description: Not available
 definitions:
-    errorResponse:
+  errorResponse:
+    type: object
+    required:
+      - status
+      - message
+    properties:
+      code:
+        maximum: !!float 599
+        minimum: !!float 100
+        type: integer
+      data:
         type: object
-        required:
-            - status
-            - message
-        properties:
-            code:
-                maximum: !!float 599
-                minimum: !!float 100
-                type: integer
-            data:
-                type: object
-            message:
-                type: string
-            status:
-                type: string
-                enum:
-                    - error
-    failureResponse:
-        required:
-            - status
-            - data
-        properties:
-            status:
-                type: string
-                enum:
-                    - fail
-            data:
-                type: object
+      message:
+        type: string
+      status:
+        type: string
+        enum:
+          - error
+  failureResponse:
+    required:
+      - status
+      - data
+    properties:
+      status:
+        type: string
+        enum:
+          - fail
+      data:
         type: object
-    loginRequest:
-        type: object
-        required:
-            - email
-            - password
-        properties:
-            email:
-                description: Email of user
-                type: string
-            password:
-                type: string
-                description: Password of user
+    type: object
+  loginRequest:
+    type: object
+    required:
+      - email
+      - password
+    properties:
+      email:
+        description: Email of user
+        type: string
+      password:
+        type: string
+        description: Password of user
 securityDefinitions:
-    Bearer:
-        description: |-
-            Access token for application access, **must** include "Bearer " prefix.
-            Example: `Bearer b4a94a42-3ea2-4af3-9699-8bcbfee6e6d2`
-        type: apiKey
-        name: Authorization
-        in: header
-        x-keyPrefix: 'Bearer '
-    Management:
-        type: apiKey
-        name: mgmt-secret
-        in: query
-        description: Management secret, used for monitoring and infrastructure related calls
+  Bearer:
+    description: |-
+      Access token for application access, **must** include "Bearer " prefix.
+      Example: `Bearer b4a94a42-3ea2-4af3-9699-8bcbfee6e6d2`
+    type: apiKey
+    name: Authorization
+    in: header
+    x-keyPrefix: 'Bearer '
+  Management:
+    type: apiKey
+    name: mgmt-secret
+    in: query
+    description: Management secret, used for monitoring and infrastructure related
+      calls

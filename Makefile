@@ -7,6 +7,7 @@ GOVET=$(GOCMD) vet
 GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
+YAMLFMT=yamlfmt
 PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 PROJECT_PACKAGES=$(shell go list ./...)
 ROOT=$(shell pwd)
@@ -67,6 +68,8 @@ fmt: ## Run gofmt on all source files
 	@$(GOFMT) -e -s -w $(PROJECT_GOFILES)
 	@echo "${MAGENTA}Running goimports...${RESET}"
 	@$(GOIMPORTS) -e -format-only -w -d $(PROJECT_GOFILES)
+	@echo "${MAGENTA}Running yamlfmt...${RESET}"
+	@$(YAMLFMT) api/**/*.yaml
 
 lint: ## Run go vet and golangci-lint
 	@echo "${MAGENTA}Running go vet...${RESET}"
