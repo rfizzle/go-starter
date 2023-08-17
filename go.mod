@@ -3,6 +3,7 @@ module github.com/rfizzle/go-starter
 go 1.19
 
 require (
+	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-openapi/errors v0.20.4
 	github.com/go-openapi/loads v0.21.2
 	github.com/go-openapi/runtime v0.26.0

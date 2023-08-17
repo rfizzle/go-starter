@@ -4,9 +4,43 @@ produces:
   - application/json
 swagger: "2.0"
 info:
-  version: 0.2.0
   title: Application
+  version: 0.2.0
 paths:
+  /healthz/readiness:
+    get:
+      security:
+        - {}
+      description: "Readiness probe for kubernetes health check. Returns 200 if the
+        service is ready to serve requests. \nReturns 503 if the service is not ready
+        to serve requests (starting up or shutting down).\n"
+      tags:
+        - health
+      summary: Readiness probe
+      operationId: HealthReadiness
+      responses:
+        "503":
+          description: Not available
+          schema:
+            $ref: '#/definitions/errorResponse'
+        "200":
+          description: success
+  /api/v1/auth/check:
+    get:
+      operationId: AuthCheck
+      responses:
+        "200":
+          description: success
+        "401":
+          description: unauthorized
+      security:
+        - hasPermission:
+            - auth:check
+      description: |
+        Check if the user is authenticated
+      tags:
+        - auth
+      summary: Check if the user is authenticated
   /api/v1/auth/login:
     post:
       tags:
@@ -14,11 +48,11 @@ paths:
       summary: Login a user
       operationId: AuthLogin
       parameters:
-        - name: body
-          in: body
+        - in: body
           required: true
           schema:
             $ref: '#/definitions/loginRequest'
+          name: body
       responses:
         "200":
           description: success
@@ -39,6 +73,8 @@ paths:
         signed cookie.
   /api/v1/auth/logout:
     post:
+      summary: Logout the current user
+      operationId: AuthLogout
       responses:
         "200":
           description: success
@@ -48,75 +84,22 @@ paths:
         Invalidates an authenticated user's session and cookie
       tags:
         - auth
-      summary: Logout the current user
-      operationId: AuthLogout
   /healthz/liveness:
     get:
+      tags:
+        - health
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service
+        is alive.
+      operationId: HealthLiveness
       responses:
         "200":
           description: success
       security:
         - {}
       description: Liveness probe
-      tags:
-        - health
-      summary: Liveness probe for kubernetes health check. Returns 200 if the service
-        is alive.
-      operationId: HealthLiveness
-  /healthz/readiness:
-    get:
-      summary: Readiness probe
-      operationId: HealthReadiness
-      responses:
-        "200":
-          description: success
-        "503":
-          description: Not available
-          schema:
-            $ref: '#/definitions/errorResponse'
-      security:
-        - {}
-      description: "Readiness probe for kubernetes health check. Returns 200 if the
-        service is ready to serve requests. \nReturns 503 if the service is not ready
-        to serve requests (starting up or shutting down).\n"
-      tags:
-        - health
-  /api/v1/auth/check:
-    get:
-      description: |
-        Check if the user is authenticated
-      tags:
-        - auth
-      summary: Check if the user is authenticated
-      operationId: AuthCheck
-      responses:
-        "200":
-          description: success
-        "401":
-          description: unauthorized
-      security:
-        - hasPermission:
-            - auth:check
 definitions:
-  errorResponse:
-    properties:
-      message:
-        type: string
-      status:
-        type: string
-        enum:
-          - error
-      code:
-        type: integer
-        maximum: !!float 599
-        minimum: !!float 100
-      data:
-        type: object
-    type: object
-    required:
-      - status
-      - message
   failureResponse:
+    type: object
     required:
       - status
       - data
@@ -124,10 +107,9 @@ definitions:
       data:
         type: object
       status:
-        type: string
         enum:
           - fail
-    type: object
+        type: string
   loginRequest:
     type: object
     required:
@@ -138,16 +120,34 @@ definitions:
         description: Email of user
         type: string
       password:
-        description: Password of user
         type: string
+        description: Password of user
+  errorResponse:
+    type: object
+    required:
+      - status
+      - message
+    properties:
+      code:
+        type: integer
+        maximum: !!float 599
+        minimum: !!float 100
+      data:
+        type: object
+      message:
+        type: string
+      status:
+        type: string
+        enum:
+          - error
 securityDefinitions:
   hasPermission:
-    type: oauth2
-    flow: accessCode
-    authorizationUrl: https://example.com
     tokenUrl: https://example.com
     scopes:
       auth:check: Check if the user is authenticated
+    type: oauth2
+    flow: accessCode
+    authorizationUrl: https://example.com
 security:
   - hasPermission:
       - deny
