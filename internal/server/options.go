@@ -1,6 +1,10 @@
 package server
 
-import "go.uber.org/zap"
+import (
+	"net/http"
+
+	"go.uber.org/zap"
+)
 
 type Option func(*Server)
 
@@ -37,5 +41,11 @@ func WithIdleTimeout(idleTimeout int) Option {
 func WithLogger(logger *zap.Logger) Option {
 	return func(s *Server) {
 		s.logger = logger
+	}
+}
+
+func WithFileServer(fileServer http.Handler) Option {
+	return func(s *Server) {
+		s.fileServer = fileServer
 	}
 }

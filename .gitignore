@@ -28,4 +28,4 @@ go.work
 node_modules/
 
 # Binaries
-.bin/
+bin/

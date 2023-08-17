@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"sync/atomic"
 
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/rfizzle/go-starter/internal/api"
@@ -9,18 +10,23 @@ import (
 )
 
 type healthController struct {
+	readyState *atomic.Bool
 }
 
-func newHealthController() api.HealthAPI {
-	return &healthController{}
+func newHealthController(readyState *atomic.Bool) api.HealthAPI {
+	return &healthController{
+		readyState: readyState,
+	}
 }
 
 func (h *healthController) HealthLiveness(ctx context.Context, params health.HealthLivenessParams) middleware.Responder {
-	//TODO implement me
-	panic("implement me")
+	return health.NewHealthLivenessOK()
 }
 
 func (h *healthController) HealthReadiness(ctx context.Context, params health.HealthReadinessParams) middleware.Responder {
-	//TODO implement me
-	panic("implement me")
+	if h.readyState.Load() {
+		return health.NewHealthReadinessOK()
+	}
+
+	return health.NewHealthReadinessServiceUnavailable()
 }

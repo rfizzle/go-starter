@@ -6,23 +6,30 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/rfizzle/go-starter/internal/controller"
+
+	"github.com/rfizzle/go-starter/internal/server"
+	"github.com/rfizzle/go-starter/internal/utils"
+	"github.com/rfizzle/go-starter/web"
+
 	"go.uber.org/zap"
 
 	"github.com/rfizzle/go-starter/pkg/config"
 )
 
 type App struct {
-	cfg         *config.Config
+	cfg         *config.Application
 	state       *state
-	stopProcess []func() error
-	ready       *atomic.Value
+	stopProcess []func()
+	ready       *atomic.Bool
 	logger      *zap.Logger
 }
 
-func New(cfg *config.Config) (*App, error) {
-	isReady := &atomic.Value{}
+func New(cfg *config.Application) (*App, error) {
+	isReady := &atomic.Bool{}
 	isReady.Store(false)
 
+	// Configure logger
 	logger, err := zap.NewProduction()
 	if err != nil {
 		return nil, fmt.Errorf("zap.NewProduction(): %w", err)
@@ -40,32 +47,75 @@ func New(cfg *config.Config) (*App, error) {
 	}, nil
 }
 
-func (a *App) Start() error {
-	a.logger.Info("starting app")
-	a.ready.Store(true)
+func (application *App) Start() error {
+	var wg sync.WaitGroup
+
+	// Configure the controllers
+	appController := controller.NewController(application.ready)
+
+	// Configure static file server
+	staticFs := web.AssetHandler("/", "")
+
+	// Configure application webserver
+	appServer, err := server.New(
+		appController,
+		server.WithFileServer(staticFs),
+		server.WithAddress(application.cfg.Webserver.Address),
+		server.WithPort(application.cfg.Webserver.Port),
+		server.WithReadTimeout(application.cfg.Webserver.ReadTimeout),
+		server.WithWriteTimeout(application.cfg.Webserver.WriteTimeout),
+		server.WithIdleTimeout(application.cfg.Webserver.IdleTimeout),
+		server.WithLogger(application.logger),
+	)
+	if err != nil {
+		return fmt.Errorf("server.New(): %w", err)
+	}
+
+	// Go ahead and create the stop process before starting the server
+	application.stopProcess = utils.PrependFunc(application.stopProcess, func() {
+		err := appServer.Stop()
+		if err != nil {
+			application.logger.Error("error stopping webserver", zap.Error(err))
+		}
+	})
+
+	// Run our server in a goroutine so that it doesn't block.
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		err := appServer.Start()
+		if err != nil {
+			application.logger.Error("error starting webserver", zap.Error(err))
+		}
+	}()
+
+	// Set the ready flag to true
+	application.ready.Store(true)
+
+	// Log that we are serving the application
+	application.logger.Info(fmt.Sprintf("application started on %s:%d", application.cfg.Webserver.Address, application.cfg.Webserver.Port))
+	wg.Wait()
+
 	return nil
 }
 
-func (a *App) Ready() bool {
-	return a.ready.Load().(bool)
+func (application *App) Ready() bool {
+	return application.ready.Load()
 }
 
-func (a *App) SetReady(ready bool) {
-	a.ready.Store(ready)
+func (application *App) SetReady(ready bool) {
+	application.ready.Store(ready)
 }
 
-func (a *App) Logger() *zap.Logger {
-	return a.logger
+func (application *App) Logger() *zap.Logger {
+	return application.logger
 }
 
-func (a *App) Stop() error {
-	a.logger.Info("stopping app")
-	a.ready.Store(false)
-	for i := len(a.stopProcess) - 1; i >= 0; i-- {
-		err := a.stopProcess[i]()
-		if err != nil {
-			a.logger.Error("stop process error", zap.Error(err))
-		}
+func (application *App) Stop() error {
+	application.logger.Info("stopping app")
+	application.ready.Store(false)
+	for i := len(application.stopProcess) - 1; i >= 0; i-- {
+		application.stopProcess[i]()
 	}
 
 	return nil

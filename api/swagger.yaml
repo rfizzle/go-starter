@@ -27,12 +27,6 @@ paths:
           description: success
   /api/v1/auth/check:
     get:
-      operationId: AuthCheck
-      responses:
-        "200":
-          description: success
-        "401":
-          description: unauthorized
       security:
         - hasPermission:
             - auth:check
@@ -41,18 +35,20 @@ paths:
       tags:
         - auth
       summary: Check if the user is authenticated
+      operationId: AuthCheck
+      responses:
+        "200":
+          description: success
+        "401":
+          description: unauthorized
   /api/v1/auth/login:
     post:
-      tags:
-        - auth
-      summary: Login a user
-      operationId: AuthLogin
       parameters:
-        - in: body
+        - name: body
+          in: body
           required: true
           schema:
             $ref: '#/definitions/loginRequest'
-          name: body
       responses:
         "200":
           description: success
@@ -71,6 +67,10 @@ paths:
       description: |
         Authenticates a user from a username and password and returns a JWT in the response and inside a
         signed cookie.
+      tags:
+        - auth
+      summary: Login a user
+      operationId: AuthLogin
   /api/v1/auth/logout:
     post:
       summary: Logout the current user
@@ -86,6 +86,7 @@ paths:
         - auth
   /healthz/liveness:
     get:
+      description: Liveness probe
       tags:
         - health
       summary: Liveness probe for kubernetes health check. Returns 200 if the service
@@ -96,32 +97,7 @@ paths:
           description: success
       security:
         - {}
-      description: Liveness probe
 definitions:
-  failureResponse:
-    type: object
-    required:
-      - status
-      - data
-    properties:
-      data:
-        type: object
-      status:
-        enum:
-          - fail
-        type: string
-  loginRequest:
-    type: object
-    required:
-      - email
-      - password
-    properties:
-      email:
-        description: Email of user
-        type: string
-      password:
-        type: string
-        description: Password of user
   errorResponse:
     type: object
     required:
@@ -129,9 +105,9 @@ definitions:
       - message
     properties:
       code:
+        minimum: !!float 100
         type: integer
         maximum: !!float 599
-        minimum: !!float 100
       data:
         type: object
       message:
@@ -140,14 +116,38 @@ definitions:
         type: string
         enum:
           - error
+  failureResponse:
+    type: object
+    required:
+      - status
+      - data
+    properties:
+      status:
+        type: string
+        enum:
+          - fail
+      data:
+        type: object
+  loginRequest:
+    required:
+      - email
+      - password
+    properties:
+      email:
+        description: Email of user
+        type: string
+      password:
+        description: Password of user
+        type: string
+    type: object
 securityDefinitions:
   hasPermission:
-    tokenUrl: https://example.com
     scopes:
       auth:check: Check if the user is authenticated
     type: oauth2
     flow: accessCode
     authorizationUrl: https://example.com
+    tokenUrl: https://example.com
 security:
   - hasPermission:
       - deny
