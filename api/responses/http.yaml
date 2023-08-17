@@ -1,0 +1,26 @@
+swagger: "2.0"
+info:
+  title: HttpResponses
+  version: 0.0.0
+paths: {}
+responses:
+  BadRequest:
+    description: Bad request
+    schema:
+      $ref: "../definitions/error.yaml#/definitions/FailureResponse"
+  NotAuthorized:
+    description: Not authorized
+    schema:
+      $ref: "../definitions/error.yaml#/definitions/ErrorResponse"
+  ServerError:
+    description: Server error
+    schema:
+      $ref: "../definitions/error.yaml#/definitions/ErrorResponse"
+  NotFound:
+    description: Not found
+    schema:
+        $ref: "../definitions/error.yaml#/definitions/ErrorResponse"
+  NotAvailable:
+    description: Not available
+    schema:
+      $ref: "../definitions/error.yaml#/definitions/ErrorResponse"

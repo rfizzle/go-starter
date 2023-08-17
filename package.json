@@ -1,0 +1,21 @@
+{
+  "name": "go-starter",
+  "version": "0.2.0",
+  "license": "MIT",
+  "author": "Coleton Pierson <coleton.pierson@gmail.com>",
+  "description": "Go Starter Project",
+  "keywords": [],
+  "main": "cmd/main.go",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rfizzle/go-starter.git"
+  },
+  "scripts": {
+    "build": "make build",
+    "test": "make test",
+    "fmt": "make fmt",
+    "lint": "make lint",
+    "tidy": "make tidy",
+    "vendor": "make vendor"
+  }
+}

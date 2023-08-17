@@ -1,0 +1,29 @@
+swagger: "2.0"
+info:
+  title: HealthPaths
+  version: 0.0.0
+paths:
+  /healthz/readiness:
+    get:
+      description: | 
+        Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. 
+        Returns 503 if the service is not ready to serve requests (starting up or shutting down).
+      tags:
+        - health
+      summary: Readiness probe
+      operationId: HealthReadiness
+      responses:
+        "200":
+          description: success
+        "503":
+          $ref: '../responses/http.yaml#/responses/NotAvailable'
+  /healthz/liveness:
+    get:
+      description: Liveness probe
+      tags:
+        - health
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service is alive.
+      operationId: HealthLiveness
+      responses:
+        "200":
+          description: success

@@ -1,0 +1,40 @@
+swagger: "2.0"
+info:
+  title: AuthPaths
+  version: 0.0.0
+paths:
+  /api/v1/auth/login:
+    post:
+      description: |
+        Authenticates a user from a username and password and returns a JWT in the response and inside a
+        signed cookie.
+      tags:
+        - auth
+      summary: Login a user
+      operationId: AuthLogin
+      parameters:
+        - name: body
+          in: body
+          required: true
+          schema:
+            $ref: "../definitions/auth.yaml#/definitions/LoginRequest"
+      responses:
+        "200":
+          description: success
+          schema:
+            $ref: "../definitions/auth.yaml#/definitions/LoginRequest"
+        "400":
+          $ref: "../responses/http.yaml#/responses/BadRequest"
+        "500":
+          $ref: "../responses/http.yaml#/responses/ServerError"
+  /api/v1/auth/logout:
+    post:
+      description: |
+        Invalidates an authenticated user's session and cookie
+      tags:
+        - auth
+      summary: Logout the current user
+      operationId: AuthLogout
+      responses:
+        "200":
+          description: success

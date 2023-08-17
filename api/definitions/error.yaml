@@ -1,0 +1,36 @@
+swagger: "2.0"
+info:
+  title: AuthDefinitions
+  version: 0.0.0
+paths: {}
+definitions:
+  FailureResponse:
+    type: object
+    required:
+      - status
+      - data
+    properties:
+      status:
+        type: string
+        enum:
+          - fail
+      data:
+        type: object
+  ErrorResponse:
+    type: object
+    required:
+      - status
+      - message
+    properties:
+      status:
+        type: string
+        enum:
+          - error
+      message:
+        type: string
+      code:
+        type: integer
+        minimum: 100
+        maximum: 599
+      data:
+        type: object
