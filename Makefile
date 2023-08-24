@@ -150,7 +150,6 @@ swagger: ## Generate swagger files
 		--template="stratoscale" \
 		--target="${ROOT}/pkg" \
 		--skip-models \
-		--model-package="schema" \
 		--existing-models="${APP_PACKAGE}/pkg/schema" \
 		-q
 	@echo "${MAGENTA}Generating server files from swagger...${RESET}"
@@ -160,10 +159,9 @@ swagger: ## Generate swagger files
 		--template="stratoscale" \
 		--target="${ROOT}/internal/" \
 		--server-package="api" \
-		--principal="schema.Principal" \
-		--model-package="schema" \
-		--principal="github.com/rfizzle/go-starter/internal/entity.Entity" \
+		--principal="${APP_PACKAGE}/internal/entity.Entity" \
 		--principal-is-interface \
+		--skip-models \
 		--existing-models="${APP_PACKAGE}/pkg/schema" \
 		--exclude-main \
 		--regenerate-configureapi \
