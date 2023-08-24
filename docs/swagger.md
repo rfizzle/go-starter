@@ -53,9 +53,9 @@ auth:check | Check if the user is authenticated
 
 | Method  | URI     | Name   | Summary |
 |---------|---------|--------|---------|
-| GET | /api/v1/auth/check | [auth check](#auth-check) | Check if the user is authenticated |
-| POST | /api/v1/auth/login | [auth login](#auth-login) | Login a user |
-| POST | /api/v1/auth/logout | [auth logout](#auth-logout) | Logout the current user |
+| GET | /api/v1/auth/check | [auth check v1](#auth-check-v1) | Check if the user is authenticated |
+| POST | /api/v1/auth/login | [auth login v1](#auth-login-v1) | Login a user |
+| POST | /api/v1/auth/logout | [auth logout v1](#auth-logout-v1) | Logout the current user |
   
 
 
@@ -63,14 +63,14 @@ auth:check | Check if the user is authenticated
 
 | Method  | URI     | Name   | Summary |
 |---------|---------|--------|---------|
-| GET | /healthz/liveness | [health liveness](#health-liveness) | Liveness probe for kubernetes health check. Returns 200 if the service is alive. |
-| GET | /healthz/readiness | [health readiness](#health-readiness) | Readiness probe |
+| GET | /api/healthz/liveness | [health liveness](#health-liveness) | Liveness probe for kubernetes health check. Returns 200 if the service is alive. |
+| GET | /api/healthz/readiness | [health readiness](#health-readiness) | Readiness probe |
   
 
 
 ## Paths
 
-### <span id="auth-check"></span> Check if the user is authenticated (*AuthCheck*)
+### <span id="auth-check-v1"></span> Check if the user is authenticated (*AuthCheckV1*)
 
 ```
 GET /api/v1/auth/check
@@ -85,23 +85,23 @@ Check if the user is authenticated
 #### All responses
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
-| [200](#auth-check-200) | OK | success |  | [schema](#auth-check-200-schema) |
-| [401](#auth-check-401) | Unauthorized | unauthorized |  | [schema](#auth-check-401-schema) |
+| [200](#auth-check-v1-200) | OK | success |  | [schema](#auth-check-v1-200-schema) |
+| [401](#auth-check-v1-401) | Unauthorized | unauthorized |  | [schema](#auth-check-v1-401-schema) |
 
 #### Responses
 
 
-##### <span id="auth-check-200"></span> 200 - success
+##### <span id="auth-check-v1-200"></span> 200 - success
 Status: OK
 
-###### <span id="auth-check-200-schema"></span> Schema
+###### <span id="auth-check-v1-200-schema"></span> Schema
 
-##### <span id="auth-check-401"></span> 401 - unauthorized
+##### <span id="auth-check-v1-401"></span> 401 - unauthorized
 Status: Unauthorized
 
-###### <span id="auth-check-401-schema"></span> Schema
+###### <span id="auth-check-v1-401-schema"></span> Schema
 
-### <span id="auth-login"></span> Login a user (*AuthLogin*)
+### <span id="auth-login-v1"></span> Login a user (*AuthLoginV1*)
 
 ```
 POST /api/v1/auth/login
@@ -120,41 +120,41 @@ signed cookie.
 #### All responses
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
-| [200](#auth-login-200) | OK | success |  | [schema](#auth-login-200-schema) |
-| [400](#auth-login-400) | Bad Request | Bad request |  | [schema](#auth-login-400-schema) |
-| [500](#auth-login-500) | Internal Server Error | Server error |  | [schema](#auth-login-500-schema) |
+| [200](#auth-login-v1-200) | OK | success |  | [schema](#auth-login-v1-200-schema) |
+| [400](#auth-login-v1-400) | Bad Request | Bad request |  | [schema](#auth-login-v1-400-schema) |
+| [500](#auth-login-v1-500) | Internal Server Error | Server error |  | [schema](#auth-login-v1-500-schema) |
 
 #### Responses
 
 
-##### <span id="auth-login-200"></span> 200 - success
+##### <span id="auth-login-v1-200"></span> 200 - success
 Status: OK
 
-###### <span id="auth-login-200-schema"></span> Schema
+###### <span id="auth-login-v1-200-schema"></span> Schema
    
   
 
 [LoginRequest](#login-request)
 
-##### <span id="auth-login-400"></span> 400 - Bad request
+##### <span id="auth-login-v1-400"></span> 400 - Bad request
 Status: Bad Request
 
-###### <span id="auth-login-400-schema"></span> Schema
+###### <span id="auth-login-v1-400-schema"></span> Schema
    
   
 
 [FailureResponse](#failure-response)
 
-##### <span id="auth-login-500"></span> 500 - Server error
+##### <span id="auth-login-v1-500"></span> 500 - Server error
 Status: Internal Server Error
 
-###### <span id="auth-login-500-schema"></span> Schema
+###### <span id="auth-login-v1-500-schema"></span> Schema
    
   
 
 [ErrorResponse](#error-response)
 
-### <span id="auth-logout"></span> Logout the current user (*AuthLogout*)
+### <span id="auth-logout-v1"></span> Logout the current user (*AuthLogoutV1*)
 
 ```
 POST /api/v1/auth/logout
@@ -166,20 +166,20 @@ Invalidates an authenticated user's session and cookie
 #### All responses
 | Code | Status | Description | Has headers | Schema |
 |------|--------|-------------|:-----------:|--------|
-| [200](#auth-logout-200) | OK | success |  | [schema](#auth-logout-200-schema) |
+| [200](#auth-logout-v1-200) | OK | success |  | [schema](#auth-logout-v1-200-schema) |
 
 #### Responses
 
 
-##### <span id="auth-logout-200"></span> 200 - success
+##### <span id="auth-logout-v1-200"></span> 200 - success
 Status: OK
 
-###### <span id="auth-logout-200-schema"></span> Schema
+###### <span id="auth-logout-v1-200-schema"></span> Schema
 
 ### <span id="health-liveness"></span> Liveness probe for kubernetes health check. Returns 200 if the service is alive. (*HealthLiveness*)
 
 ```
-GET /healthz/liveness
+GET /api/healthz/liveness
 ```
 
 Liveness probe
@@ -200,7 +200,7 @@ Status: OK
 ### <span id="health-readiness"></span> Readiness probe (*HealthReadiness*)
 
 ```
-GET /healthz/readiness
+GET /api/healthz/readiness
 ```
 
 Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. 

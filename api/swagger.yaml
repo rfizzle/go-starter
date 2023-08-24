@@ -6,14 +6,23 @@ swagger: "2.0"
 info:
   title: Application
   version: 0.2.0
+basePath: /api
 paths:
-  /healthz/readiness:
+  /healthz/liveness:
     get:
+      operationId: HealthLiveness
+      responses:
+        "200":
+          description: success
       security:
         - {}
-      description: "Readiness probe for kubernetes health check. Returns 200 if the
-        service is ready to serve requests. \nReturns 503 if the service is not ready
-        to serve requests (starting up or shutting down).\n"
+      description: Liveness probe
+      tags:
+        - health
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service
+        is alive.
+  /healthz/readiness:
+    get:
       tags:
         - health
       summary: Readiness probe
@@ -25,23 +34,28 @@ paths:
             $ref: '#/definitions/errorResponse'
         "200":
           description: success
-  /api/v1/auth/check:
-    get:
       security:
-        - hasPermission:
-            - auth:check
-      description: |
-        Check if the user is authenticated
+        - {}
+      description: "Readiness probe for kubernetes health check. Returns 200 if the
+        service is ready to serve requests. \nReturns 503 if the service is not ready
+        to serve requests (starting up or shutting down).\n"
+  /v1/auth/check:
+    get:
       tags:
         - auth
       summary: Check if the user is authenticated
-      operationId: AuthCheck
+      operationId: AuthCheckV1
       responses:
         "200":
           description: success
         "401":
           description: unauthorized
-  /api/v1/auth/login:
+      security:
+        - hasPermission:
+            - auth:check
+      description: |
+        Check if the user is authenticated
+  /v1/auth/login:
     post:
       parameters:
         - name: body
@@ -70,33 +84,20 @@ paths:
       tags:
         - auth
       summary: Login a user
-      operationId: AuthLogin
-  /api/v1/auth/logout:
+      operationId: AuthLoginV1
+  /v1/auth/logout:
     post:
-      summary: Logout the current user
-      operationId: AuthLogout
-      responses:
-        "200":
-          description: success
       security:
         - {}
       description: |
         Invalidates an authenticated user's session and cookie
       tags:
         - auth
-  /healthz/liveness:
-    get:
-      description: Liveness probe
-      tags:
-        - health
-      summary: Liveness probe for kubernetes health check. Returns 200 if the service
-        is alive.
-      operationId: HealthLiveness
+      summary: Logout the current user
+      operationId: AuthLogoutV1
       responses:
         "200":
           description: success
-      security:
-        - {}
 definitions:
   errorResponse:
     type: object
@@ -105,30 +106,31 @@ definitions:
       - message
     properties:
       code:
-        minimum: !!float 100
         type: integer
         maximum: !!float 599
+        minimum: !!float 100
       data:
         type: object
       message:
         type: string
       status:
-        type: string
         enum:
           - error
+        type: string
   failureResponse:
     type: object
     required:
       - status
       - data
     properties:
+      data:
+        type: object
       status:
         type: string
         enum:
           - fail
-      data:
-        type: object
   loginRequest:
+    type: object
     required:
       - email
       - password
@@ -139,15 +141,14 @@ definitions:
       password:
         description: Password of user
         type: string
-    type: object
 securityDefinitions:
   hasPermission:
-    scopes:
-      auth:check: Check if the user is authenticated
     type: oauth2
     flow: accessCode
     authorizationUrl: https://example.com
     tokenUrl: https://example.com
+    scopes:
+      auth:check: Check if the user is authenticated
 security:
   - hasPermission:
       - deny

@@ -11,7 +11,8 @@ import (
 
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/strfmt"
-	"github.com/rfizzle/go-starter/pkg/schema"
+
+	models "github.com/rfizzle/go-starter/pkg/schema"
 )
 
 // HealthReadinessReader is a Reader for the HealthReadiness structure.
@@ -106,7 +107,7 @@ HealthReadinessServiceUnavailable describes a response with status code 503, wit
 Not available
 */
 type HealthReadinessServiceUnavailable struct {
-	Payload *schema.ErrorResponse
+	Payload *models.ErrorResponse
 }
 
 // IsSuccess returns true when this health readiness service unavailable response has a 2xx status code
@@ -147,13 +148,13 @@ func (o *HealthReadinessServiceUnavailable) String() string {
 	return fmt.Sprintf("[GET /healthz/readiness][%d] healthReadinessServiceUnavailable  %+v", 503, o.Payload)
 }
 
-func (o *HealthReadinessServiceUnavailable) GetPayload() *schema.ErrorResponse {
+func (o *HealthReadinessServiceUnavailable) GetPayload() *models.ErrorResponse {
 	return o.Payload
 }
 
 func (o *HealthReadinessServiceUnavailable) readResponse(response runtime.ClientResponse, consumer runtime.Consumer, formats strfmt.Registry) error {
 
-	o.Payload = new(schema.ErrorResponse)
+	o.Payload = new(models.ErrorResponse)
 
 	// response payload
 	if err := consumer.Consume(response.Body(), o.Payload); err != nil && err != io.EOF {

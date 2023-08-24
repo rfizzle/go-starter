@@ -29,93 +29,8 @@ func init() {
     "title": "Application",
     "version": "0.2.0"
   },
+  "basePath": "/api",
   "paths": {
-    "/api/v1/auth/check": {
-      "get": {
-        "security": [
-          {
-            "hasPermission": [
-              "auth:check"
-            ]
-          }
-        ],
-        "description": "Check if the user is authenticated\n",
-        "tags": [
-          "auth"
-        ],
-        "summary": "Check if the user is authenticated",
-        "operationId": "AuthCheck",
-        "responses": {
-          "200": {
-            "description": "success"
-          },
-          "401": {
-            "description": "unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/auth/login": {
-      "post": {
-        "security": [
-          {}
-        ],
-        "description": "Authenticates a user from a username and password and returns a JWT in the response and inside a\nsigned cookie.\n",
-        "tags": [
-          "auth"
-        ],
-        "summary": "Login a user",
-        "operationId": "AuthLogin",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/loginRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "success",
-            "schema": {
-              "$ref": "#/definitions/loginRequest"
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "$ref": "#/definitions/failureResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/errorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/logout": {
-      "post": {
-        "security": [
-          {}
-        ],
-        "description": "Invalidates an authenticated user's session and cookie\n",
-        "tags": [
-          "auth"
-        ],
-        "summary": "Logout the current user",
-        "operationId": "AuthLogout",
-        "responses": {
-          "200": {
-            "description": "success"
-          }
-        }
-      }
-    },
     "/healthz/liveness": {
       "get": {
         "security": [
@@ -154,6 +69,92 @@ func init() {
             "schema": {
               "$ref": "#/definitions/errorResponse"
             }
+          }
+        }
+      }
+    },
+    "/v1/auth/check": {
+      "get": {
+        "security": [
+          {
+            "hasPermission": [
+              "auth:check"
+            ]
+          }
+        ],
+        "description": "Check if the user is authenticated\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check if the user is authenticated",
+        "operationId": "AuthCheckV1",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "security": [
+          {}
+        ],
+        "description": "Authenticates a user from a username and password and returns a JWT in the response and inside a\nsigned cookie.\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login a user",
+        "operationId": "AuthLoginV1",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/failureResponse"
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/errorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "security": [
+          {}
+        ],
+        "description": "Invalidates an authenticated user's session and cookie\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout the current user",
+        "operationId": "AuthLogoutV1",
+        "responses": {
+          "200": {
+            "description": "success"
           }
         }
       }
@@ -253,93 +254,8 @@ func init() {
     "title": "Application",
     "version": "0.2.0"
   },
+  "basePath": "/api",
   "paths": {
-    "/api/v1/auth/check": {
-      "get": {
-        "security": [
-          {
-            "hasPermission": [
-              "auth:check"
-            ]
-          }
-        ],
-        "description": "Check if the user is authenticated\n",
-        "tags": [
-          "auth"
-        ],
-        "summary": "Check if the user is authenticated",
-        "operationId": "AuthCheck",
-        "responses": {
-          "200": {
-            "description": "success"
-          },
-          "401": {
-            "description": "unauthorized"
-          }
-        }
-      }
-    },
-    "/api/v1/auth/login": {
-      "post": {
-        "security": [
-          {}
-        ],
-        "description": "Authenticates a user from a username and password and returns a JWT in the response and inside a\nsigned cookie.\n",
-        "tags": [
-          "auth"
-        ],
-        "summary": "Login a user",
-        "operationId": "AuthLogin",
-        "parameters": [
-          {
-            "name": "body",
-            "in": "body",
-            "required": true,
-            "schema": {
-              "$ref": "#/definitions/loginRequest"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "success",
-            "schema": {
-              "$ref": "#/definitions/loginRequest"
-            }
-          },
-          "400": {
-            "description": "Bad request",
-            "schema": {
-              "$ref": "#/definitions/failureResponse"
-            }
-          },
-          "500": {
-            "description": "Server error",
-            "schema": {
-              "$ref": "#/definitions/errorResponse"
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/auth/logout": {
-      "post": {
-        "security": [
-          {}
-        ],
-        "description": "Invalidates an authenticated user's session and cookie\n",
-        "tags": [
-          "auth"
-        ],
-        "summary": "Logout the current user",
-        "operationId": "AuthLogout",
-        "responses": {
-          "200": {
-            "description": "success"
-          }
-        }
-      }
-    },
     "/healthz/liveness": {
       "get": {
         "security": [
@@ -378,6 +294,92 @@ func init() {
             "schema": {
               "$ref": "#/definitions/errorResponse"
             }
+          }
+        }
+      }
+    },
+    "/v1/auth/check": {
+      "get": {
+        "security": [
+          {
+            "hasPermission": [
+              "auth:check"
+            ]
+          }
+        ],
+        "description": "Check if the user is authenticated\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Check if the user is authenticated",
+        "operationId": "AuthCheckV1",
+        "responses": {
+          "200": {
+            "description": "success"
+          },
+          "401": {
+            "description": "unauthorized"
+          }
+        }
+      }
+    },
+    "/v1/auth/login": {
+      "post": {
+        "security": [
+          {}
+        ],
+        "description": "Authenticates a user from a username and password and returns a JWT in the response and inside a\nsigned cookie.\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Login a user",
+        "operationId": "AuthLoginV1",
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "success",
+            "schema": {
+              "$ref": "#/definitions/loginRequest"
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "schema": {
+              "$ref": "#/definitions/failureResponse"
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "schema": {
+              "$ref": "#/definitions/errorResponse"
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "security": [
+          {}
+        ],
+        "description": "Invalidates an authenticated user's session and cookie\n",
+        "tags": [
+          "auth"
+        ],
+        "summary": "Logout the current user",
+        "operationId": "AuthLogoutV1",
+        "responses": {
+          "200": {
+            "description": "success"
           }
         }
       }

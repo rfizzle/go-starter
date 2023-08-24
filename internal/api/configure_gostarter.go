@@ -28,14 +28,14 @@ const AuthKey contextKey = "Auth"
 
 /* AuthAPI  */
 type AuthAPI interface {
-	/* AuthCheck Check if the user is authenticated */
-	AuthCheck(ctx context.Context, params auth.AuthCheckParams) middleware.Responder
+	/* AuthCheckV1 Check if the user is authenticated */
+	AuthCheckV1(ctx context.Context, params auth.AuthCheckV1Params) middleware.Responder
 
-	/* AuthLogin Login a user */
-	AuthLogin(ctx context.Context, params auth.AuthLoginParams) middleware.Responder
+	/* AuthLoginV1 Login a user */
+	AuthLoginV1(ctx context.Context, params auth.AuthLoginV1Params) middleware.Responder
 
-	/* AuthLogout Logout the current user */
-	AuthLogout(ctx context.Context, params auth.AuthLogoutParams) middleware.Responder
+	/* AuthLogoutV1 Logout the current user */
+	AuthLogoutV1(ctx context.Context, params auth.AuthLogoutV1Params) middleware.Responder
 }
 
 //go:generate mockery -name HealthAPI -inpkg
@@ -118,20 +118,20 @@ func HandlerAPI(c Config) (http.Handler, *operations.GostarterAPI, error) {
 		return c.AuthHasPermission(token, scopes)
 	}
 	api.APIAuthorizer = authorizer(c.Authorizer)
-	api.AuthAuthCheckHandler = auth.AuthCheckHandlerFunc(func(params auth.AuthCheckParams, principal entity.Entity) middleware.Responder {
+	api.AuthAuthCheckV1Handler = auth.AuthCheckV1HandlerFunc(func(params auth.AuthCheckV1Params, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.AuthAPI.AuthCheck(ctx, params)
+		return c.AuthAPI.AuthCheckV1(ctx, params)
 	})
-	api.AuthAuthLoginHandler = auth.AuthLoginHandlerFunc(func(params auth.AuthLoginParams, principal entity.Entity) middleware.Responder {
+	api.AuthAuthLoginV1Handler = auth.AuthLoginV1HandlerFunc(func(params auth.AuthLoginV1Params, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.AuthAPI.AuthLogin(ctx, params)
+		return c.AuthAPI.AuthLoginV1(ctx, params)
 	})
-	api.AuthAuthLogoutHandler = auth.AuthLogoutHandlerFunc(func(params auth.AuthLogoutParams, principal entity.Entity) middleware.Responder {
+	api.AuthAuthLogoutV1Handler = auth.AuthLogoutV1HandlerFunc(func(params auth.AuthLogoutV1Params, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()
 		ctx = storeAuth(ctx, principal)
-		return c.AuthAPI.AuthLogout(ctx, params)
+		return c.AuthAPI.AuthLogoutV1(ctx, params)
 	})
 	api.HealthHealthLivenessHandler = health.HealthLivenessHandlerFunc(func(params health.HealthLivenessParams, principal entity.Entity) middleware.Responder {
 		ctx := params.HTTPRequest.Context()

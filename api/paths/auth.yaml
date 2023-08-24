@@ -3,7 +3,7 @@ info:
   title: AuthPaths
   version: 0.0.0
 paths:
-  /api/v1/auth/login:
+  /v1/auth/login:
     post:
       security:
         - {}
@@ -13,7 +13,7 @@ paths:
       tags:
         - auth
       summary: Login a user
-      operationId: AuthLogin
+      operationId: AuthLoginV1
       parameters:
         - name: body
           in: body
@@ -29,7 +29,7 @@ paths:
           $ref: "../responses/http.yaml#/responses/BadRequest"
         "500":
           $ref: "../responses/http.yaml#/responses/ServerError"
-  /api/v1/auth/logout:
+  /v1/auth/logout:
     post:
       security:
         - {}
@@ -38,11 +38,11 @@ paths:
       tags:
         - auth
       summary: Logout the current user
-      operationId: AuthLogout
+      operationId: AuthLogoutV1
       responses:
         "200":
           description: success
-  /api/v1/auth/check:
+  /v1/auth/check:
     get:
       security:
         - hasPermission:
@@ -52,7 +52,7 @@ paths:
       tags:
         - auth
       summary: Check if the user is authenticated
-      operationId: AuthCheck
+      operationId: AuthCheckV1
       responses:
         "200":
           description: success

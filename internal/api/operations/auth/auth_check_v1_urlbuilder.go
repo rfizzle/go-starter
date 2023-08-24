@@ -11,15 +11,15 @@ import (
 	golangswaggerpaths "path"
 )
 
-// AuthLoginURL generates an URL for the auth login operation
-type AuthLoginURL struct {
+// AuthCheckV1URL generates an URL for the auth check v1 operation
+type AuthCheckV1URL struct {
 	_basePath string
 }
 
 // WithBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *AuthLoginURL) WithBasePath(bp string) *AuthLoginURL {
+func (o *AuthCheckV1URL) WithBasePath(bp string) *AuthCheckV1URL {
 	o.SetBasePath(bp)
 	return o
 }
@@ -27,24 +27,27 @@ func (o *AuthLoginURL) WithBasePath(bp string) *AuthLoginURL {
 // SetBasePath sets the base path for this url builder, only required when it's different from the
 // base path specified in the swagger spec.
 // When the value of the base path is an empty string
-func (o *AuthLoginURL) SetBasePath(bp string) {
+func (o *AuthCheckV1URL) SetBasePath(bp string) {
 	o._basePath = bp
 }
 
 // Build a url path and query string
-func (o *AuthLoginURL) Build() (*url.URL, error) {
+func (o *AuthCheckV1URL) Build() (*url.URL, error) {
 	var _result url.URL
 
-	var _path = "/api/v1/auth/login"
+	var _path = "/v1/auth/check"
 
 	_basePath := o._basePath
+	if _basePath == "" {
+		_basePath = "/api"
+	}
 	_result.Path = golangswaggerpaths.Join(_basePath, _path)
 
 	return &_result, nil
 }
 
 // Must is a helper function to panic when the url builder returns an error
-func (o *AuthLoginURL) Must(u *url.URL, err error) *url.URL {
+func (o *AuthCheckV1URL) Must(u *url.URL, err error) *url.URL {
 	if err != nil {
 		panic(err)
 	}
@@ -55,17 +58,17 @@ func (o *AuthLoginURL) Must(u *url.URL, err error) *url.URL {
 }
 
 // String returns the string representation of the path with query string
-func (o *AuthLoginURL) String() string {
+func (o *AuthCheckV1URL) String() string {
 	return o.Must(o.Build()).String()
 }
 
 // BuildFull builds a full url with scheme, host, path and query string
-func (o *AuthLoginURL) BuildFull(scheme, host string) (*url.URL, error) {
+func (o *AuthCheckV1URL) BuildFull(scheme, host string) (*url.URL, error) {
 	if scheme == "" {
-		return nil, errors.New("scheme is required for a full url on AuthLoginURL")
+		return nil, errors.New("scheme is required for a full url on AuthCheckV1URL")
 	}
 	if host == "" {
-		return nil, errors.New("host is required for a full url on AuthLoginURL")
+		return nil, errors.New("host is required for a full url on AuthCheckV1URL")
 	}
 
 	base, err := o.Build()
@@ -79,6 +82,6 @@ func (o *AuthLoginURL) BuildFull(scheme, host string) (*url.URL, error) {
 }
 
 // StringFull returns the string representation of a complete url
-func (o *AuthLoginURL) StringFull(scheme, host string) string {
+func (o *AuthCheckV1URL) StringFull(scheme, host string) string {
 	return o.Must(o.BuildFull(scheme, host)).String()
 }

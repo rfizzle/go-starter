@@ -46,14 +46,14 @@ func NewGostarterAPI(spec *loads.Document) *GostarterAPI {
 
 		JSONProducer: runtime.JSONProducer(),
 
-		AuthAuthCheckHandler: auth.AuthCheckHandlerFunc(func(params auth.AuthCheckParams, principal entity.Entity) middleware.Responder {
-			return middleware.NotImplemented("operation auth.AuthCheck has not yet been implemented")
+		AuthAuthCheckV1Handler: auth.AuthCheckV1HandlerFunc(func(params auth.AuthCheckV1Params, principal entity.Entity) middleware.Responder {
+			return middleware.NotImplemented("operation auth.AuthCheckV1 has not yet been implemented")
 		}),
-		AuthAuthLoginHandler: auth.AuthLoginHandlerFunc(func(params auth.AuthLoginParams, principal entity.Entity) middleware.Responder {
-			return middleware.NotImplemented("operation auth.AuthLogin has not yet been implemented")
+		AuthAuthLoginV1Handler: auth.AuthLoginV1HandlerFunc(func(params auth.AuthLoginV1Params, principal entity.Entity) middleware.Responder {
+			return middleware.NotImplemented("operation auth.AuthLoginV1 has not yet been implemented")
 		}),
-		AuthAuthLogoutHandler: auth.AuthLogoutHandlerFunc(func(params auth.AuthLogoutParams, principal entity.Entity) middleware.Responder {
-			return middleware.NotImplemented("operation auth.AuthLogout has not yet been implemented")
+		AuthAuthLogoutV1Handler: auth.AuthLogoutV1HandlerFunc(func(params auth.AuthLogoutV1Params, principal entity.Entity) middleware.Responder {
+			return middleware.NotImplemented("operation auth.AuthLogoutV1 has not yet been implemented")
 		}),
 		HealthHealthLivenessHandler: health.HealthLivenessHandlerFunc(func(params health.HealthLivenessParams, principal entity.Entity) middleware.Responder {
 			return middleware.NotImplemented("operation health.HealthLiveness has not yet been implemented")
@@ -110,12 +110,12 @@ type GostarterAPI struct {
 	// APIAuthorizer provides access control (ACL/RBAC/ABAC) by providing access to the request and authenticated principal
 	APIAuthorizer runtime.Authorizer
 
-	// AuthAuthCheckHandler sets the operation handler for the auth check operation
-	AuthAuthCheckHandler auth.AuthCheckHandler
-	// AuthAuthLoginHandler sets the operation handler for the auth login operation
-	AuthAuthLoginHandler auth.AuthLoginHandler
-	// AuthAuthLogoutHandler sets the operation handler for the auth logout operation
-	AuthAuthLogoutHandler auth.AuthLogoutHandler
+	// AuthAuthCheckV1Handler sets the operation handler for the auth check v1 operation
+	AuthAuthCheckV1Handler auth.AuthCheckV1Handler
+	// AuthAuthLoginV1Handler sets the operation handler for the auth login v1 operation
+	AuthAuthLoginV1Handler auth.AuthLoginV1Handler
+	// AuthAuthLogoutV1Handler sets the operation handler for the auth logout v1 operation
+	AuthAuthLogoutV1Handler auth.AuthLogoutV1Handler
 	// HealthHealthLivenessHandler sets the operation handler for the health liveness operation
 	HealthHealthLivenessHandler health.HealthLivenessHandler
 	// HealthHealthReadinessHandler sets the operation handler for the health readiness operation
@@ -201,14 +201,14 @@ func (o *GostarterAPI) Validate() error {
 		unregistered = append(unregistered, "HasPermissionAuth")
 	}
 
-	if o.AuthAuthCheckHandler == nil {
-		unregistered = append(unregistered, "auth.AuthCheckHandler")
+	if o.AuthAuthCheckV1Handler == nil {
+		unregistered = append(unregistered, "auth.AuthCheckV1Handler")
 	}
-	if o.AuthAuthLoginHandler == nil {
-		unregistered = append(unregistered, "auth.AuthLoginHandler")
+	if o.AuthAuthLoginV1Handler == nil {
+		unregistered = append(unregistered, "auth.AuthLoginV1Handler")
 	}
-	if o.AuthAuthLogoutHandler == nil {
-		unregistered = append(unregistered, "auth.AuthLogoutHandler")
+	if o.AuthAuthLogoutV1Handler == nil {
+		unregistered = append(unregistered, "auth.AuthLogoutV1Handler")
 	}
 	if o.HealthHealthLivenessHandler == nil {
 		unregistered = append(unregistered, "health.HealthLivenessHandler")
@@ -317,15 +317,15 @@ func (o *GostarterAPI) initHandlerCache() {
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}
-	o.handlers["GET"]["/api/v1/auth/check"] = auth.NewAuthCheck(o.context, o.AuthAuthCheckHandler)
+	o.handlers["GET"]["/v1/auth/check"] = auth.NewAuthCheckV1(o.context, o.AuthAuthCheckV1Handler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/api/v1/auth/login"] = auth.NewAuthLogin(o.context, o.AuthAuthLoginHandler)
+	o.handlers["POST"]["/v1/auth/login"] = auth.NewAuthLoginV1(o.context, o.AuthAuthLoginV1Handler)
 	if o.handlers["POST"] == nil {
 		o.handlers["POST"] = make(map[string]http.Handler)
 	}
-	o.handlers["POST"]["/api/v1/auth/logout"] = auth.NewAuthLogout(o.context, o.AuthAuthLogoutHandler)
+	o.handlers["POST"]["/v1/auth/logout"] = auth.NewAuthLogoutV1(o.context, o.AuthAuthLogoutV1Handler)
 	if o.handlers["GET"] == nil {
 		o.handlers["GET"] = make(map[string]http.Handler)
 	}

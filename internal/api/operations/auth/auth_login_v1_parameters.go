@@ -13,22 +13,23 @@ import (
 	"github.com/go-openapi/runtime"
 	"github.com/go-openapi/runtime/middleware"
 	"github.com/go-openapi/validate"
-	"github.com/rfizzle/go-starter/internal/schema"
+
+	models "github.com/rfizzle/go-starter/pkg/schema"
 )
 
-// NewAuthLoginParams creates a new AuthLoginParams object
+// NewAuthLoginV1Params creates a new AuthLoginV1Params object
 //
 // There are no default values defined in the spec.
-func NewAuthLoginParams() AuthLoginParams {
+func NewAuthLoginV1Params() AuthLoginV1Params {
 
-	return AuthLoginParams{}
+	return AuthLoginV1Params{}
 }
 
-// AuthLoginParams contains all the bound params for the auth login operation
+// AuthLoginV1Params contains all the bound params for the auth login v1 operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters AuthLogin
-type AuthLoginParams struct {
+// swagger:parameters AuthLoginV1
+type AuthLoginV1Params struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -37,21 +38,21 @@ type AuthLoginParams struct {
 	  Required: true
 	  In: body
 	*/
-	Body *schema.LoginRequest
+	Body *models.LoginRequest
 }
 
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewAuthLoginParams() beforehand.
-func (o *AuthLoginParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewAuthLoginV1Params() beforehand.
+func (o *AuthLoginV1Params) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r
 
 	if runtime.HasBody(r) {
 		defer r.Body.Close()
-		var body schema.LoginRequest
+		var body models.LoginRequest
 		if err := route.Consumer.Consume(r.Body, &body); err != nil {
 			if err == io.EOF {
 				res = append(res, errors.Required("body", "body", ""))

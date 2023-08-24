@@ -13,42 +13,43 @@ import (
 	"github.com/rfizzle/go-starter/internal/entity"
 )
 
-// AuthLogoutHandlerFunc turns a function with the right signature into a auth logout handler
-type AuthLogoutHandlerFunc func(AuthLogoutParams, entity.Entity) middleware.Responder
+// AuthLoginV1HandlerFunc turns a function with the right signature into a auth login v1 handler
+type AuthLoginV1HandlerFunc func(AuthLoginV1Params, entity.Entity) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn AuthLogoutHandlerFunc) Handle(params AuthLogoutParams, principal entity.Entity) middleware.Responder {
+func (fn AuthLoginV1HandlerFunc) Handle(params AuthLoginV1Params, principal entity.Entity) middleware.Responder {
 	return fn(params, principal)
 }
 
-// AuthLogoutHandler interface for that can handle valid auth logout params
-type AuthLogoutHandler interface {
-	Handle(AuthLogoutParams, entity.Entity) middleware.Responder
+// AuthLoginV1Handler interface for that can handle valid auth login v1 params
+type AuthLoginV1Handler interface {
+	Handle(AuthLoginV1Params, entity.Entity) middleware.Responder
 }
 
-// NewAuthLogout creates a new http.Handler for the auth logout operation
-func NewAuthLogout(ctx *middleware.Context, handler AuthLogoutHandler) *AuthLogout {
-	return &AuthLogout{Context: ctx, Handler: handler}
+// NewAuthLoginV1 creates a new http.Handler for the auth login v1 operation
+func NewAuthLoginV1(ctx *middleware.Context, handler AuthLoginV1Handler) *AuthLoginV1 {
+	return &AuthLoginV1{Context: ctx, Handler: handler}
 }
 
 /*
-	AuthLogout swagger:route POST /api/v1/auth/logout auth authLogout
+	AuthLoginV1 swagger:route POST /v1/auth/login auth authLoginV1
 
-# Logout the current user
+# Login a user
 
-Invalidates an authenticated user's session and cookie
+Authenticates a user from a username and password and returns a JWT in the response and inside a
+signed cookie.
 */
-type AuthLogout struct {
+type AuthLoginV1 struct {
 	Context *middleware.Context
-	Handler AuthLogoutHandler
+	Handler AuthLoginV1Handler
 }
 
-func (o *AuthLogout) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *AuthLoginV1) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		*r = *rCtx
 	}
-	var Params = NewAuthLogoutParams()
+	var Params = NewAuthLoginV1Params()
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)

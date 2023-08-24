@@ -12,19 +12,19 @@ import (
 	"github.com/go-openapi/runtime/middleware"
 )
 
-// NewAuthLogoutParams creates a new AuthLogoutParams object
+// NewAuthCheckV1Params creates a new AuthCheckV1Params object
 //
 // There are no default values defined in the spec.
-func NewAuthLogoutParams() AuthLogoutParams {
+func NewAuthCheckV1Params() AuthCheckV1Params {
 
-	return AuthLogoutParams{}
+	return AuthCheckV1Params{}
 }
 
-// AuthLogoutParams contains all the bound params for the auth logout operation
+// AuthCheckV1Params contains all the bound params for the auth check v1 operation
 // typically these are obtained from a http.Request
 //
-// swagger:parameters AuthLogout
-type AuthLogoutParams struct {
+// swagger:parameters AuthCheckV1
+type AuthCheckV1Params struct {
 
 	// HTTP Request Object
 	HTTPRequest *http.Request `json:"-"`
@@ -33,8 +33,8 @@ type AuthLogoutParams struct {
 // BindRequest both binds and validates a request, it assumes that complex things implement a Validatable(strfmt.Registry) error interface
 // for simple values it will use straight method calls.
 //
-// To ensure default values, the struct must have been initialized with NewAuthLogoutParams() beforehand.
-func (o *AuthLogoutParams) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
+// To ensure default values, the struct must have been initialized with NewAuthCheckV1Params() beforehand.
+func (o *AuthCheckV1Params) BindRequest(r *http.Request, route *middleware.MatchedRoute) error {
 	var res []error
 
 	o.HTTPRequest = r

@@ -13,42 +13,42 @@ import (
 	"github.com/rfizzle/go-starter/internal/entity"
 )
 
-// AuthCheckHandlerFunc turns a function with the right signature into a auth check handler
-type AuthCheckHandlerFunc func(AuthCheckParams, entity.Entity) middleware.Responder
+// AuthLogoutV1HandlerFunc turns a function with the right signature into a auth logout v1 handler
+type AuthLogoutV1HandlerFunc func(AuthLogoutV1Params, entity.Entity) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn AuthCheckHandlerFunc) Handle(params AuthCheckParams, principal entity.Entity) middleware.Responder {
+func (fn AuthLogoutV1HandlerFunc) Handle(params AuthLogoutV1Params, principal entity.Entity) middleware.Responder {
 	return fn(params, principal)
 }
 
-// AuthCheckHandler interface for that can handle valid auth check params
-type AuthCheckHandler interface {
-	Handle(AuthCheckParams, entity.Entity) middleware.Responder
+// AuthLogoutV1Handler interface for that can handle valid auth logout v1 params
+type AuthLogoutV1Handler interface {
+	Handle(AuthLogoutV1Params, entity.Entity) middleware.Responder
 }
 
-// NewAuthCheck creates a new http.Handler for the auth check operation
-func NewAuthCheck(ctx *middleware.Context, handler AuthCheckHandler) *AuthCheck {
-	return &AuthCheck{Context: ctx, Handler: handler}
+// NewAuthLogoutV1 creates a new http.Handler for the auth logout v1 operation
+func NewAuthLogoutV1(ctx *middleware.Context, handler AuthLogoutV1Handler) *AuthLogoutV1 {
+	return &AuthLogoutV1{Context: ctx, Handler: handler}
 }
 
 /*
-	AuthCheck swagger:route GET /api/v1/auth/check auth authCheck
+	AuthLogoutV1 swagger:route POST /v1/auth/logout auth authLogoutV1
 
-# Check if the user is authenticated
+# Logout the current user
 
-Check if the user is authenticated
+Invalidates an authenticated user's session and cookie
 */
-type AuthCheck struct {
+type AuthLogoutV1 struct {
 	Context *middleware.Context
-	Handler AuthCheckHandler
+	Handler AuthLogoutV1Handler
 }
 
-func (o *AuthCheck) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *AuthLogoutV1) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		*r = *rCtx
 	}
-	var Params = NewAuthCheckParams()
+	var Params = NewAuthLogoutV1Params()
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)

@@ -19,24 +19,24 @@ import (
 // API is the interface of the auth client
 type API interface {
 	/*
-	   AuthCheck checks if the user is authenticated
+	   AuthCheckV1 checks if the user is authenticated
 
 	   Check if the user is authenticated
 	*/
-	AuthCheck(ctx context.Context, params *AuthCheckParams) (*AuthCheckOK, error)
+	AuthCheckV1(ctx context.Context, params *AuthCheckV1Params) (*AuthCheckV1OK, error)
 	/*
-	   AuthLogin logins a user
+	   AuthLoginV1 logins a user
 
 	   Authenticates a user from a username and password and returns a JWT in the response and inside a
 	   signed cookie.
 	*/
-	AuthLogin(ctx context.Context, params *AuthLoginParams) (*AuthLoginOK, error)
+	AuthLoginV1(ctx context.Context, params *AuthLoginV1Params) (*AuthLoginV1OK, error)
 	/*
-	   AuthLogout logouts the current user
+	   AuthLogoutV1 logouts the current user
 
 	   Invalidates an authenticated user's session and cookie
 	*/
-	AuthLogout(ctx context.Context, params *AuthLogoutParams) (*AuthLogoutOK, error)
+	AuthLogoutV1(ctx context.Context, params *AuthLogoutV1Params) (*AuthLogoutV1OK, error)
 }
 
 // New creates a new auth API client.
@@ -58,21 +58,21 @@ type Client struct {
 }
 
 /*
-AuthCheck checks if the user is authenticated
+AuthCheckV1 checks if the user is authenticated
 
 Check if the user is authenticated
 */
-func (a *Client) AuthCheck(ctx context.Context, params *AuthCheckParams) (*AuthCheckOK, error) {
+func (a *Client) AuthCheckV1(ctx context.Context, params *AuthCheckV1Params) (*AuthCheckV1OK, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "AuthCheck",
+		ID:                 "AuthCheckV1",
 		Method:             "GET",
-		PathPattern:        "/api/v1/auth/check",
+		PathPattern:        "/v1/auth/check",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &AuthCheckReader{formats: a.formats},
+		Reader:             &AuthCheckV1Reader{formats: a.formats},
 		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
@@ -81,33 +81,33 @@ func (a *Client) AuthCheck(ctx context.Context, params *AuthCheckParams) (*AuthC
 		return nil, err
 	}
 	switch value := result.(type) {
-	case *AuthCheckOK:
+	case *AuthCheckV1OK:
 		return value, nil
-	case *AuthCheckUnauthorized:
+	case *AuthCheckV1Unauthorized:
 		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
 	}
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for AuthCheck: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for AuthCheckV1: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 
 /*
-AuthLogin logins a user
+AuthLoginV1 logins a user
 
 Authenticates a user from a username and password and returns a JWT in the response and inside a
 signed cookie.
 */
-func (a *Client) AuthLogin(ctx context.Context, params *AuthLoginParams) (*AuthLoginOK, error) {
+func (a *Client) AuthLoginV1(ctx context.Context, params *AuthLoginV1Params) (*AuthLoginV1OK, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "AuthLogin",
+		ID:                 "AuthLoginV1",
 		Method:             "POST",
-		PathPattern:        "/api/v1/auth/login",
+		PathPattern:        "/v1/auth/login",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &AuthLoginReader{formats: a.formats},
+		Reader:             &AuthLoginV1Reader{formats: a.formats},
 		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
@@ -116,34 +116,34 @@ func (a *Client) AuthLogin(ctx context.Context, params *AuthLoginParams) (*AuthL
 		return nil, err
 	}
 	switch value := result.(type) {
-	case *AuthLoginOK:
+	case *AuthLoginV1OK:
 		return value, nil
-	case *AuthLoginBadRequest:
+	case *AuthLoginV1BadRequest:
 		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
-	case *AuthLoginInternalServerError:
+	case *AuthLoginV1InternalServerError:
 		return nil, runtime.NewAPIError("unsuccessful response", value, value.Code())
 	}
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for AuthLogin: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for AuthLoginV1: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }
 
 /*
-AuthLogout logouts the current user
+AuthLogoutV1 logouts the current user
 
 Invalidates an authenticated user's session and cookie
 */
-func (a *Client) AuthLogout(ctx context.Context, params *AuthLogoutParams) (*AuthLogoutOK, error) {
+func (a *Client) AuthLogoutV1(ctx context.Context, params *AuthLogoutV1Params) (*AuthLogoutV1OK, error) {
 
 	result, err := a.transport.Submit(&runtime.ClientOperation{
-		ID:                 "AuthLogout",
+		ID:                 "AuthLogoutV1",
 		Method:             "POST",
-		PathPattern:        "/api/v1/auth/logout",
+		PathPattern:        "/v1/auth/logout",
 		ProducesMediaTypes: []string{"application/json"},
 		ConsumesMediaTypes: []string{"application/json"},
 		Schemes:            []string{"http"},
 		Params:             params,
-		Reader:             &AuthLogoutReader{formats: a.formats},
+		Reader:             &AuthLogoutV1Reader{formats: a.formats},
 		AuthInfo:           a.authInfo,
 		Context:            ctx,
 		Client:             params.HTTPClient,
@@ -152,10 +152,10 @@ func (a *Client) AuthLogout(ctx context.Context, params *AuthLogoutParams) (*Aut
 		return nil, err
 	}
 	switch value := result.(type) {
-	case *AuthLogoutOK:
+	case *AuthLogoutV1OK:
 		return value, nil
 	}
 	// safeguard: normally, absent a default response, unknown success responses return an error above: so this is a codegen issue
-	msg := fmt.Sprintf("unexpected success response for AuthLogout: API contract not enforced by server. Client expected to get an error, but got: %T", result)
+	msg := fmt.Sprintf("unexpected success response for AuthLogoutV1: API contract not enforced by server. Client expected to get an error, but got: %T", result)
 	panic(msg)
 }

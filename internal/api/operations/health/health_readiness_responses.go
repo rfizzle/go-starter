@@ -9,7 +9,8 @@ import (
 	"net/http"
 
 	"github.com/go-openapi/runtime"
-	"github.com/rfizzle/go-starter/internal/schema"
+
+	models "github.com/rfizzle/go-starter/pkg/schema"
 )
 
 // HealthReadinessOKCode is the HTTP code returned for type HealthReadinessOK
@@ -50,7 +51,7 @@ type HealthReadinessServiceUnavailable struct {
 	/*
 	  In: Body
 	*/
-	Payload *schema.ErrorResponse `json:"body,omitempty"`
+	Payload *models.ErrorResponse `json:"body,omitempty"`
 }
 
 // NewHealthReadinessServiceUnavailable creates HealthReadinessServiceUnavailable with default headers values
@@ -60,13 +61,13 @@ func NewHealthReadinessServiceUnavailable() *HealthReadinessServiceUnavailable {
 }
 
 // WithPayload adds the payload to the health readiness service unavailable response
-func (o *HealthReadinessServiceUnavailable) WithPayload(payload *schema.ErrorResponse) *HealthReadinessServiceUnavailable {
+func (o *HealthReadinessServiceUnavailable) WithPayload(payload *models.ErrorResponse) *HealthReadinessServiceUnavailable {
 	o.Payload = payload
 	return o
 }
 
 // SetPayload sets the payload to the health readiness service unavailable response
-func (o *HealthReadinessServiceUnavailable) SetPayload(payload *schema.ErrorResponse) {
+func (o *HealthReadinessServiceUnavailable) SetPayload(payload *models.ErrorResponse) {
 	o.Payload = payload
 }
 

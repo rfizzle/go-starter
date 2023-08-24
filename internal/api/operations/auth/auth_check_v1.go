@@ -13,43 +13,42 @@ import (
 	"github.com/rfizzle/go-starter/internal/entity"
 )
 
-// AuthLoginHandlerFunc turns a function with the right signature into a auth login handler
-type AuthLoginHandlerFunc func(AuthLoginParams, entity.Entity) middleware.Responder
+// AuthCheckV1HandlerFunc turns a function with the right signature into a auth check v1 handler
+type AuthCheckV1HandlerFunc func(AuthCheckV1Params, entity.Entity) middleware.Responder
 
 // Handle executing the request and returning a response
-func (fn AuthLoginHandlerFunc) Handle(params AuthLoginParams, principal entity.Entity) middleware.Responder {
+func (fn AuthCheckV1HandlerFunc) Handle(params AuthCheckV1Params, principal entity.Entity) middleware.Responder {
 	return fn(params, principal)
 }
 
-// AuthLoginHandler interface for that can handle valid auth login params
-type AuthLoginHandler interface {
-	Handle(AuthLoginParams, entity.Entity) middleware.Responder
+// AuthCheckV1Handler interface for that can handle valid auth check v1 params
+type AuthCheckV1Handler interface {
+	Handle(AuthCheckV1Params, entity.Entity) middleware.Responder
 }
 
-// NewAuthLogin creates a new http.Handler for the auth login operation
-func NewAuthLogin(ctx *middleware.Context, handler AuthLoginHandler) *AuthLogin {
-	return &AuthLogin{Context: ctx, Handler: handler}
+// NewAuthCheckV1 creates a new http.Handler for the auth check v1 operation
+func NewAuthCheckV1(ctx *middleware.Context, handler AuthCheckV1Handler) *AuthCheckV1 {
+	return &AuthCheckV1{Context: ctx, Handler: handler}
 }
 
 /*
-	AuthLogin swagger:route POST /api/v1/auth/login auth authLogin
+	AuthCheckV1 swagger:route GET /v1/auth/check auth authCheckV1
 
-# Login a user
+# Check if the user is authenticated
 
-Authenticates a user from a username and password and returns a JWT in the response and inside a
-signed cookie.
+Check if the user is authenticated
 */
-type AuthLogin struct {
+type AuthCheckV1 struct {
 	Context *middleware.Context
-	Handler AuthLoginHandler
+	Handler AuthCheckV1Handler
 }
 
-func (o *AuthLogin) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
+func (o *AuthCheckV1) ServeHTTP(rw http.ResponseWriter, r *http.Request) {
 	route, rCtx, _ := o.Context.RouteInfo(r)
 	if rCtx != nil {
 		*r = *rCtx
 	}
-	var Params = NewAuthLoginParams()
+	var Params = NewAuthCheckV1Params()
 	uprinc, aCtx, err := o.Context.Authorize(r, route)
 	if err != nil {
 		o.Context.Respond(rw, r, route.Produces, route, err)
