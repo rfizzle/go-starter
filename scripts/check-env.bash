@@ -7,7 +7,7 @@ PROJECT_PATH=$(realpath "$DIR_PATH/../")
 source "${PROJECT_PATH}/scripts/colors.bash"
 
 # Loop through array and ensure the command is installed
-for command in go gofmt goimports golangci-lint yamlfmt swagger git grep head awk sed tr echo make; do
+for command in go gofmt goimports golangci-lint yamlfmt git grep head awk sed tr echo make; do
   if ! command -v $command &> /dev/null
   then
     echo "$command could not be found"

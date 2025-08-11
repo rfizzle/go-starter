@@ -24,7 +24,6 @@ type Webserver struct {
 	port         int
 	server       *http.Server
 	logger       *zap.Logger
-	swagger      bool
 	fileserver   http.Handler
 	readTimeout  time.Duration
 	writeTimeout time.Duration
@@ -37,10 +36,9 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 
 	// Setup a new app with default values
 	newApp := &Webserver{
-		host:    "0.0.0.0",
-		port:    8080,
-		logger:  zap.NewNop(),
-		swagger: false,
+		host:   "0.0.0.0",
+		port:   8080,
+		logger: zap.NewNop(),
 	}
 
 	// Apply options
