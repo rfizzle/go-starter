@@ -1,17 +1,28 @@
 package controller
 
 import (
+	"fmt"
 	"sync/atomic"
 
-	"github.com/rfizzle/go-starter/internal/api"
+	"github.com/rfizzle/go-starter/internal/api/v1"
 )
 
 type Controller struct {
-	Health api.HealthAPI
+	api.Handler
+	options *Options
 }
 
-func NewController(readyState *atomic.Bool) *Controller {
-	return &Controller{
-		Health: newHealthController(readyState),
+type Options struct {
+	ReadyState *atomic.Bool
+}
+
+func NewController(options *Options) (*Controller, error) {
+	// Validate options
+	if options == nil {
+		return nil, fmt.Errorf("options is required")
 	}
+
+	return &Controller{
+		options: options,
+	}, nil
 }

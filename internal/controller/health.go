@@ -2,31 +2,19 @@ package controller
 
 import (
 	"context"
-	"sync/atomic"
+	"fmt"
 
-	"github.com/go-openapi/runtime/middleware"
-	"github.com/rfizzle/go-starter/internal/api"
-	"github.com/rfizzle/go-starter/internal/api/operations/health"
+	"github.com/rfizzle/go-starter/internal/api/v1"
 )
 
-type healthController struct {
-	readyState *atomic.Bool
+func (c *Controller) HealthLiveness(ctx context.Context) error {
+	return nil
 }
 
-func newHealthController(readyState *atomic.Bool) api.HealthAPI {
-	return &healthController{
-		readyState: readyState,
-	}
-}
-
-func (h *healthController) HealthLiveness(ctx context.Context, params health.HealthLivenessParams) middleware.Responder {
-	return health.NewHealthLivenessOK()
-}
-
-func (h *healthController) HealthReadiness(ctx context.Context, params health.HealthReadinessParams) middleware.Responder {
-	if h.readyState.Load() {
-		return health.NewHealthReadinessOK()
+func (c *Controller) HealthReadiness(ctx context.Context) (api.HealthReadinessRes, error) {
+	if c.options.ReadyState != nil && c.options.ReadyState.Load() {
+		return &api.HealthReadinessOK{}, nil
 	}
 
-	return health.NewHealthReadinessServiceUnavailable()
+	return &api.HealthReadinessServiceUnavailable{}, fmt.Errorf("service unavailable")
 }

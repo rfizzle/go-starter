@@ -18,6 +18,7 @@ var serveCmd = &cobra.Command{
 
 Example Command:
 go-starter serve --config /etc/crypt/config.json`,
+	PersistentPreRun: persistentPreRunHook(nil),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		// Webserver options
 		cobra.CheckErr(viper.BindPFlag("webserver.address", cmd.Flags().Lookup("webserver-address")))
@@ -50,6 +51,9 @@ go-starter serve --config /etc/crypt/config.json`,
 		if err != nil {
 			logger.Fatal("error initializing application", zap.Error(err))
 		}
+
+		// Set up the application
+		application.SetLogger(logger)
 
 		// Support graceful shutdown
 		cli.GracefulExit(application)

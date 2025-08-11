@@ -1,0 +1,118 @@
+openapi: 3.1.0
+servers:
+  - url: /api/v1
+info:
+  version: 1.0.0
+  title: Go Starter Project
+tags:
+  - name: system
+    description: System component endpoints
+paths:
+  /healthz/liveness:
+    get:
+      operationId: HealthLiveness
+      responses:
+        "200":
+          description: success
+      security:
+        - { }
+      description: Liveness probe
+      tags:
+        - health
+      summary: Liveness probe for kubernetes health check. Returns 200 if the service is alive.
+  /healthz/readiness:
+    get:
+      tags:
+        - health
+      summary: Readiness probe
+      operationId: HealthReadiness
+      responses:
+        "503":
+          description: Not available
+        "200":
+          description: success
+      security:
+        - { }
+      description: "Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. \nReturns 503 if the service is not ready to serve requests (starting up or shutting down).\n"
+components:
+  schemas:
+    genericResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          maximum: !!float 599
+          minimum: !!float 100
+        data:
+          type: object
+        message:
+          type: string
+        status:
+          enum:
+            - success
+            - fail
+            - error
+          type: string
+    errorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        code:
+          type: integer
+          maximum: !!float 599
+          minimum: !!float 100
+        data:
+          type: object
+        message:
+          type: string
+        status:
+          enum:
+            - error
+          type: string
+    failureResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        data:
+          type: object
+        status:
+          type: string
+          enum:
+            - fail
+    successResponse:
+      type: object
+      required:
+        - status
+        - data
+      properties:
+        data:
+          type: object
+        status:
+          type: string
+          enum:
+            - success
+  requestBodies:
+  responses:
+    Success:
+      description: Success
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/successResponse"
+    # These two error responses have the same schema
+    Failure:
+      description: Failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/failureResponse"
+    Error:
+      description: Error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/errorResponse"

@@ -4,6 +4,7 @@ GOCMD=go
 GOMOD=$(GOCMD) mod
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
+GOGENERATE=$(GOCMD) generate
 GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
@@ -33,12 +34,12 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test
+.PHONY: all build linux osx windows clean clean_vendor test env
 
 all: help
 
 ## Build:
-build: swagger fmt lint clean tidy ## Build all binaries
+build: generate fmt clean tidy ## Build all binaries
 	@echo "${MAGENTA}Building all distro packages...${RESET}"
 	@./scripts/build.bash --osx --linux --windows
 
@@ -83,9 +84,13 @@ tidy: ## Rebuild go.mod with only required dependencies
 	@echo "${MAGENTA}Rebuilding go.mod file...${RESET}"
 	@$(GOMOD) tidy
 
-vendor: ## Sync dependencies to vendor directory
+vendor: tidy ## Sync dependencies to vendor directory
 	@echo "${MAGENTA}Syncing dependencies to vendor...${RESET}"
 	@$(GOMOD) vendor
+
+env: ## Check env for correct setup
+	@echo "${MAGENTA}Checking env...${RESET}"
+	@./scripts/check-env.bash
 
 ## Test:
 test: ## Run the tests of the project
@@ -104,72 +109,14 @@ ci: ## Run tests and lint in CI
 	@echo "${MAGENTA}Running golangci-lint...${RESET}"
 	@$(GOLANGCI_LINT) run
 
+generate: ## Run go generate
+	@echo "${MAGENTA}Running golang generations...${RESET}"
+	@$(GOGENERATE)
+
 ## Docker:
-docker: fmt tidy ## Use the dockerfile to build the container
+docker: ## Use the dockerfile to build the container
 	@echo "${MAGENTA}Building docker image...${RESET}"
 	@./scripts/docker-build.bash
-
-## Generate:
-swagger: ## Generate swagger files
-	@./scripts/sync-version.bash
-	@echo "${MAGENTA}Concatenating swagger files...${RESET}"
-	@mkdir -p "${ROOT}/api/tmp"
-	@swagger mixin \
- 		"${ROOT}/api/config/template.yaml" \
- 		./api/paths/* \
- 		--output="${ROOT}/api/tmp/api.yaml" \
- 		--format=yaml \
- 		--keep-spec-order \
-		-q
-	@swagger flatten \
-		"${ROOT}/api/tmp/api.yaml" \
-		--format=yaml \
-		--output="${ROOT}/api/swagger.yaml" \
-		-q
-	@rm -rf "${ROOT}/api/tmp"
-	@rm -rf "${ROOT}/internal/api"
-	@rm -rf "${ROOT}/pkg/client"
-	@rm -rf "${ROOT}/pkg/schema"
-	@echo "${MAGENTA}Generating markdown file from swagger...${RESET}"
-	@swagger generate markdown \
-		--spec="${ROOT}/api/swagger.yaml" \
-		--template=stratoscale \
-		--output="${ROOT}/docs/swagger.md" \
-		-q
-	@echo "${MAGENTA}Generating model files from swagger...${RESET}"
-	@swagger generate model \
-		--spec="${ROOT}/api/swagger.yaml" \
-		--template="stratoscale" \
-		--target="${ROOT}/pkg" \
-		--model-package="schema" \
-		-q
-	@echo "${MAGENTA}Generating client files from swagger...${RESET}"
-	@swagger generate client \
-		--name="${APP_NAME}" \
-		--spec="${ROOT}/api/swagger.yaml" \
-		--template="stratoscale" \
-		--target="${ROOT}/pkg" \
-		--skip-models \
-		--existing-models="${APP_PACKAGE}/pkg/schema" \
-		-q
-	@echo "${MAGENTA}Generating server files from swagger...${RESET}"
-	@swagger generate server \
-		--name="${APP_NAME}" \
-		--spec="${ROOT}/api/swagger.yaml" \
-		--template="stratoscale" \
-		--target="${ROOT}/internal/" \
-		--server-package="api" \
-		--principal="${APP_PACKAGE}/internal/entity.Entity" \
-		--principal-is-interface \
-		--skip-models \
-		--existing-models="${APP_PACKAGE}/pkg/schema" \
-		--exclude-main \
-		--regenerate-configureapi \
-		-q
-	@rm -rf "${ROOT}/gen"
-	@echo "${MAGENTA}Formatting yaml files...${RESET}"
-	@$(YAMLFMT) "${ROOT}/api/*.yaml"
-	@$(YAMLFMT) "${ROOT}/api/**/*.yaml"
 
 ## Help:
 help: ## Show this help.

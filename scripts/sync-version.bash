@@ -1,18 +1,22 @@
 #!/usr/bin/env bash
-ROOT_DIR=$(git rev-parse --show-toplevel)
 
-# Get the version from docker.json
-PACKAGE_VERSION=$(grep version < "${ROOT_DIR}/package.json" \
-  | head -1 \
-  | awk -F: '{ print $2 }' \
-  | sed 's/[",]//g' \
-  | tr -d '[:space:]')
-echo "Updating swagger files to use version: ${PACKAGE_VERSION}"
+# Get build and project directories
+BUILD_PATH="$(realpath "$0")"
+DIR_PATH="$(dirname "$BUILD_PATH")"
+PROJECT_PATH=$(realpath "$DIR_PATH/../")
+source "${PROJECT_PATH}/scripts/colors.bash"
+
+# Get the version from .version
+VERSION=$(tr -d '[:space:],v' < "${PROJECT_PATH}/.version")
+echo -e "${MAGENTA}Updating swagger files to use version: ${VERSION}...${RESET}"
 
 # Now do the replacement in-place (MacOS/Unix compatible)
 REPLACE=' version: .*$'
-WITH=" version: '${PACKAGE_VERSION}'"
-sed -i.tmp "s#${REPLACE}#${WITH}#g" "${ROOT_DIR}/api/config/template.yaml"
-sed -i.tmp "s#${REPLACE}#${WITH}#g" "${ROOT_DIR}/api/swagger.yaml"
-rm -f "${ROOT_DIR}/api/config/template.yaml.tmp"
-rm -f "${ROOT_DIR}/api/swagger.yaml.tmp"
+WITH=" version: \"${VERSION}\""
+sed -i.tmp "s#${REPLACE}#${WITH}#g" "${PROJECT_PATH}/api/swagger.yaml"
+rm -f "${PROJECT_PATH}/api/swagger.yaml.tmp"
+
+REPLACE=' "version": ".*"'
+WITH=" \"version\": \"${VERSION}\""
+sed -i.tmp "s#${REPLACE}#${WITH}#g" "${PROJECT_PATH}/internal/api/embedded_spec.go"
+rm -f "${PROJECT_PATH}/internal/api/embedded_spec.go.tmp"

@@ -1,29 +1,13 @@
 #!/usr/bin/env bash
 
-# Setup colors
-RED=''
-GREEN=''
-YELLOW=''
-BLUE=''
-MAGENTA=''
-CYAN=''
-WHITE=''
-RESET=''
+# Script variables
+APPLICATION_NAME="starter"
 
-# check if stdout is a terminal...
-if test -t 1; then
-    # see if it supports colors...
-    if test -n "$(tput colors)" && test "$(tput colors)" -ge 8; then
-      RED='\033[0;31m'
-      GREEN='\033[0;32m'
-      YELLOW='\033[0;33m'
-      BLUE='\033[0;34m'
-      MAGENTA='\033[0;35m'
-      CYAN='\033[0;36m'
-      WHITE='\033[0;37m'
-      RESET='\033[0m'
-    fi
-fi
+# Get build and project directories
+BUILD_PATH="$(realpath "$0")"
+DIR_PATH="$(dirname "$BUILD_PATH")"
+PROJECT_PATH=$(realpath "$DIR_PATH/../")
+source "${PROJECT_PATH}/scripts/colors.bash"
 
 # Command line variable for bash script
 for arg in "$@"; do
@@ -51,12 +35,6 @@ while getopts "lowavc" opt; do
   esac
 done
 shift $((OPTIND - 1))
-
-# Get build and project directories
-BUILD_PATH="$(realpath "$0")"
-DIR_PATH="$(dirname "$BUILD_PATH")"
-PROJECT_PATH=$(realpath "$DIR_PATH/../")
-APPLICATION_NAME="starter"
 
 # Change to project directory
 cd "$PROJECT_PATH" || {
@@ -115,6 +93,7 @@ if [ -n "$OSX" ]; then
   CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build \
     -o "$PROJECT_PATH/bin/osx/$APPLICATION_NAME" \
     -ldflags "$LDFLAGS" \
+    -mod vendor \
     . || {
     echo -e "${RED} failed to build osx binary!${RESET}" 1>&2
     exit 1
@@ -129,6 +108,7 @@ if [ -n "$WINDOWS" ]; then
   CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build \
     -o "$PROJECT_PATH/bin/windows/$APPLICATION_NAME.exe" \
     -ldflags "$LDFLAGS" \
+    -mod vendor \
     . || {
     echo -e "${RED} failed to build windows binary!${RESET}" 1>&2
     exit 1
@@ -143,6 +123,7 @@ if [ -n "$LINUX" ]; then
   CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build \
     -o "$PROJECT_PATH/bin/linux/$APPLICATION_NAME" \
     -ldflags "$LDFLAGS" \
+    -mod vendor \
     . || {
     echo -e "${RED} failed to build linux binary!${RESET}" 1>&2
     exit 1

@@ -20,7 +20,7 @@ var (
 	BuildVersion    string
 
 	cfgFile string
-	logger  *zap.Logger
+	logger  = zap.NewNop()
 	verbose bool
 )
 

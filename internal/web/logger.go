@@ -1,0 +1,102 @@
+package web
+
+import (
+	"net/http"
+	"strings"
+	"time"
+
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+
+	"github.com/go-chi/chi/v5/middleware"
+)
+
+func MiddlewareLogger(logger *zap.Logger, ignorePaths []string) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Ignore paths
+			for _, path := range ignorePaths {
+				if stringGlob(path, r.URL.Path) {
+					next.ServeHTTP(w, r)
+					return
+				}
+			}
+
+			// Start a timer for request duration
+			start := time.Now()
+
+			// Get the request ID
+			var requestID string
+			if reqID := r.Context().Value(middleware.RequestIDKey); reqID != nil {
+				requestID = reqID.(string)
+			}
+
+			// Wrap the response writer
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+			next.ServeHTTP(ww, r)
+
+			reqDuration := time.Since(start)
+			fields := []zapcore.Field{
+				zap.Int("status", ww.Status()),
+				zap.Duration("took", reqDuration),
+				zap.String("remote", r.RemoteAddr),
+				zap.String("request", r.RequestURI),
+				zap.String("method", r.Method),
+			}
+			if requestID != "" {
+				fields = append(fields, zap.String("request-id", requestID))
+			}
+			logger.Debug("request completed", fields...)
+		})
+	}
+}
+
+// stringGlob will test a string pattern, potentially containing globs, against a
+// subject string. The result is a simple true/false, determining whether
+// the glob pattern matched the subject text or not.
+func stringGlob(pattern, subj string) bool {
+	// Empty pattern can only match empty subject
+	if pattern == "" {
+		return subj == pattern
+	}
+
+	// If the pattern _is_ a glob, it matches everything
+	if pattern == "*" {
+		return true
+	}
+
+	parts := strings.Split(pattern, "*")
+
+	if len(parts) == 1 {
+		// No globs in pattern, so test for equality
+		return subj == pattern
+	}
+
+	leadingGlob := strings.HasPrefix(pattern, "*")
+	trailingGlob := strings.HasSuffix(pattern, "*")
+	end := len(parts) - 1
+
+	// Go over the leading parts and ensure they match.
+	for i := 0; i < end; i++ {
+		idx := strings.Index(subj, parts[i])
+
+		switch i {
+		case 0:
+			// Check the first section. Requires special handling.
+			if !leadingGlob && idx != 0 {
+				return false
+			}
+		default:
+			// Check that the middle parts match.
+			if idx < 0 {
+				return false
+			}
+		}
+
+		// Trim evaluated text from subj as we loop over the pattern.
+		subj = subj[idx+len(parts[i]):]
+	}
+
+	// Reached the last section. Requires special handling.
+	return trailingGlob || strings.HasSuffix(subj, parts[end])
+}

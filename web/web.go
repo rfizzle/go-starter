@@ -5,9 +5,7 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"path"
-	"strings"
 )
 
 // Add all the files in static, including hidden files.
@@ -33,22 +31,14 @@ func AssetHandler(prefix, root string) http.Handler {
 	}
 
 	handler := fsFunc(func(name string) (fs.File, error) {
-		if strings.HasPrefix(name, "api") {
-			return nil, fs.ErrNotExist
-		}
-
 		assetPath := path.Join(root, name)
 
-		// If we can't find the asset, return the default index.html
-		// content
-		f, err := newStatic.Open(assetPath)
-		if os.IsNotExist(err) {
+		// Forward root requests to index
+		if name == "/" || name == "" {
 			return newStatic.Open("index.html")
 		}
 
-		// Otherwise assume this is a legitimate request routed
-		// correctly
-		return f, err
+		return newStatic.Open(assetPath)
 	})
 
 	return http.StripPrefix(prefix, http.FileServer(http.FS(handler)))

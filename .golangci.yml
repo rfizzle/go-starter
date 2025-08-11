@@ -1,0 +1,44 @@
+version: "2"
+run:
+  concurrency: 4
+  tests: true
+linters:
+  default: none
+  enable:
+    - errcheck
+    - gocritic
+    - gosec
+    - govet
+    - staticcheck
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - bin/
+      - build/
+      - docs/
+      - scripts/
+      - tmp/
+      - vendor/
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  enable:
+    - gofumpt
+  exclusions:
+    generated: lax
+    paths:
+      - bin/
+      - build/
+      - docs/
+      - scripts/
+      - tmp/
+      - vendor/
+      - third_party$
+      - builtin$
+      - examples$

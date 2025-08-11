@@ -18,9 +18,15 @@ type AuthEntity struct {
 }
 
 func NewAuthEntity(id string, opts ...Option) *AuthEntity {
-	return &AuthEntity{
+	entity := &AuthEntity{
 		id: id,
 	}
+
+	for _, opt := range opts {
+		opt(entity)
+	}
+
+	return entity
 }
 
 type Option func(a *AuthEntity)
