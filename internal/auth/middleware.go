@@ -41,23 +41,42 @@ func (a *Auth) Middleware() func(next http.Handler) http.Handler {
 }
 
 // RequireAuthentication function returns a middleware function that checks if the request contains an authenticated
-// subject. If the request does not contain an authenticated subject, the middleware returns a 401 HandleWithoutPolicy response.
+// subject. If the request does not contain an authenticated subject, the middleware returns a 401 Unauthorized response.
 func (a *Auth) RequireAuthentication() func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Get the authenticated subject from the context
 			s, err := a.subjectFromContext(r.Context())
 			if err != nil {
-				w.WriteHeader(401)
-				_, _ = w.Write([]byte("HandleWithoutPolicy"))
+				a.logger.Debug("authentication required but no subject in context", zap.Error(err))
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
 			}
 
 			// Fail if the entity ID is empty
 			if s == "" {
 				a.logger.Error("middleware: subject from context is empty")
-				w.WriteHeader(401)
-				_, _ = w.Write([]byte("HandleWithoutPolicy"))
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			next.ServeHTTP(w, r)
+		})
+	}
+}
+
+// RequireAuthenticationWithCustomResponse allows custom error response
+func (a *Auth) RequireAuthenticationWithCustomResponse(errorHandler func(w http.ResponseWriter, r *http.Request, err error)) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			s, err := a.subjectFromContext(r.Context())
+			if err != nil {
+				errorHandler(w, r, err)
+				return
+			}
+
+			if s == "" {
+				errorHandler(w, r, ErrUnauthorized)
 				return
 			}
 

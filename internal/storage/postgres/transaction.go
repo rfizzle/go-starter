@@ -18,7 +18,7 @@ type transaction struct {
 }
 
 func (provider *Provider) begin() (*transaction, error) {
-	ctx, cancelFunc := context.WithTimeout(provider.ctx, time.Second*provider.pingTimeout)
+	ctx, cancelFunc := context.WithTimeout(provider.ctx, provider.pingTimeout)
 
 	tx, err := provider.db.Begin(ctx)
 	if err != nil {

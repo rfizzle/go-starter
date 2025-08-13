@@ -40,7 +40,7 @@ func Open(ctx context.Context, options ...Option) (*Provider, error) {
 	provider := &Provider{
 		ctx:         ctx,
 		logger:      zap.NewNop(),
-		pingTimeout: defaultPingTimeoutSeconds,
+		pingTimeout: defaultPingTimeoutSeconds * time.Second,
 	}
 
 	// Apply options
@@ -65,7 +65,7 @@ func (provider *Provider) Name() string {
 }
 
 func (provider *Provider) Ping() error {
-	ctx, cancelFunc := context.WithTimeout(provider.ctx, time.Second*provider.pingTimeout)
+	ctx, cancelFunc := context.WithTimeout(provider.ctx, provider.pingTimeout)
 	defer cancelFunc()
 	return provider.db.Ping(ctx)
 }

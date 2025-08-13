@@ -14,8 +14,8 @@ func SafeStringIncludes(s string, arr []string) bool {
 }
 
 func PrependFunc(x []func(), y func()) []func() {
-	z := append(x, nil)
-	copy(z[1:], z)
-	z[0] = y
-	return z
+	x = append(x, nil)
+	copy(x[1:], x)
+	x[0] = y
+	return x
 }

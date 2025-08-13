@@ -28,7 +28,7 @@ type mockValidator struct {
 }
 
 func (mV *mockValidator) Validate(r *http.Request) (string, error) {
-	return mV.Subject, nil
+	return mV.Subject, mV.Err
 }
 
 func TestMockGenerator_NewToken(t *testing.T) {

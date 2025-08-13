@@ -92,6 +92,16 @@ func MockUserQuery(mock pgxmock.PgxPoolIface, users []User) {
 	mock.ExpectQuery("SELECT (.+) FROM users").WillReturnRows(rows)
 }
 
+// MockUserQueryWithArgs sets up expectations for a user query with arguments
+func MockUserQueryWithArgs(mock pgxmock.PgxPoolIface, users []User, args ...interface{}) {
+	rows := pgxmock.NewRows([]string{"id", "name", "email"})
+	for _, user := range users {
+		rows.AddRow(user.ID, user.Name, user.Email)
+	}
+
+	mock.ExpectQuery("SELECT (.+) FROM users").WithArgs(args...).WillReturnRows(rows)
+}
+
 // MockUserInsert sets up expectations for a user insert
 func MockUserInsert(mock pgxmock.PgxPoolIface, user User) {
 	mock.ExpectExec("INSERT INTO users").
@@ -128,6 +138,8 @@ func MockTransactionWithRollback(mock pgxmock.PgxPoolIface) {
 // MockBatchInsert sets up expectations for batch insert operations
 func MockBatchInsert(mock pgxmock.PgxPoolIface, users []User) {
 	mock.ExpectBegin()
+	// pgxmock doesn't fully support batch operations, so we'll skip batch testing
+	// or use individual exec calls in a simplified test
 	for _, user := range users {
 		mock.ExpectExec("INSERT INTO users").
 			WithArgs(user.Name, user.Email).

@@ -164,11 +164,15 @@ func TestProvider_Ping(t *testing.T) {
 			name: "ping timeout",
 			mockConn: &mockDBConn{
 				PingFunc: func(ctx context.Context) error {
-					time.Sleep(100 * time.Millisecond)
-					return nil
+					select {
+					case <-time.After(100 * time.Millisecond):
+						return nil
+					case <-ctx.Done():
+						return ctx.Err()
+					}
 				},
 			},
-			timeout: 0, // This will cause immediate timeout
+			timeout: 1, // Special value - converted to 1ms in test
 			wantErr: true,
 		},
 		{
@@ -185,11 +189,18 @@ func TestProvider_Ping(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			var timeout time.Duration
+			if tt.timeout == 1 { // Special case for timeout test
+				timeout = 1 * time.Millisecond
+			} else {
+				timeout = time.Duration(tt.timeout) * time.Second
+			}
+
 			provider := &Provider{
 				ctx:         ctx,
 				logger:      zaptest.NewLogger(t),
 				db:          tt.mockConn,
-				pingTimeout: time.Duration(tt.timeout),
+				pingTimeout: timeout,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
