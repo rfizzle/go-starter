@@ -118,6 +118,50 @@ docker: ## Use the dockerfile to build the container
 	@echo "${MAGENTA}Building docker image...${RESET}"
 	@./scripts/docker-build.bash
 
+## AI:
+ai-agents:
+	@echo "Available agents:"
+	@ls docs/ai/agents/*.md.tpl | xargs -n 1 basename | sed 's/\.md\.tpl//'
+
+ai-feature: check-title
+	@echo "--> Initializing new feature: '$(TITLE)'..."
+	@./scripts/init-feature.sh "$(TITLE)"
+
+# --- Agent Runner Targets ---
+.PHONY: run-plan run-code run-review
+ai-architect: check-feature
+	@echo "--> Running Architect Agent on feature '$(FEATURE)'..."
+	@./scripts/agent.sh architect $(FEATURE)
+
+ai-plan: check-feature
+	@echo "--> Running Plan Agent on feature '$(FEATURE)'..."
+	@./scripts/agent.sh plan $(FEATURE)
+
+ai-test: check-feature
+	@echo "--> Running Test Agent on feature '$(FEATURE)'..."
+	@./scripts/agent.sh test $(FEATURE)
+
+ai-code: check-feature
+	@echo "--> Running Code Agent on feature '$(FEATURE)'..."
+	@./scripts/agent.sh code $(FEATURE)
+
+ai-review: check-feature
+	@echo "--> Running Review Agent on feature '$(FEATURE)'..."
+	@./scripts/agent.sh review $(FEATURE)
+
+# --- Internal Check Target ---
+# This is a helper to ensure the FEATURE variable is always set for agent targets.
+.PHONY: check-feature
+check-feature:
+ifndef FEATURE
+	$(error FEATURE is not set. Usage: make <target> FEATURE=<feature-name>)
+endif
+
+check-title:
+ifndef TITLE
+	$(error TITLE is not set. Usage: make ai-feature TITLE="Your Feature Title")
+endif
+
 ## Help:
 help: ## Show this help.
 	@echo ''
