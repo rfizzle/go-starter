@@ -29,7 +29,3 @@ node_modules/
 
 # Binaries
 bin/
-
-# AI
-.aider*
-.claude

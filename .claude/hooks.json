@@ -1,0 +1,66 @@
+{
+  "hooks": [
+    {
+      "name": "project_context",
+      "event": "UserPromptSubmit",
+      "matcher": "plan:|task:|implement:|review:",
+      "action": {
+        "type": "addContext",
+        "files": [
+          "docs/package-pattern.md",
+          "docs/project-context.md"
+        ],
+        "contextMessage": "Project context loaded automatically for development tasks."
+      }
+    },
+    {
+      "name": "feature_context",
+      "event": "UserPromptSubmit",
+      "matcher": "task:|implement:|review:",
+      "action": {
+        "type": "addContext",
+        "files": [
+          "docs/features/**/plan.md",
+          "docs/features/**/development-log.md"
+        ],
+        "contextMessage": "Loading existing feature plans and development logs if available."
+      }
+    },
+    {
+      "name": "plan_helper",
+      "event": "UserPromptSubmit",
+      "matcher": "^plan:",
+      "action": {
+        "type": "addContext",
+        "files": [
+          "docs/ai/prompts/plan-agent.md"
+        ],
+        "contextMessage": "Planning guidance loaded."
+      }
+    },
+    {
+      "name": "task_helper",
+      "event": "UserPromptSubmit", 
+      "matcher": "^task:",
+      "action": {
+        "type": "addContext",
+        "files": [
+          "docs/ai/prompts/task-agent.md"
+        ],
+        "contextMessage": "Task implementation guidance loaded."
+      }
+    },
+    {
+      "name": "review_helper",
+      "event": "UserPromptSubmit",
+      "matcher": "^review:",
+      "action": {
+        "type": "addContext", 
+        "files": [
+          "docs/ai/prompts/review-agent.md"
+        ],
+        "contextMessage": "Code review guidance loaded."
+      }
+    }
+  ]
+}
