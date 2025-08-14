@@ -118,49 +118,47 @@ docker: ## Use the dockerfile to build the container
 	@echo "${MAGENTA}Building docker image...${RESET}"
 	@./scripts/docker-build.bash
 
-## AI:
-agents:
-	@echo "Available agents:"
-	@ls docs/ai/agents/*.md.tpl | xargs -n 1 basename | sed 's/\.md\.tpl//'
+## AI Development:
+ai-help: ## Show AI workflow commands
+	@echo "${CYAN}AI Development Workflow:${RESET}"
+	@echo ""
+	@echo "${YELLOW}Planning Phase:${RESET}"
+	@echo "  ${GREEN}claude${RESET} then type: ${BLUE}plan: <feature description>${RESET}"
+	@echo "  Creates: docs/features/<feature-name>/plan.md + development-log.md"
+	@echo ""
+	@echo "${YELLOW}Implementation Phase:${RESET}"
+	@echo "  ${GREEN}claude${RESET} then type: ${BLUE}task: <implementation task>${RESET}"
+	@echo "  Implements code and updates development log"
+	@echo ""
+	@echo "${YELLOW}Review Phase:${RESET}"
+	@echo "  ${GREEN}claude${RESET} then type: ${BLUE}review: <review request>${RESET}"
+	@echo "  Reviews recent changes with project context"
+	@echo ""
+	@echo "${YELLOW}Examples:${RESET}"
+	@echo "  ${GREEN}claude${RESET} → ${BLUE}plan: Add user authentication system${RESET}"
+	@echo "  ${GREEN}claude${RESET} → ${BLUE}task: Implement Phase 1 from the auth plan${RESET}"
+	@echo "  ${GREEN}claude${RESET} → ${BLUE}review: Check the authentication implementation${RESET}"
+	@echo ""
+	@echo "${YELLOW}Features tracking:${RESET} docs/features/"
+	@echo "${YELLOW}AI configuration:${RESET} .claude/hooks.json"
 
-feature: check-title
-	@echo "--> Initializing new feature: '$(TITLE)'..."
-	@./scripts/feature.bash "$(TITLE)"
+ai-features: ## List existing feature directories
+	@echo "${CYAN}Existing Features:${RESET}"
+	@if [ -d "docs/features" ]; then \
+		ls -la docs/features/ | grep "^d" | awk '{print "  " $$9}' | grep -v "^  \\."; \
+	else \
+		echo "  No features directory found. Use 'claude' with 'plan:' to create your first feature."; \
+	fi
 
-# --- Agent Runner Targets ---
-.PHONY: run-plan run-code run-review
-ai-architect: check-feature
-	@echo "--> Running Architect Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.bash architect $(FEATURE)
+## AI Agent Starters:
+ai-plan: ## Start Claude Code planning session (Usage: make ai-plan FEATURE="feature description")
+	@./scripts/ai-plan.bash "$(FEATURE)"
 
-ai-plan: check-feature
-	@echo "--> Running Plan Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.bash plan $(FEATURE)
+ai-task: ## Start Claude Code task session (Usage: make ai-task TASK="task description") 
+	@./scripts/ai-task.bash "$(TASK)"
 
-ai-test: check-feature
-	@echo "--> Running Test Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.bash test $(FEATURE)
-
-ai-code: check-feature
-	@echo "--> Running Code Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.bash code $(FEATURE)
-
-ai-review: check-feature
-	@echo "--> Running Review Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.bash review $(FEATURE)
-
-# --- Internal Check Target ---
-# This is a helper to ensure the FEATURE variable is always set for agent targets.
-.PHONY: check-feature
-check-feature:
-ifndef FEATURE
-	$(error FEATURE is not set. Usage: make <target> FEATURE=<feature-name>)
-endif
-
-check-title:
-ifndef TITLE
-	$(error TITLE is not set. Usage: make ai-feature TITLE="Your Feature Title")
-endif
+ai-review: ## Start Claude Code review session
+	@./scripts/ai-review.bash "$(if $(REVIEW),$(REVIEW),Check recent changes)"
 
 ## Help:
 help: ## Show this help.
