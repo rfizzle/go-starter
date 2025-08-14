@@ -1,8 +1,9 @@
 package ratelimiter
 
 import (
-	"go.uber.org/zap"
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 // RateLimitMiddleware creates middleware that rate limits authentication attempts

@@ -66,6 +66,7 @@ load_file_content "TECH_STACK_CONTENT" "docs/tech_stack.md"
 load_file_content "PACKAGE_PATTERN_CONTENT" "docs/package_pattern.md"
 
 # Load feature-level context files
+load_file_content "FEATURE_CONTENT" "${FEATURE_DIR}/feature.md"
 load_file_content "FEATURE_REQUEST_CONTENT" "${FEATURE_DIR}/request.md"
 load_file_content "FEATURE_ARCHITECTURE_CONTENT" "${FEATURE_DIR}/architecture.md"
 load_file_content "FEATURE_PLAN_CONTENT" "${FEATURE_DIR}/plan.md"

@@ -131,23 +131,23 @@ feature: check-title
 .PHONY: run-plan run-code run-review
 ai-architect: check-feature
 	@echo "--> Running Architect Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.sh architect $(FEATURE)
+	@./scripts/agent.bash architect $(FEATURE)
 
 ai-plan: check-feature
 	@echo "--> Running Plan Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.sh plan $(FEATURE)
+	@./scripts/agent.bash plan $(FEATURE)
 
 ai-test: check-feature
 	@echo "--> Running Test Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.sh test $(FEATURE)
+	@./scripts/agent.bash test $(FEATURE)
 
 ai-code: check-feature
 	@echo "--> Running Code Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.sh code $(FEATURE)
+	@./scripts/agent.bash code $(FEATURE)
 
 ai-review: check-feature
 	@echo "--> Running Review Agent on feature '$(FEATURE)'..."
-	@./scripts/agent.sh review $(FEATURE)
+	@./scripts/agent.bash review $(FEATURE)
 
 # --- Internal Check Target ---
 # This is a helper to ensure the FEATURE variable is always set for agent targets.

@@ -20,10 +20,9 @@ type Validator interface {
 }
 
 type Auth struct {
-	validator      Validator
-	contextKey     string
-	logger         *zap.Logger
-	securityConfig *SecurityConfig
+	validator  Validator
+	contextKey string
+	logger     *zap.Logger
 }
 
 func NewAuth(validator Validator, options ...Options) (*Auth, error) {

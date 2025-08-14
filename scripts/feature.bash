@@ -43,10 +43,10 @@ echo "Creating new feature directory: ${FEATURE_PATH}"
 mkdir -p "$FEATURE_PATH"
 
 # Copy the template and rename it to request.md
-cp docs/ai/feature_template.md "${FEATURE_PATH}/request.md"
+cp docs/feature_template.md "${FEATURE_PATH}/feature.md"
 
 # Replace the placeholder title in the new request.md file.
-sed -i.bak "s/\[Feature Title\]/$FEATURE_TITLE/g" "${FEATURE_PATH}/request.md"
+sed -i.bak "s/\[Feature Title\]/$FEATURE_TITLE/g" "${FEATURE_PATH}/feature.md"
 rm "${FEATURE_PATH}/request.md.bak" # Clean up the backup file
 
 # 5. CREATE AND CHECKOUT GIT BRANCH
@@ -56,6 +56,6 @@ git checkout -b "$BRANCH_NAME"
 
 echo ""
 echo "✅ Feature created and checked out successfully!"
-echo "   Path: ${FEATURE_PATH}/request.md"
+echo "   Path: ${FEATURE_PATH}/feature.md"
 echo "   Branch: $(git rev-parse --abbrev-ref HEAD)"
 echo "   Next step: Fill out the details in the request.md file, then commit the new feature request."
