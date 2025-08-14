@@ -7,7 +7,7 @@
 set -e
 
 # 1. VALIDATE ARGUMENTS
-if [ "$#" -ne 3 ]; then
+if [ "$#" -ne 2 ]; then
     echo "Usage: $0 <agent_name> <feature_name>"
     exit 1
 fi
@@ -17,7 +17,7 @@ FEATURE_NAME=$2
 
 # 2. DEFINE PATHS
 AGENT_TEMPLATE_FILE="docs/ai/agents/${AGENT}.md.tpl"
-FEATURE_DIR="features/${FEATURE_NAME}"
+FEATURE_DIR="docs/features/${FEATURE_NAME}"
 FINAL_PROMPT_FILE=$(mktemp) # Create a temporary file for the final prompt
 
 # Ensure the temporary file is cleaned up on exit
@@ -66,6 +66,7 @@ load_file_content "TECH_STACK_CONTENT" "docs/tech_stack.md"
 
 # Load feature-level context files
 load_file_content "FEATURE_REQUEST_CONTENT" "${FEATURE_DIR}/request.md"
+load_file_content "FEATURE_ARCHITECTURE_CONTENT" "${FEATURE_DIR}/architecture.md"
 load_file_content "FEATURE_PLAN_CONTENT" "${FEATURE_DIR}/plan.md"
 load_file_content "FEATURE_DEVELOPMENT_LOG" "${FEATURE_DIR}/development-log.md"
 load_file_content "FEATURE_REVIEW_CONTENT" "${FEATURE_DIR}/review.md"

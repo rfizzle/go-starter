@@ -37,9 +37,9 @@ ${FEATURE_PLAN_CONTENT}
 - Implement the **smallest vertical slice** so current SPEC tests pass.
 - Generate **real code** + **table-driven unit tests for any newly added functions**.
 - Respect project layout:
-    - Interfaces under `pkg/<domain>/` (if any missing, add them here—not in tests).
-    - Implementations under child packages (e.g., `pkg/<domain>/core`, `pkg/<domain>/postgres`).
-    - HTTP/gRPC wiring under `internal/`.
+    - Interfaces under `internal/<domain>/` (if any missing, add them here—not in tests).
+    - Implementations under child packages (e.g., `internal/<domain>/core`, `internal/storage/<domain>`).
+    - HTTP handlers under `internal/controller/`, web server integration under `internal/web/`.
 - Update **`docs/features/<feature>/development-log.md`**: append a timestamped entry of changes, referencing the action IDs you addressed (e.g., R1, R3) if relevant.
 - Use **patch/file-block** format.
 

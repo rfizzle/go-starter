@@ -125,7 +125,7 @@ ai-agents:
 
 ai-feature: check-title
 	@echo "--> Initializing new feature: '$(TITLE)'..."
-	@./scripts/init-feature.sh "$(TITLE)"
+	@./scripts/feature.bash "$(TITLE)"
 
 # --- Agent Runner Targets ---
 .PHONY: run-plan run-code run-review

@@ -43,7 +43,7 @@ echo "Creating new feature directory: ${FEATURE_PATH}"
 mkdir -p "$FEATURE_PATH"
 
 # Copy the template and rename it to request.md
-cp feature_template.md "${FEATURE_PATH}/request.md"
+cp docs/ai/feature_template.md "${FEATURE_PATH}/request.md"
 
 # Replace the placeholder title in the new request.md file.
 sed -i.bak "s/\[Feature Title\]/$FEATURE_TITLE/g" "${FEATURE_PATH}/request.md"

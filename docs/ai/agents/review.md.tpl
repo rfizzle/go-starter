@@ -55,11 +55,11 @@ items:
     rationale: "Blocking I/O may hang; missing timeouts."
     severity: high            # high | medium | low
     type: bugfix              # bugfix | security | test | refactor | perf | docs
-    files: ["pkg/approvals/core/service.go"]
+    files: ["internal/approvals/core/service.go"]
     estimate_hours: 1.0
     suggested_diff: |
       *** BEGIN PATCH
-      *** Update File: pkg/approvals/core/service.go
+      *** Update File: internal/approvals/core/service.go
       @@
       - func (s *service) Get(ctx context.Context, id string) (approvals.Approval, error) {
       + func (s *service) Get(ctx context.Context, id string) (approvals.Approval, error) {

@@ -41,9 +41,10 @@ When rerun, **replace** both files entirely.
 3. ASCII Component Diagram
 4. Data Flow (normal/error paths; retries; idempotency)
 5. Go Package Layout
-    - Interfaces in `pkg/<domain>/...`
-    - Implementations in child packages (e.g., `pkg/<domain>/core`, `pkg/<domain>/postgres`)
-    - HTTP/gRPC in `internal/`
+    - Core interfaces in `internal/<domain>/...`
+    - Implementations in child packages (e.g., `internal/<domain>/core`, `internal/storage/<domain>`)
+    - HTTP handlers in `internal/controller/`
+    - Web server integration in `internal/web/`
 6. API Surface (REST/gRPC sketches, validation, pagination)
 7. Storage & Migrations
 8. Security Model
@@ -52,7 +53,7 @@ When rerun, **replace** both files entirely.
     - Brief STRIDE table with mitigations
 9. Observability (logs, metrics, traces, audit)
 10. Deployment & Ops (config, flags, rollout/rollback)
-11. Testing Strategy (call out **conformance tests** in `pkg/<domain>/conformance_test.go`)
+11. Testing Strategy (call out **conformance tests** in `internal/<domain>/conformance_test.go`)
 12. Risks & Alternatives
 
 # STYLE

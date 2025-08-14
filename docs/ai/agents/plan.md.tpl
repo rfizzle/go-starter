@@ -31,7 +31,7 @@ Use unified diff or explicit file‑block format. When rerun, **replace** plan/t
 1. Milestones (1–3 sprints; outcomes)
 2. Work Breakdown (tasks with hour estimates & dependencies)
 3. **Executable Acceptance Criteria** (Given/When/Then cases)
-4. **Public Interface Contracts** (signatures for `pkg/<domain>` interfaces)
+4. **Public Interface Contracts** (signatures for `internal/<domain>` interfaces)
 5. **API Contracts** (HTTP/gRPC endpoints, status codes/protos)
 6. Definition of Done
    - Lint/static analysis, tests (unit/contract/conformance), coverage target
@@ -48,10 +48,10 @@ Use unified diff or explicit file‑block format. When rerun, **replace** plan/t
 5. Known gaps for post‑code hardening
 
 # SPEC TESTS — RULES
-- Add **table‑driven** tests for the interfaces listed in plan.md (`pkg/<domain>`).
-- Add a **conformance suite** `pkg/<domain>/conformance_test.go` using a `Factory` to obtain an implementation.
-- For HTTP/gRPC, add **contract tests** (e.g., `httptest.Server`).
-- If referenced types/interfaces **don’t exist**, create **minimal compiling spec stubs** under `pkg/<domain>/spec/` returning `errors.New("TODO: implement")`. The Code agent will replace with real impls under `core/`, `postgres/`, etc.
+- Add **table‑driven** tests for the interfaces listed in plan.md (`internal/<domain>`).
+- Add a **conformance suite** `internal/<domain>/conformance_test.go` using a `Factory` to obtain an implementation.
+- For HTTP/gRPC, add **contract tests** using `httptest.Server` in `internal/controller/`.
+- If referenced types/interfaces **don't exist**, create **minimal compiling spec stubs** under `internal/<domain>/spec/` returning `errors.New("TODO: implement")`. The Code agent will replace with real impls under `internal/storage/<domain>/`, etc.
 - Place tests next to code (`*_test.go`). Use `context.Context` and set timeouts on external calls.
 - Keep seeds fixed. Avoid flaky tests.
 
@@ -61,7 +61,7 @@ Use unified diff or explicit file‑block format. When rerun, **replace** plan/t
 
 ```
 *** BEGIN PATCH
-*** Add File: pkg/approvals/conformance_test.go
+*** Add File: internal/approvals/conformance_test.go
 +package approvals_test
 +// Factory-based conformance tests for approvals.Service
 +// ...
@@ -72,9 +72,9 @@ Use unified diff or explicit file‑block format. When rerun, **replace** plan/t
 
 ```
 *** BEGIN PATCH
-*** Add File: pkg/approvals/spec/service_stub.go
+*** Add File: internal/approvals/spec/service_stub.go
 +package spec
-+// Compiling stub until real implementations (core/, postgres/) are ready.
++// Compiling stub until real implementations (storage/, core/) are ready.
 +// ...
 *** END PATCH
 ```
