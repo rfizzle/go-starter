@@ -52,9 +52,10 @@ When rerun, **replace** both files entirely.
     - Secrets/KMS, input validation, least privilege
     - Brief STRIDE table with mitigations
 9. Observability (logs, metrics, traces, audit)
-10. Deployment & Ops (config, flags, rollout/rollback)
-11. Testing Strategy (call out **conformance tests** in `internal/<domain>/conformance_test.go`)
-12. Risks & Alternatives
+10. Dependencies (Libraries and Packages)
+11. Deployment & Ops (config, flags, rollout/rollback)
+12. Testing Strategy (call out **conformance tests** in `internal/<domain>/conformance_test.go`)
+13. Risks & Alternatives
 
 # STYLE
 - Bullet‑heavy, ~1000–1400 words total across both docs.

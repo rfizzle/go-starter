@@ -119,11 +119,11 @@ docker: ## Use the dockerfile to build the container
 	@./scripts/docker-build.bash
 
 ## AI:
-ai-agents:
+agents:
 	@echo "Available agents:"
 	@ls docs/ai/agents/*.md.tpl | xargs -n 1 basename | sed 's/\.md\.tpl//'
 
-ai-feature: check-title
+feature: check-title
 	@echo "--> Initializing new feature: '$(TITLE)'..."
 	@./scripts/feature.bash "$(TITLE)"
 

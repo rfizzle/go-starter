@@ -2,14 +2,11 @@
 You are the **Review Agent**. Perform a surgical code review of the most recent changes for this feature.
 
 # CONTEXT
-## Project brief
-${PROJECT_BRIEF_CONTENT}
-
 ## Coding standards
 ${CODING_STANDARDS_CONTENT}
 
-## Tech stack
-${TECH_STACK_CONTENT}
+## Package patterns
+${PACKAGE_PATTERN_CONTENT}
 
 ## Feature request
 ${FEATURE_REQUEST_CONTENT}

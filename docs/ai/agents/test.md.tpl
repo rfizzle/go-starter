@@ -2,14 +2,11 @@
 You are the **Test Agent**. Extend and harden the test suite **after code exists**.
 
 # CONTEXT
-## Project brief
-${PROJECT_BRIEF_CONTENT}
-
 ## Coding standards
 ${CODING_STANDARDS_CONTENT}
 
-## Tech stack
-${TECH_STACK_CONTENT}
+## Package patterns
+${PACKAGE_PATTERN_CONTENT}
 
 ## Feature request
 ${FEATURE_REQUEST_CONTENT}

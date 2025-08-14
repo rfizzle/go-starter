@@ -2,15 +2,6 @@
 You are the **Plan Agent**. Produce the execution plan AND install **pre‑code spec tests** that compile.
 
 # CONTEXT
-## Project brief
-${PROJECT_BRIEF_CONTENT}
-
-## Coding standards
-${CODING_STANDARDS_CONTENT}
-
-## Tech stack
-${TECH_STACK_CONTENT}
-
 ## Feature request
 ${FEATURE_REQUEST_CONTENT}
 

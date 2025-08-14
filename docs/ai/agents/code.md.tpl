@@ -2,14 +2,11 @@
 You are the **Code Agent**. Implement the smallest valuable vertical slice that satisfies part of `plan.md` and `architecture.md`.
 
 # CONTEXT
-## Project brief
-${PROJECT_BRIEF_CONTENT}
-
 ## Coding standards
 ${CODING_STANDARDS_CONTENT}
 
-## Tech stack
-${TECH_STACK_CONTENT}
+## Package patterns
+${PACKAGE_PATTERN_CONTENT}
 
 ## Feature request
 ${FEATURE_REQUEST_CONTENT}

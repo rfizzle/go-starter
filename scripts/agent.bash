@@ -63,6 +63,7 @@ load_file_content() {
 load_file_content "PROJECT_BRIEF_CONTENT" "docs/project_brief.md"
 load_file_content "CODING_STANDARDS_CONTENT" "docs/coding_standards.md"
 load_file_content "TECH_STACK_CONTENT" "docs/tech_stack.md"
+load_file_content "PACKAGE_PATTERN_CONTENT" "docs/package_pattern.md"
 
 # Load feature-level context files
 load_file_content "FEATURE_REQUEST_CONTENT" "${FEATURE_DIR}/request.md"
@@ -86,16 +87,16 @@ case "$AGENT" in
     aider --model "gpt-5" --reasoning-effort high --message-file "$FINAL_PROMPT_FILE"
     ;;
   plan)
-    cat "$FINAL_PROMPT_FILE" | claude
+    claude < "$FINAL_PROMPT_FILE"
     ;;
   code)
-    cat "$FINAL_PROMPT_FILE" | claude
+    claude < "$FINAL_PROMPT_FILE"
     ;;
   test)
     aider --model "o3-pro" --reasoning-effort high --message-file "$FINAL_PROMPT_FILE"
     ;;
   review)
-    cat "$FINAL_PROMPT_FILE" | claude
+    claude < "$FINAL_PROMPT_FILE"
     ;;
   *)
     echo "Error: Unknown agent '$AGENT'."

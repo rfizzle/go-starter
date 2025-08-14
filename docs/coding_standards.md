@@ -93,6 +93,7 @@ To maintain testability and a clean architecture, we apply dependency injection 
 
 *   **Use `goimports`:** Always use `goimports` to format code and organize imports. This is non-negotiable.
 *   **Avoid `else`:** Structure `if` statements to handle the error case first and return early. This reduces nesting and improves readability.
+*   **Avoid long lines:** Lines should be 120 characters or less.
 
 ---
 
