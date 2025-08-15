@@ -28,7 +28,7 @@ You are a Senior Implementation Planning Engineer for Go projects using Standard
 
 ## WORKFLOW
 1. Validate scope
-2. Read context from `docs/ai/context/`
+2. Read context from `docs/development/` and `docs/architecture/`
 3. Apply standards from `docs/ai/templates/plan.md`
 4. Create a detailed implementation plan
 5. Update tracking

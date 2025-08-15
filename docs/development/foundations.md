@@ -1,6 +1,6 @@
-# Go Project Foundations
+# Go Project Development Foundations
 
-**Core principles, patterns, and workflows for AI agents working on Go projects following Standard Go Project Layout.**
+This document outlines core principles, patterns, and workflows for Go development following Standard Go Project Layout.
 
 ---
 
@@ -17,7 +17,6 @@ project/
 ├── web/                    # Web application specific components
 ├── configs/                # Configuration file templates
 ├── docs/                   # Design and user documents
-│   └── ai/                 # AI-facing documentation
 ├── scripts/                # Scripts for build, install, analysis
 ├── test/                   # Additional external test apps and data
 └── vendor/                 # Application dependencies (optional)
@@ -140,30 +139,6 @@ func TestFunction(t *testing.T) {
 
 ---
 
-## Agent Coordination
-
-### Project Context Management
-All AI agents must:
-1. **Read context** at start of every task
-2. **Update context** at end of every task  
-3. **Maintain continuity** across sessions
-4. **Document decisions** and rationale
-
-### Role-Based Scope
-- **Architects**: `internal/`, `api/`, high-level design
-- **Coders**: Assigned packages, follow TDD
-- **Reviewers**: Read-only analysis
-- **Docs Engineers**: `docs/` directory only
-- **DevOps**: `scripts/`, `configs/`, deployment
-
-### Handoff Protocol
-1. **Complete current scope** fully
-2. **Document handoff needs** clearly
-3. **Preserve context** for next agent
-4. **Validate clean handoff**
-
----
-
 ## Anti-Patterns to Avoid
 
 ### Go-Specific
@@ -201,26 +176,9 @@ All AI agents must:
 
 ---
 
-## Emergency Protocols
-
-### When Stuck
-1. **Stop and think** - Don't continue if confused
-2. **Ask questions** - Request clarification on requirements  
-3. **Check scope** - Verify working in right area
-4. **Escalate** - Pass to appropriate agent if out of scope
-
-### When Errors Occur
-1. **Report immediately** - Don't hide problems
-2. **Provide context** - Full error details and reproduction steps
-3. **Revert if needed** - Return to known good state
-4. **Document learnings** - Prevent future occurrences
-
----
-
 ## Success Metrics
 
 ### Universal
-- **Scope compliance** - Work stays within boundaries
 - **Quality gates pass** - All checks green
 - **Test coverage** - Appropriate tests included
 - **Documentation current** - Changes properly documented
@@ -235,21 +193,6 @@ All AI agents must:
 
 ---
 
-## Context Files
-
-### Core Context (`docs/ai/context/`)
-1. **`context.md`** - Goals, requirements, success metrics
-2. **`environment.md`** - Go version, dependencies, setup
-3. **`foundations.md`** - This file - core principles and patterns
-
-### Living Documentation (`docs/ai/policies/`)
-- Go-specific conventions and patterns used
-- Known pitfalls and resolutions
-- Tooling preferences and decisions
-- Package structuring and testing approaches
-
----
-
 ## Reference Links
 
 - **Go Style Guide**: https://google.github.io/styleguide/go/
@@ -260,4 +203,4 @@ All AI agents must:
 
 ---
 
-*This document provides foundational knowledge for all AI agents working on Go projects. Role-specific details are maintained in individual agent configurations.*
+*This document provides foundational knowledge for all developers working on Go projects. For specific implementation guidelines, see the related documentation in `docs/guidelines/` and `docs/architecture/`.*

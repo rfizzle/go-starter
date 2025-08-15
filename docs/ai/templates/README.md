@@ -59,12 +59,13 @@ cp docs/ai/templates/[template-type].md docs/ai/[target-directory]/[new-file-nam
 
 ### Step 4: Validate
 - All placeholders replaced
-- Links work within `docs/ai/` scope
+- Links work within project documentation
 - Content follows Go project conventions
 - Quality standards met
 
 ### Step 5: Update Documentation
 - Update cross-references
+- Update any related documentation
 
 ## Design Principles
 
@@ -94,13 +95,13 @@ cp docs/ai/templates/[template-type].md docs/ai/[target-directory]/[new-file-nam
 1. Start with the template - don't create from scratch
 2. Follow naming conventions (use established patterns)
 3. Be specific - replace placeholders with concrete content
-4. Cross-reference related documents in `docs/ai/`
-5. Validate scope stays within `docs/ai/` boundaries
+4. Cross-reference related documents appropriately
+5. Validate scope definitions are clear
 
 ### Using with AI Agents
-1. Reference `docs/ai/context/foundations.md`
+1. Reference `docs/development/foundations.md` for core principles
 2. Use scope enforcement consistently
-3. Provide relevant context files
+3. Provide relevant context from `docs/development/` and `docs/architecture/`
 4. Keep documents current with project evolution
 
 ## Examples
@@ -114,15 +115,15 @@ cp docs/ai/templates/prompt.md docs/ai/prompts/30-reviewer.md
 
 ### Policy Development
 ```bash
-# Creating a security policy
-cp docs/ai/templates/policy.md docs/ai/policies/security.md
+# Creating a security policy in the architecture directory
+cp docs/ai/templates/policy.md docs/architecture/security-policy.md
 # Define security requirements and compliance measures
 ```
 
 ### Feature Documentation
 ```bash
 # Documenting an authentication feature
-cp docs/ai/templates/feature.md docs/ai/features/authentication.md
+cp docs/ai/templates/feature.md docs/features/authentication.md
 # Capture requirements, acceptance criteria, and implementation guidance
 ```
 

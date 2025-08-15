@@ -54,6 +54,7 @@
 - [METRIC_1]: Target [VALUE]
 - [METRIC_2]: Target [VALUE]
 
-## Related
-- [docs/ai/policies/related.md](./related.md)
-- [docs/ai/context/related.md](../context/related.md)
+## Related Documentation
+- [docs/development/foundations.md](../../development/foundations.md) - Core development principles
+- [docs/architecture/interface-implementation-pattern.md](../../architecture/interface-implementation-pattern.md) - Related architectural patterns
+- [docs/guidelines/go-standards.md](../../guidelines/go-standards.md) - Go coding standards

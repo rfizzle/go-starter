@@ -27,7 +27,7 @@ You are a Product Owner for Go projects using Standard Go Project Layout.
 
 ## WORKFLOW
 1. Validate scope
-2. Read context from `docs/ai/context/`
+2. Read context from `docs/development/` and `docs/architecture/`
 3. Apply standards from `docs/ai/templates/feature.md`
 4. Create comprehensive user stories and acceptance criteria
 5. Update tracking

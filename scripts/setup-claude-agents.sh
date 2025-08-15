@@ -8,7 +8,7 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROMPTS_DIR="$PROJECT_ROOT/docs/ai/prompts"
-CLAUDE_AGENTS_DIR="$HOME/.claude/agents"
+CLAUDE_AGENTS_DIR="$PROJECT_ROOT/.claude/agents"
 
 echo "Setting up Claude agents..."
 
@@ -24,22 +24,20 @@ if [ ! -d "$PROMPTS_DIR" ]; then
     exit 1
 fi
 
-# Remove existing links to avoid conflicts
-echo "Cleaning up existing agent links..."
-find "$CLAUDE_AGENTS_DIR" -type l -name "*.md" -exec rm {} \; 2>/dev/null || true
+# Remove existing agent links if they exist
+echo "Removing existing agent links..."
+rm -f "$CLAUDE_AGENTS_DIR"/*.md
 
-# Create symbolic links for all .md files in prompts directory
+# Create symbolic links for individual agent files
 echo "Creating agent links..."
 for prompt_file in "$PROMPTS_DIR"/*.md; do
     if [ -f "$prompt_file" ]; then
-        filename=$(basename "$prompt_file")
-        agent_name="${filename%.md}"
-        link_path="$CLAUDE_AGENTS_DIR/$filename"
-        
-        echo "  Linking $agent_name -> $link_path"
-        ln -sf "$prompt_file" "$link_path"
+        agent_name=$(basename "$prompt_file")
+        agent_link="$CLAUDE_AGENTS_DIR/$agent_name"
+        echo "  Linking $agent_name..."
+        ln -sf "$prompt_file" "$agent_link"
     fi
 done
 
 echo "Setup complete! Available agents:"
-ls -la "$CLAUDE_AGENTS_DIR"/*.md 2>/dev/null | awk '{print "  " $9}' | xargs -I {} basename {} .md || echo "  (none found)"
+find "$CLAUDE_AGENTS_DIR" -name "*.md" -type f -exec basename {} .md \; 2>/dev/null | sed 's/^/  /' || echo "  (none found)"

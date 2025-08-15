@@ -27,8 +27,8 @@ You are a [ROLE_TITLE] for Go projects using Standard Go Project Layout.
 
 ## WORKFLOW
 1. Validate scope
-2. Read context from docs/ai/context/
-3. Apply standards from docs/ai/context/foundations.md
+2. Read context from `docs/development/` and `docs/architecture/`
+3. Apply standards from `docs/development/foundations.md`
 4. Implement with quality standards
 5. Update tracking
 

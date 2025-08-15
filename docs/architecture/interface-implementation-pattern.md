@@ -1,4 +1,4 @@
-# Interface-Implementation Package Pattern Policy
+# Interface-Implementation Package Pattern
 
 > **Scope:** Go package architecture and interface design patterns  
 > **Applies to:** All Go packages in `internal/` and `pkg/` directories  
@@ -24,24 +24,24 @@
 4. Constructor functions use pattern `New<InterfaceName>(options...)`
 5. Implementation structs should not be exported unless necessary
 
-## Implementation
+## Implementation Guidelines
 
-### For AI Agents
-- Interface First: Always define or reference interface before implementing
-- Version Awareness: Place new implementations in appropriate version sub-packages
-- Testing Strategy: Write tests against interfaces, not concrete implementations
-- Documentation: Document interface contracts thoroughly, including error conditions
+### For Development Teams
+- **Interface First**: Always define or reference interface before implementing
+- **Version Awareness**: Place new implementations in appropriate version sub-packages
+- **Testing Strategy**: Write tests against interfaces, not concrete implementations
+- **Documentation**: Document interface contracts thoroughly, including error conditions
 
-### For Humans
-- Code Review Focus: Verify interface contracts followed and implementations properly isolated
-- Refactoring Guidelines: Maintain backward compatibility or bump version appropriately
-- Integration Testing: Ensure different implementations can be swapped without breaking consumers
+### For Code Reviews
+- **Contract Compliance**: Verify interface contracts followed and implementations properly isolated
+- **Backward Compatibility**: Maintain backward compatibility or bump version appropriately
+- **Integration Testing**: Ensure different implementations can be swapped without breaking consumers
 
-### Go Projects
-- Interface Composition: Use interface embedding to compose larger interfaces from smaller ones
-- Type Assertions: Minimize type assertions by designing interfaces appropriately
-- Error Handling: Follow Go error handling conventions in all interface methods
-- Context Propagation: Always thread context through interface methods for cancellation and timeouts
+### For Go Projects
+- **Interface Composition**: Use interface embedding to compose larger interfaces from smaller ones
+- **Type Assertions**: Minimize type assertions by designing interfaces appropriately
+- **Error Handling**: Follow Go error handling conventions in all interface methods
+- **Context Propagation**: Always thread context through interface methods for cancellation and timeouts
 
 ## Compliance
 
@@ -69,6 +69,7 @@
 - **Package Compliance**: Package structure follows pattern—Target: 100%
 - **Test Coverage**: Interface-based tests vs implementation tests ratio—Target: 3:1
 
-## Related
-- [docs/ai/context/foundations.md](../context/foundations.md) - Go interface design patterns and core principles
-- [docs/ai/context/context.md](../context/context.md) - Project architecture overview
+## Related Documentation
+- [docs/development/foundations.md](../development/foundations.md) - Go interface design patterns and core principles
+- [docs/development/project-context.md](../development/project-context.md) - Project architecture overview
+- [docs/guidelines/go-standards.md](../guidelines/go-standards.md) - Go-specific coding standards
