@@ -118,48 +118,6 @@ docker: ## Use the dockerfile to build the container
 	@echo "${MAGENTA}Building docker image...${RESET}"
 	@./scripts/docker-build.bash
 
-## AI Development:
-ai-help: ## Show AI workflow commands
-	@echo "${CYAN}AI Development Workflow:${RESET}"
-	@echo ""
-	@echo "${YELLOW}Planning Phase:${RESET}"
-	@echo "  ${GREEN}claude${RESET} then type: ${BLUE}plan: <feature description>${RESET}"
-	@echo "  Creates: docs/features/<feature-name>/plan.md + development-log.md"
-	@echo ""
-	@echo "${YELLOW}Implementation Phase:${RESET}"
-	@echo "  ${GREEN}claude${RESET} then type: ${BLUE}task: <implementation task>${RESET}"
-	@echo "  Implements code and updates development log"
-	@echo ""
-	@echo "${YELLOW}Review Phase:${RESET}"
-	@echo "  ${GREEN}claude${RESET} then type: ${BLUE}review: <review request>${RESET}"
-	@echo "  Reviews recent changes with project context"
-	@echo ""
-	@echo "${YELLOW}Examples:${RESET}"
-	@echo "  ${GREEN}claude${RESET} → ${BLUE}plan: Add user authentication system${RESET}"
-	@echo "  ${GREEN}claude${RESET} → ${BLUE}task: Implement Phase 1 from the auth plan${RESET}"
-	@echo "  ${GREEN}claude${RESET} → ${BLUE}review: Check the authentication implementation${RESET}"
-	@echo ""
-	@echo "${YELLOW}Features tracking:${RESET} docs/features/"
-	@echo "${YELLOW}AI configuration:${RESET} .claude/hooks.json"
-
-ai-features: ## List existing feature directories
-	@echo "${CYAN}Existing Features:${RESET}"
-	@if [ -d "docs/features" ]; then \
-		ls -la docs/features/ | grep "^d" | awk '{print "  " $$9}' | grep -v "^  \\."; \
-	else \
-		echo "  No features directory found. Use 'claude' with 'plan:' to create your first feature."; \
-	fi
-
-## AI Agent Starters:
-ai-plan: ## Start Claude Code planning session (Usage: make ai-plan FEATURE="feature description")
-	@./scripts/ai-plan.bash "$(FEATURE)"
-
-ai-task: ## Start Claude Code task session (Usage: make ai-task TASK="task description") 
-	@./scripts/ai-task.bash "$(TASK)"
-
-ai-review: ## Start Claude Code review session
-	@./scripts/ai-review.bash "$(if $(REVIEW),$(REVIEW),Check recent changes)"
-
 ## Help:
 help: ## Show this help.
 	@echo ''
