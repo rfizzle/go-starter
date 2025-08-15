@@ -1,0 +1,131 @@
+# AI Documentation Templates
+
+Simple templates for creating consistent AI documentation in Go projects following Standard Go Project Layout.
+
+## Available Templates
+
+### 1. Prompt Template (`prompt.md`)
+**Use for:** Creating AI agent role prompts with clear scope and responsibilities.
+
+**Key features:**
+- Scope enforcement
+- Go workflow guidance
+- Quality standards
+- Common task examples
+
+### 2. Policy Template (`policy.md`)
+**Use for:** Establishing AI governance and usage policies.
+
+**Key features:**
+- Clear policy statements
+- Implementation guidelines
+- Compliance checklists
+- Success metrics
+
+### 3. Plan Template (`plan.md`)
+**Use for:** Implementation plans for features and development work.
+
+**Key features:**
+- Feature analysis and breakdown
+- Go-specific implementation patterns
+- Test strategy and definition of done
+- Risk assessment and rollout plans
+
+### 4. Feature Template (`feature.md`)
+**Use for:** Feature specifications and requirements documentation.
+
+**Key features:**
+- User stories and acceptance criteria
+- Technical requirements
+- Implementation guidance
+- Success metrics and testing strategy
+
+## How to Use
+
+### Step 1: Copy Template
+```bash
+cp docs/ai/templates/[template-type].md docs/ai/[target-directory]/[new-file-name].md
+```
+
+### Step 2: Replace Placeholders
+- Find `[PLACEHOLDER]` text in ALL_CAPS
+- Replace with actual content
+- Remove template comments (`<!-- -->`)
+
+### Step 3: Customize
+- Add or remove sections as needed
+- Keep essential structure and formatting
+- Maintain scope definitions and quality standards
+
+### Step 4: Validate
+- All placeholders replaced
+- Links work within `docs/ai/` scope
+- Content follows Go project conventions
+- Quality standards met
+
+### Step 5: Update Documentation
+- Update cross-references
+
+## Design Principles
+
+### Simplicity
+- Templates are concise and focused
+- Essential sections only
+- Clear, actionable content
+
+### Consistency
+- Similar structure across templates
+- Common sections in predictable places
+- Consistent formatting patterns
+
+### Go-Specific
+- Standard Go Project Layout considerations
+- Go development patterns embedded
+- TDD and Go conventions reinforced
+
+### AI-Focused
+- Designed for AI consumption
+- Clear scope definitions
+- Actionable guidance for AI agents
+
+## Best Practices
+
+### Creating New Documents
+1. Start with the template - don't create from scratch
+2. Follow naming conventions (use established patterns)
+3. Be specific - replace placeholders with concrete content
+4. Cross-reference related documents in `docs/ai/`
+5. Validate scope stays within `docs/ai/` boundaries
+
+### Using with AI Agents
+1. Reference `docs/ai/context/foundations.md`
+2. Use scope enforcement consistently
+3. Provide relevant context files
+4. Keep documents current with project evolution
+
+## Examples
+
+### Prompt Creation
+```bash
+# Creating a code reviewer prompt
+cp docs/ai/templates/prompt.md docs/ai/prompts/30-reviewer.md
+# Customize for code review tasks and quality standards
+```
+
+### Policy Development
+```bash
+# Creating a security policy
+cp docs/ai/templates/policy.md docs/ai/policies/security.md
+# Define security requirements and compliance measures
+```
+
+### Feature Documentation
+```bash
+# Documenting an authentication feature
+cp docs/ai/templates/feature.md docs/ai/features/authentication.md
+# Capture requirements, acceptance criteria, and implementation guidance
+```
+
+---
+
+*These templates enable effective AI-human collaboration in Go development projects while maintaining consistency and quality standards.*

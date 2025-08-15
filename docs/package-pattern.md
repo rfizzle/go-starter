@@ -303,6 +303,5 @@ func (a *App) setupServices() {
 Current examples of this pattern:
 - `internal/storage/` - Database abstraction with provider implementations
 - `internal/auth/` - Authentication services (following this pattern)
-- `internal/api/v1/` - API versioning (OpenAPI generated code)
 
 This pattern should be used for all new domain packages and when refactoring existing code.
