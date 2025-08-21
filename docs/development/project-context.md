@@ -1,6 +1,12 @@
-# Go Development Project Context
+# Project Context
 
-This document provides project-specific context and development workflows for engineers working on this Go codebase.
+## Overview
+Go Starter is a production-ready, enterprise-grade foundation for building scalable REST API services. It provides OpenAPI-first development with automatic code generation, JWT authentication, PostgreSQL integration, and comprehensive observability.
+
+## Key Goals
+- Speed up API development with an 80% time reduction
+- Maintain >90% test coverage
+- Zero additional configs for Kubernetes deployment
 
 **Reference `foundations.md` first** - it contains core Go principles, patterns, and workflows that apply to all work.
 
@@ -42,17 +48,39 @@ When implementing new features or significant changes:
 5. **Implement with TDD** - Write tests first, then implementation
 6. **Document Changes** - Update relevant documentation
 
-### Development Cycle
+### Development Workflow
 
-Standard development workflow:
+1. **API Changes** (if needed):
+   - Modify `api/openapi.yml` first
+   - Run `make generate` to update generated API files
+   - Update controllers in `internal/controller/` to implement new interfaces
 
-1. **Create Feature Branch** - Branch from main for new work
-2. **Write Tests First** - Follow TDD approach
-3. **Implement Code** - Make tests pass with minimal code
-4. **Refactor** - Improve code while keeping tests green
-5. **Run Quality Checks** - Format, lint, and test
-6. **Commit Changes** - Atomic commits with clear messages
-7. **Create Pull Request** - Request code review
+2. **Implementation** (TDD approach):
+   - Create feature branch from main
+   - Write tests first following TDD
+   - Implement code to make tests pass
+   - Refactor while keeping tests green
+
+3. **Quality Checks**:
+   - Run `make fmt` to format code
+   - Run `make lint` for code quality
+   - Run `make test` to ensure all tests pass
+   - Run `make build` for multi-platform binaries
+
+4. **Commit & Review**:
+   - Atomic commits with clear messages
+   - Create pull request for code review
+
+### Key Commands
+
+- `make build` - Build multi-platform binaries
+- `make test` - Run all Go tests
+- `make lint` - Run code quality checks
+- `make fmt` - Format code with gofmt and goimports
+- `make generate` - Regenerate API code from OpenAPI spec
+- `make ci` - Run CI pipeline checks
+- `make race` - Run tests with race detector
+- `make docker` - Build Docker container
 
 ---
 
@@ -68,10 +96,18 @@ Update project documentation when:
 
 ---
 
-## Project Architecture Notes
+## Architecture
 
-This project uses specific patterns documented in `docs/architecture/`:
+### Application Structure
+- **Entry point**: `main.go` → `cmd/serve.go` (Cobra CLI)
+- **Application core**: `internal/app/app.go` - Main application lifecycle management
+- **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
+- **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
+- **Storage interface**: `internal/storage/driver` - Database abstraction driver
+- **Storage layer**: `internal/storage/postgres` - PostgreSQL implementation
+- **Authentication**: `internal/auth/` - JWT-based auth system with middleware
 
+### Key Patterns
 * **Interface-Implementation Pattern** - Interfaces in domain packages, implementations in versioned subpackages
 * **OpenAPI-First Development** - API definitions drive code generation
 * **Standard Go Project Layout** - Consistent directory structure and organization
@@ -80,15 +116,28 @@ For architectural decisions and patterns specific to this project, see the `docs
 
 ---
 
+## Tech Stack
+
+- **Language**: Go 1.22+ (latest stable)
+- **Web Framework**: Chi v5 for HTTP routing and middleware
+- **API Generation**: ogen for OpenAPI code generation
+- **Database**: PostgreSQL with pgx/v5 driver and scany for scanning
+- **Configuration**: Viper for config management, Cobra for CLI
+- **Logging**: Zap for structured logging
+- **Observability**: Prometheus metrics, OpenTelemetry tracing, pprof debugging
+- **Testing**: testify assertions, pgxmock for database mocking
+- **Code Quality**: golangci-lint, gofmt, goimports
+
+## Code Generation Strategy
+
+- **Single source of truth**: `api/openapi.yml`
+- **Generated code**: `internal/api/v1/oas_*_gen.go`
+- **Generation trigger**: `make generate` or `go generate`
+- **Never edit generated files directly** - all API changes must be made in the OpenAPI spec
+
 ## Development Environment
 
 For development environment setup, tooling, and troubleshooting, see `docs/development/environment.md`.
-
-Key points:
-* Go 1.21+ required
-* OpenAPI-first with ogen code generation
-* golangci-lint for code quality
-* Standard Go toolchain (gofmt, go vet, go test)
 
 ---
 
@@ -97,11 +146,25 @@ Key points:
 All code must meet these standards before merging:
 
 * **Tests Pass** - All existing and new tests must pass
+* **Test Coverage** - Maintain >90% test coverage for new code
 * **Linting Clean** - No golangci-lint warnings
-* **Formatted** - Code properly formatted with gofmt
-* **Coverage** - Appropriate test coverage for new code
+* **Formatted** - Code properly formatted with gofmt and goimports
 * **Documentation** - Public APIs documented with godoc comments
+* **Naming Conventions** - camelCase variables, PascalCase exports, no snake_case
+* **Error Handling** - All errors handled and wrapped with context
 * **Integration** - Works correctly with existing codebase
+
+## Middleware Stack
+
+The web server includes these middleware layers (in order):
+- Timeout (60s default)
+- RequestID generation
+- RealIP extraction
+- Panic recovery
+- Custom logging middleware for API routes
+- Static file serving
+- CORS configuration
+- Built-in routes: `/metrics` (Prometheus), `/debug/pprof/*` (profiling)
 
 ---
 

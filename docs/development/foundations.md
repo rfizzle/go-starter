@@ -27,7 +27,7 @@ project/
 ## Go Standards
 
 ### Language & Version
-- **Go 1.21+** required
+- **Go 1.22+** required
 - **One module per repository**
 - **Standard library preference** over external dependencies
 

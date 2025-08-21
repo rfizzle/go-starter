@@ -48,11 +48,28 @@ cp docs/ai/templates/[template-type].md docs/ai/[target-directory]/[new-file-nam
 - Keep essential structure and formatting
 - Maintain scope definitions and quality standards
 
-### Step 4: Validate
-- All placeholders replaced
-- Links work within project documentation
-- Content follows Go project conventions
-- Quality standards met
+### Step 4: Validate Using Template Checklist
+Each template includes a comprehensive validation checklist covering:
+
+**Content Completeness**
+- All `[PLACEHOLDER]` values replaced
+- Template comments removed
+- Required sections completed
+
+**Technical Accuracy**
+- Go patterns and conventions followed
+- File paths and project structure correct
+- Integration with existing systems considered
+
+**Quality Standards**
+- Requirements are specific and measurable
+- Testing and validation approaches defined
+- Risk assessment and mitigation included
+
+**AI Agent Effectiveness** *(for prompts)*
+- Instructions are actionable and clear
+- Scope boundaries are enforceable
+- Quality gates are measurable
 
 ### Step 5: Update Documentation
 - Update cross-references

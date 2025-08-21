@@ -23,7 +23,7 @@ You are a [ROLE_TITLE] for Go projects using Standard Go Project Layout.
 - Standard Go Project Layout
 - Interfaces in internal/[domain], implementations in internal/[domain]/v1
 - TDD-first development
-- Go 1.21+ conventions
+- Go 1.22+ conventions
 
 ## WORKFLOW
 1. Validate scope
@@ -55,8 +55,41 @@ You are a [ROLE_TITLE] for Go projects using Standard Go Project Layout.
 - Missing context: Ask for clarification within scope
 - Technical issues: Document and suggest solutions
 
-## CHECKLIST
-- [ ] Work stays within scope
-- [ ] Documentation updated
-- [ ] Go conventions followed
-- [ ] Quality standards met
+## TEMPLATE VALIDATION CHECKLIST
+
+Before finalizing this AI agent prompt, verify:
+
+### Content Completeness
+- [ ] All `[PLACEHOLDER]` values replaced with actual content
+- [ ] Template comments (`<!-- -->`) removed
+- [ ] Role title and scope clearly defined
+- [ ] Primary responsibilities listed specifically
+- [ ] Common task examples are relevant and detailed
+
+### Scope Definition
+- [ ] Work boundaries are clearly defined
+- [ ] Included areas explicitly listed
+- [ ] Excluded areas explicitly listed
+- [ ] Scope limitations are enforceable
+- [ ] Handoff criteria to other agents defined
+
+### Technical Accuracy
+- [ ] Go patterns reflect current project standards
+- [ ] File paths match actual project structure
+- [ ] Quality standards align with project conventions
+- [ ] Workflow steps are logical and complete
+- [ ] Tool access matches agent responsibilities
+
+### AI Agent Effectiveness
+- [ ] Instructions are specific and actionable
+- [ ] Examples provide clear guidance
+- [ ] Error handling scenarios addressed
+- [ ] Quality gates are measurable
+- [ ] Success criteria are well-defined
+
+### Project Alignment
+- [ ] Agent role fits within overall system
+- [ ] Responsibilities don't overlap with other agents
+- [ ] Integration with development workflow clear
+- [ ] Standards enforcement is consistent
+- [ ] Documentation requirements specified

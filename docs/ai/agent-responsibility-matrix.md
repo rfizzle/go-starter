@@ -1,0 +1,264 @@
+# AI Agent Responsibility Matrix
+
+This matrix defines clear boundaries and responsibilities for AI agents working with the Go Starter project, ensuring effective coordination and preventing overlapping work.
+
+## Agent Overview
+
+| Agent                | Primary Focus           | Tools             | Can Write Code | Can Plan |
+|----------------------|-------------------------|-------------------|----------------|----------|
+| **AI Documentation** | AI-facing docs          | Read, Write, Bash | No             | No       |
+| **Feature**          | Requirements gathering  | Read, Write, Bash | No             | No       |
+| **Plan**             | Implementation planning | Read, Bash        | No             | Yes      |
+| **Review**           | Code quality analysis   | Read, Bash        | No             | No       |
+| **General Purpose**  | Implementation & coding | All tools         | Yes            | Yes      |
+
+## Detailed Responsibilities
+
+### AI Documentation Agent (`docs/ai/prompts/ai.md`)
+
+#### ✅ Primary Responsibilities
+- **Scope**: `docs/ai/` directory only
+- Create and maintain AI agent prompts
+- Update AI documentation templates
+- Maintain agent responsibility definitions
+- Create context files for AI agents
+- Document AI workflow patterns
+
+#### ❌ Out of Scope
+- Writing application code
+- Making changes outside `docs/ai/`
+- Feature requirements gathering
+- Code implementation planning
+- Code review activities
+
+#### 🔄 Handoff Criteria
+- **To Feature Agent**: When requirements need to be gathered
+- **To Plan Agent**: When implementation planning is needed
+- **To General Purpose**: When code needs to be written
+
+---
+
+### Feature Agent (`docs/ai/prompts/feature.md`)
+
+#### ✅ Primary Responsibilities
+- **Scope**: `docs/features/` directory
+- Gather and document feature requirements
+- Create user stories and acceptance criteria
+- Define success metrics and KPIs
+- Document technical requirements
+- Follow product owner best practices
+
+#### ❌ Out of Scope
+- Creating implementation plans
+- Writing application code
+- Code review activities
+- AI documentation updates
+- Technical architecture decisions
+
+#### 🔄 Handoff Criteria
+- **To Plan Agent**: When feature document is complete and ready for implementation planning
+- **To AI Documentation**: When AI prompts need updates based on new features
+- **To General Purpose**: When feature requires immediate prototyping
+
+---
+
+### Plan Agent (`docs/ai/prompts/plan.md`)
+
+#### ✅ Primary Responsibilities
+- **Scope**: `docs/plans/` directory and READ-ONLY analysis
+- Transform feature documents into implementation plans
+- Break down features into specific tasks
+- Define Go-specific technical approaches
+- Create comprehensive testing strategies
+- Assess risks and mitigation strategies
+
+#### ❌ Out of Scope
+- Writing application code
+- Implementing planned features
+- Gathering feature requirements
+- Code review activities
+- Making code changes
+
+#### 🔄 Handoff Criteria
+- **To General Purpose**: When plan is complete and ready for implementation
+- **To Feature Agent**: When requirements are incomplete or unclear
+- **To Review Agent**: When existing code analysis is needed for planning
+
+---
+
+### Review Agent (`docs/ai/prompts/review.md`)
+
+#### ✅ Primary Responsibilities
+- **Scope**: READ-ONLY code analysis
+- Analyze code changes and pull requests
+- Provide constructive feedback on code quality
+- Ensure adherence to Go standards and project patterns
+- Validate test coverage and quality
+- Check for security and performance issues
+
+#### ❌ Out of Scope
+- Writing or modifying application code
+- Creating implementation plans
+- Gathering feature requirements
+- AI documentation creation
+- Making code changes based on review feedback
+
+#### 🔄 Handoff Criteria
+- **To General Purpose**: When code changes need to be implemented
+- **To Plan Agent**: When architectural changes require planning
+- **To Feature Agent**: When requirements clarification is needed
+
+---
+
+### General Purpose Agent
+
+#### ✅ Primary Responsibilities
+- **Scope**: Entire codebase for implementation
+- Implement features according to plans
+- Write and modify application code
+- Create and update tests
+- Execute complex, multi-step development tasks
+- Handle tasks requiring all tool types
+
+#### ❌ Out of Scope
+- Creating feature requirements (delegate to Feature Agent)
+- Formal implementation planning (delegate to Plan Agent)
+- Formal code reviews (delegate to Review Agent)
+
+#### 🔄 Handoff Criteria
+- **To Feature Agent**: When requirements are unclear or missing
+- **To Plan Agent**: When complex features need detailed planning
+- **To Review Agent**: When code review is requested
+- **To AI Documentation**: When AI documentation needs updates
+
+## Task Type Mapping
+
+### Requirements & Documentation
+- **User stories** → Feature Agent
+- **Acceptance criteria** → Feature Agent
+- **API specifications** → Feature Agent
+- **AI prompts** → AI Documentation Agent
+- **Implementation plans** → Plan Agent
+
+### Analysis & Review
+- **Code quality analysis** → Review Agent
+- **Architecture review** → Review Agent
+- **Security assessment** → Review Agent
+- **Performance analysis** → Review Agent
+- **Test coverage analysis** → Review Agent
+
+### Implementation & Development
+- **Feature implementation** → General Purpose Agent
+- **Bug fixes** → General Purpose Agent
+- **Refactoring** → General Purpose Agent
+- **Test writing** → General Purpose Agent
+- **Configuration changes** → General Purpose Agent
+
+### Planning & Strategy
+- **Technical task breakdown** → Plan Agent
+- **Risk assessment** → Plan Agent
+- **Architecture decisions** → Plan Agent
+- **Testing strategy** → Plan Agent
+
+## Collaboration Patterns
+
+### Sequential Workflows
+
+#### Feature Development Flow
+```
+1. Feature Agent → Creates requirements in docs/features/
+2. Plan Agent → Creates implementation plan in docs/plans/
+3. General Purpose → Implements according to plan
+4. Review Agent → Reviews completed implementation
+```
+
+#### Documentation Updates Flow
+```
+1. AI Documentation → Updates prompts and templates
+2. Feature Agent → Updates feature templates if needed
+3. Plan Agent → Updates plan templates if needed
+```
+
+### Parallel Workflows
+
+#### Multi-Domain Features
+- Feature Agent: Gathers requirements
+- Plan Agent: Creates technical plans
+- Review Agent: Analyzes existing related code
+- AI Documentation: Updates relevant AI guidance
+
+## Conflict Resolution
+
+### Overlapping Responsibilities
+
+#### When multiple agents could handle a task:
+1. **Default to most specific agent** - Use the agent with the narrowest, most relevant scope
+2. **Consider tool requirements** - Choose agent with appropriate tool access
+3. **Check workflow phase** - Match agent to current development phase
+
+#### Examples:
+- **Writing tests**: General Purpose (needs code modification tools)
+- **Planning test strategy**: Plan Agent (analysis and documentation)
+- **Reviewing test quality**: Review Agent (analysis and feedback)
+
+### Scope Boundary Disputes
+
+#### Clear Decision Tree:
+1. **Does it require writing/modifying code?** → General Purpose
+2. **Is it requirements/user story related?** → Feature Agent  
+3. **Is it planning/architecture related?** → Plan Agent
+4. **Is it code analysis/review related?** → Review Agent
+5. **Is it AI documentation related?** → AI Documentation Agent
+
+## Quality Gates
+
+### Before Agent Handoff
+- [ ] Current agent has completed their scope of work
+- [ ] Work products meet quality standards for that agent type
+- [ ] Clear context provided to receiving agent
+- [ ] Dependencies and blockers identified
+- [ ] Success criteria defined for next phase
+
+### Agent Scope Validation
+- [ ] Agent is working within defined scope boundaries
+- [ ] Agent has appropriate tools for the task
+- [ ] Task type matches agent capabilities
+- [ ] No overlap with other active agents
+- [ ] Handoff criteria clearly defined
+
+## Escalation Triggers
+
+### When to Change Agents
+
+#### Immediate Escalation Required:
+- Agent attempts work outside defined scope
+- Agent lacks necessary tools for task completion
+- Agent encounters blockers requiring different expertise
+- Task type doesn't match agent capabilities
+- Quality standards cannot be met by current agent
+
+#### Planned Handoffs:
+- Work phase completion (Feature → Plan → Implementation)
+- Document creation complete and ready for next phase
+- Analysis complete and actionable items identified
+- Implementation ready for review and validation
+
+## Best Practices
+
+### For Users Working with Agents
+1. **Start with the right agent** - Choose based on task type and current phase
+2. **Provide clear context** - Include relevant background and constraints
+3. **Define success criteria** - Specify what "done" looks like
+4. **Respect scope boundaries** - Don't ask agents to work outside their defined areas
+5. **Use handoff points** - Allow agents to complete their phase before switching
+
+### For Agent Coordination
+1. **Clear scope adherence** - Always work within defined boundaries
+2. **Explicit handoff communication** - Clearly state when and why handing off
+3. **Context preservation** - Provide complete context to receiving agent
+4. **Quality validation** - Ensure work meets standards before handoff
+5. **Documentation updates** - Keep agent documentation current with role changes
+
+---
+
+*This matrix ensures clear boundaries and effective collaboration between AI agents while maintaining high quality standards and preventing work overlap.*

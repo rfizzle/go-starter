@@ -107,6 +107,37 @@
 - **Audience:** [Target users]
 - **Rollback:** [Revert strategy]
 
+## Template Validation Checklist
+
+Before finalizing this feature document, verify:
+
+### Content Completeness
+- [ ] All `[PLACEHOLDER]` values replaced with actual content
+- [ ] Template comments (`<!-- -->`) removed
+- [ ] User story follows proper format (As a/I want/So that)
+- [ ] Acceptance criteria use Given/When/Then format
+- [ ] All sections contain meaningful content (not just examples)
+
+### Technical Accuracy
+- [ ] API endpoints align with OpenAPI specification standards
+- [ ] Database changes include migration strategy
+- [ ] Go implementation follows interface-implementation pattern
+- [ ] Package structure matches `internal/[domain]/v1/` convention
+- [ ] Testing strategy covers unit, integration, and E2E levels
+
+### Quality Standards
+- [ ] Requirements are specific and measurable
+- [ ] Success metrics are clearly defined
+- [ ] Risk assessment includes mitigation strategies
+- [ ] Dependencies are clearly identified
+- [ ] Implementation phases are logical and achievable
+
+### AI Agent Guidance
+- [ ] Technical requirements provide sufficient context for implementation
+- [ ] Feature scope is clear and bounded
+- [ ] Integration points with existing systems are documented
+- [ ] Error scenarios and edge cases are considered
+
 ## Sign-off
 - [ ] **Product Owner:** [Name] - [Date]
 - [ ] **Technical Lead:** [Name] - [Date]

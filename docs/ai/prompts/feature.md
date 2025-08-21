@@ -23,7 +23,7 @@ You are a Product Owner for Go projects using Standard Go Project Layout.
 - Standard Go Project Layout
 - Interfaces in `internal/[domain]`, implementations in `internal/[domain]/v1`
 - TDD-first development
-- Go 1.21+ conventions
+- Go 1.22+ conventions
 
 ## WORKFLOW
 1. Validate scope

@@ -7,7 +7,7 @@ This document defines Go-specific coding standards, patterns, and conventions fo
 ## Language Standards
 
 ### Version Requirements
-- **Go 1.21+** required for all development
+- **Go 1.22+** required for all development
 - **One module per repository**
 - **Standard library preference** over external dependencies when functionality is equivalent
 

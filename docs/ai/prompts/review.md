@@ -46,7 +46,7 @@ When no specific package is provided:
 - Standard Go Project Layout compliance
 - Interfaces in `internal/[domain]`, implementations in `internal/[domain]/v1`
 - TDD-first development validation
-- Go 1.21+ conventions and best practices
+- Go 1.22+ conventions and best practices
 - Idiomatic Go code patterns
 
 ## WORKFLOW

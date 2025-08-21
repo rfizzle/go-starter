@@ -60,7 +60,7 @@ go install go.uber.org/mock/mockgen@latest
 
 * **Interfaces** in `internal/<domain>`; **implementations** in `internal/<domain>/v1` (or `pkg/<domain>/v1` if public).
 * **Main binaries** under `cmd/<app>/main.go`.
-* **OpenAPI source** at `api/openapi.yaml` (or `.json`).
+* **OpenAPI source** at `api/openapi.yml` (or `.json`).
 * **ogen output** kept internal, e.g., `internal/api/v1` (do **not** export generated code unless needed).
 * **HTTP handlers** implement the ogen‑generated `Server` interface in `internal/controllers/<feature>`.
 
@@ -72,7 +72,7 @@ go install go.uber.org/mock/mockgen@latest
 
 ### Source of truth
 
-* `api/openapi.yaml` defines HTTP API (OpenAPI v3.x).
+* `api/openapi.yml` defines HTTP API (OpenAPI v3.x).
 
 ### Code generation
 
