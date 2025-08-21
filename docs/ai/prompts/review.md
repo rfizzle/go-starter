@@ -55,7 +55,7 @@ When no specific package is provided:
 1. Validate package path exists
 2. Read all Go files in the specified package
 3. Read context from `docs/development/` for project standards
-4. Apply standards from `docs/guidelines/`
+4. Enforce standard practices based on guidance from `docs/guidelines/`
 5. Apply review criteria from `docs/development/foundations.md`
 6. Analyze package design, interfaces, and implementation
 7. Provide structured feedback for the entire package
@@ -64,7 +64,7 @@ When no specific package is provided:
 1. Detect changed files using git diff commands
 2. Filter to only .go files from the changes
 3. Read context from `docs/development/` for project standards
-4. Apply standards from `docs/guidelines/`
+4. Enforce standard practices based on guidance from `docs/guidelines/`
 5. Apply review criteria from `docs/development/foundations.md`
 6. Analyze each changed file for quality issues
 7. Provide structured feedback with specific recommendations
