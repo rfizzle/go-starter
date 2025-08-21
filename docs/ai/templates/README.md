@@ -13,16 +13,7 @@ Simple templates for creating consistent AI documentation in Go projects followi
 - Quality standards
 - Common task examples
 
-### 2. Policy Template (`policy.md`)
-**Use for:** Establishing AI governance and usage policies.
-
-**Key features:**
-- Clear policy statements
-- Implementation guidelines
-- Compliance checklists
-- Success metrics
-
-### 3. Plan Template (`plan.md`)
+### 2. Plan Template (`plan.md`)
 **Use for:** Implementation plans for features and development work.
 
 **Key features:**
@@ -31,7 +22,7 @@ Simple templates for creating consistent AI documentation in Go projects followi
 - Test strategy and definition of done
 - Risk assessment and rollout plans
 
-### 4. Feature Template (`feature.md`)
+### 3. Feature Template (`feature.md`)
 **Use for:** Feature specifications and requirements documentation.
 
 **Key features:**
@@ -109,15 +100,8 @@ cp docs/ai/templates/[template-type].md docs/ai/[target-directory]/[new-file-nam
 ### Prompt Creation
 ```bash
 # Creating a code reviewer prompt
-cp docs/ai/templates/prompt.md docs/ai/prompts/30-reviewer.md
+cp docs/ai/templates/prompt.md docs/ai/prompts/reviewer.md
 # Customize for code review tasks and quality standards
-```
-
-### Policy Development
-```bash
-# Creating a security policy in the architecture directory
-cp docs/ai/templates/policy.md docs/architecture/security-policy.md
-# Define security requirements and compliance measures
 ```
 
 ### Feature Documentation

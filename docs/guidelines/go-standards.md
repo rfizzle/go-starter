@@ -20,7 +20,6 @@ This document defines Go-specific coding standards, patterns, and conventions fo
 ### Interface Design
 - **Define interfaces** in `internal/<domain>/interfaces.go`
 - **Implement interfaces** in `internal/<domain>/v1/`
-- **Don't create interfaces** until you have 2+ implementations or clear abstraction need
 - **Small interfaces** - prefer many small interfaces over large ones
 
 ---

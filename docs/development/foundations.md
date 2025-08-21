@@ -34,7 +34,6 @@ project/
 ### Interface Strategy
 - **Define interfaces** in `internal/<domain>/`
 - **Implement interfaces** in `internal/<domain>/v1/`
-- **Don't create interfaces** until you have 2+ implementations
 
 ### Package & Naming
 - **Short, lowercase names** - no underscores or mixedCaps
@@ -142,7 +141,6 @@ func TestFunction(t *testing.T) {
 ## Anti-Patterns to Avoid
 
 ### Go-Specific
-- **Premature interfaces** - Wait for 2+ implementations
 - **Goroutine leaks** - Always ensure exit paths
 - **Mutex in structs** - Prefer channels for communication
 - **Init() abuse** - Keep minimal and deterministic

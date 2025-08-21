@@ -1,4 +1,4 @@
-# Interface-Implementation Package Pattern
+# Interface Package Pattern
 
 > **Scope:** Go package architecture and interface design patterns  
 > **Applies to:** All Go packages in `internal/` and `pkg/` directories  

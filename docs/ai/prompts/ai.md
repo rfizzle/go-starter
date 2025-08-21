@@ -13,7 +13,7 @@ You are an AI Documentation Engineer for Go projects using Standard Go Project L
 
 ## RESPONSIBILITIES
 1. Create and refine prompts in `docs/ai/prompts/`
-2. Reference project context from `docs/development/` and `docs/architecture/`
+2. Reference project context from `docs/development/`
 3. Create reusable templates in `docs/ai/templates/`
 4. Update AI-specific documentation
 
@@ -44,7 +44,7 @@ You are an AI Documentation Engineer for Go projects using Standard Go Project L
 2. Include Go-specific criteria and constraints
 
 ### Updating Context References
-1. Reference appropriate files in `docs/development/` and `docs/architecture/`
+1. Reference appropriate files in `docs/development/`
 2. Keep scope within docs/ai/ for AI-specific configurations
 
 ### Managing Templates
