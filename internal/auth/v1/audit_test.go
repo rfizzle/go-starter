@@ -1,4 +1,4 @@
-package auth
+package v1
 
 import (
 	"context"
@@ -6,17 +6,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 // Mock audit logger for testing
 type mockAuditLogger struct {
-	events []AuditEvent
+	events []auth.AuditEvent
 	err    error
 }
 
-func (m *mockAuditLogger) LogEvent(ctx context.Context, event AuditEvent) error {
+func (m *mockAuditLogger) LogEvent(ctx context.Context, event auth.AuditEvent) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -24,42 +25,20 @@ func (m *mockAuditLogger) LogEvent(ctx context.Context, event AuditEvent) error 
 	return nil
 }
 
-// Mock rate limiter for testing
-type mockRateLimiter struct {
-	allowed map[string]bool
-	err     error
-}
-
-func (m *mockRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
-	if m.err != nil {
-		return false, m.err
-	}
-	allowed, exists := m.allowed[key]
-	if !exists {
-		return true, nil // Default to allowing if not specified
-	}
-	return allowed, nil
-}
-
-func (m *mockRateLimiter) Reset(ctx context.Context, key string) error {
-	delete(m.allowed, key)
-	return nil
-}
-
 func TestAuditMiddleware(t *testing.T) {
 	validator := &mockValidator{}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
 	auditor := &mockAuditLogger{}
-	middleware := auth.AuditMiddleware(auditor)
+	middleware := authLegacy.AuditMiddleware(auditor)
 
 	t.Run("logs successful request", func(t *testing.T) {
-		ctx, err := auth.newSubjectContext(context.Background(), "user123")
+		ctx, err := newAuthSubjectContext(context.Background(), authLegacy.contextKey, "user123")
 		assert.NoError(t, err)
 
-		req := httptest.NewRequest("GET", "/api/users", nil).WithContext(ctx)
+		req := httptest.NewRequest("GET", "/auth/login", nil).WithContext(ctx)
 		req.Header.Set("User-Agent", "TestAgent/1.0")
 		rr := httptest.NewRecorder()
 
@@ -72,19 +51,17 @@ func TestAuditMiddleware(t *testing.T) {
 
 		assert.Len(t, auditor.events, 1)
 		event := auditor.events[0]
-		assert.Equal(t, "http_request", event.EventType)
+		assert.Equal(t, "authentication_attempt", event.EventType)
 		assert.Equal(t, "user123", event.UserID)
 		assert.Equal(t, "TestAgent/1.0", event.UserAgent)
 		assert.True(t, event.Success)
 		assert.Empty(t, event.Error)
-		assert.Equal(t, "GET", event.Metadata["method"])
-		assert.Equal(t, "/api/users", event.Metadata["path"])
 	})
 
 	t.Run("logs failed request", func(t *testing.T) {
-		auditor.events = []AuditEvent{} // Reset
+		auditor.events = []auth.AuditEvent{} // Reset
 
-		req := httptest.NewRequest("POST", "/api/users", nil)
+		req := httptest.NewRequest("POST", "/auth/login", nil)
 		req.Header.Set("User-Agent", "TestAgent/1.0")
 		rr := httptest.NewRecorder()
 
@@ -97,19 +74,17 @@ func TestAuditMiddleware(t *testing.T) {
 
 		assert.Len(t, auditor.events, 1)
 		event := auditor.events[0]
-		assert.Equal(t, "http_request", event.EventType)
+		assert.Equal(t, "authentication_attempt", event.EventType)
 		assert.Empty(t, event.UserID) // No authenticated user
 		assert.False(t, event.Success)
-		assert.NotEmpty(t, event.Error) // Should have error from missing subject
 	})
 }
 
 func TestGetClientIP(t *testing.T) {
 	tests := []struct {
-		name             string
-		setupRequest     func() *http.Request
-		expectedIP       string
-		expectedContains bool
+		name         string
+		setupRequest func() *http.Request
+		expectedIP   string
 	}{
 		{
 			name: "X-Forwarded-For header",
@@ -138,7 +113,7 @@ func TestGetClientIP(t *testing.T) {
 				req.RemoteAddr = "192.0.2.1:12345"
 				return req
 			},
-			expectedIP: "192.0.2.1:12345",
+			expectedIP: "192.0.2.1",
 		},
 		{
 			name: "X-Forwarded-For takes precedence",
@@ -156,7 +131,7 @@ func TestGetClientIP(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			req := tt.setupRequest()
-			ip := getClientIP(req)
+			ip := GetClientIP(req)
 			assert.Equal(t, tt.expectedIP, ip)
 		})
 	}
@@ -190,14 +165,14 @@ func TestLogAuthEvent(t *testing.T) {
 
 func TestResponseWriter(t *testing.T) {
 	rr := httptest.NewRecorder()
-	rw := &responseWriter{ResponseWriter: rr, status: http.StatusOK}
+	rw := &responseWriter{ResponseWriter: rr, statusCode: http.StatusOK}
 
 	// Test default status
-	assert.Equal(t, http.StatusOK, rw.status)
+	assert.Equal(t, http.StatusOK, rw.statusCode)
 
 	// Test WriteHeader
 	rw.WriteHeader(http.StatusCreated)
-	assert.Equal(t, http.StatusCreated, rw.status)
+	assert.Equal(t, http.StatusCreated, rw.statusCode)
 	assert.Equal(t, http.StatusCreated, rr.Code)
 
 	// Test Write

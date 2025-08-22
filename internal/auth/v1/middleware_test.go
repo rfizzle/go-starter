@@ -1,4 +1,4 @@
-package auth
+package v1
 
 import (
 	"context"
@@ -6,18 +6,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"go.uber.org/zap"
-
+	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestMiddleware(t *testing.T) {
 	validator := &mockValidator{}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
-	middleware := auth.Middleware()
+	middleware := authLegacy.Middleware()
 
 	t.Run("Valid subject", func(t *testing.T) {
 		validator.Subject = "valid_subject"
@@ -28,7 +28,7 @@ func TestMiddleware(t *testing.T) {
 
 		nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			subject, err := auth.subjectFromContext(ctx)
+			subject, err := subjectFromContext(ctx, authLegacy.contextKey)
 			assert.Equal(t, "valid_subject", subject)
 			assert.NoError(t, err)
 		})
@@ -39,16 +39,16 @@ func TestMiddleware(t *testing.T) {
 
 	t.Run("Invalid subject", func(t *testing.T) {
 		validator.Subject = ""
-		validator.Err = ErrUnauthorized
+		validator.Err = auth.ErrUnauthorized
 
 		req := httptest.NewRequest("GET", "/", nil)
 		rr := httptest.NewRecorder()
 
 		nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			ctx := r.Context()
-			subject, err := auth.subjectFromContext(ctx)
+			subject, err := subjectFromContext(ctx, authLegacy.contextKey)
 			assert.Empty(t, subject)
-			assert.Error(t, err, ErrMissingSubjectContext)
+			assert.Error(t, err)
 		})
 
 		handler := middleware(nextHandler)
@@ -59,13 +59,13 @@ func TestMiddleware(t *testing.T) {
 func TestRequireAuthentication(t *testing.T) {
 	validator := &mockValidator{}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
-	requireAuth := auth.RequireAuthentication()
+	requireAuth := authLegacy.RequireAuthentication()
 
 	t.Run("Authenticated subject", func(t *testing.T) {
-		ctx, err := auth.newSubjectContext(context.Background(), "valid_subject")
+		ctx, err := newAuthSubjectContext(context.Background(), authLegacy.contextKey, "valid_subject")
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/", nil).WithContext(ctx)
@@ -86,10 +86,12 @@ func TestRequireAuthentication(t *testing.T) {
 		rr := httptest.NewRecorder()
 
 		nextHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			assert.Equal(t, http.StatusUnauthorized, rr.Code)
+			t.Error("Next handler should not be called")
 		})
 
 		handler := requireAuth(nextHandler)
 		handler.ServeHTTP(rr, req)
+		
+		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }

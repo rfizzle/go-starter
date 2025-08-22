@@ -1,10 +1,11 @@
-package auth
+package v1
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -12,7 +13,7 @@ import (
 func TestRequireAuthenticationWithCustomResponse(t *testing.T) {
 	validator := &mockValidator{}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
 	t.Run("custom error handler called for missing subject", func(t *testing.T) {
@@ -26,7 +27,7 @@ func TestRequireAuthenticationWithCustomResponse(t *testing.T) {
 			_, _ = w.Write([]byte("Custom error response"))
 		}
 
-		middleware := auth.RequireAuthenticationWithCustomResponse(errorHandler)
+		middleware := authLegacy.RequireAuthenticationWithCustomResponse(errorHandler)
 
 		req := httptest.NewRequest("GET", "/", nil)
 		rr := httptest.NewRecorder()
@@ -57,7 +58,7 @@ func TestRequireAuthenticationWithCustomResponse(t *testing.T) {
 			_, _ = w.Write([]byte("Empty subject"))
 		}
 
-		middleware := auth.RequireAuthenticationWithCustomResponse(errorHandler)
+		middleware := authLegacy.RequireAuthenticationWithCustomResponse(errorHandler)
 
 		// Create request without any subject context
 		req := httptest.NewRequest("GET", "/", nil)
@@ -84,11 +85,11 @@ func TestRequireAuthenticationWithCustomResponse(t *testing.T) {
 			customErrorCalled = true
 		}
 
-		middleware := auth.RequireAuthenticationWithCustomResponse(errorHandler)
+		middleware := authLegacy.RequireAuthenticationWithCustomResponse(errorHandler)
 
 		// Create authenticated context
 		req := httptest.NewRequest("GET", "/", nil)
-		ctx, err := auth.newSubjectContext(req.Context(), "user123")
+		ctx, err := newAuthSubjectContext(req.Context(), authLegacy.contextKey, "user123")
 		assert.NoError(t, err)
 		req = req.WithContext(ctx)
 		rr := httptest.NewRecorder()
@@ -111,10 +112,10 @@ func TestRequireAuthenticationWithCustomResponse(t *testing.T) {
 func TestImprovedRequireAuthentication(t *testing.T) {
 	validator := &mockValidator{}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
-	middleware := auth.RequireAuthentication()
+	middleware := authLegacy.RequireAuthentication()
 
 	t.Run("returns proper HTTP error format", func(t *testing.T) {
 		req := httptest.NewRequest("GET", "/", nil)
@@ -154,14 +155,14 @@ func TestImprovedRequireAuthentication(t *testing.T) {
 func TestMockValidatorWithError(t *testing.T) {
 	validator := &mockValidator{
 		Subject: "",
-		Err:     ErrUnauthorized,
+		Err:     auth.ErrUnauthorized,
 	}
 
 	req := httptest.NewRequest("GET", "/", nil)
 	subject, err := validator.Validate(req)
 
 	assert.Empty(t, subject)
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, auth.ErrUnauthorized, err)
 }
 
 func TestMockValidatorSuccess(t *testing.T) {
@@ -181,12 +182,12 @@ func TestMockValidatorSuccess(t *testing.T) {
 func TestMiddlewareChain(t *testing.T) {
 	validator := &mockValidator{Subject: "user123", Err: nil}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
 	// Chain: Auth middleware -> Require Authentication -> Handler
-	authMiddleware := auth.Middleware()
-	requireAuthMiddleware := auth.RequireAuthentication()
+	authMiddleware := authLegacy.Middleware()
+	requireAuthMiddleware := authLegacy.RequireAuthentication()
 
 	req := httptest.NewRequest("GET", "/", nil)
 	rr := httptest.NewRecorder()
@@ -196,7 +197,7 @@ func TestMiddlewareChain(t *testing.T) {
 		finalHandlerCalled = true
 
 		// Verify subject is available in context
-		subject, err := auth.subjectFromContext(r.Context())
+		subject, err := subjectFromContext(r.Context(), authLegacy.contextKey)
 		assert.NoError(t, err)
 		assert.Equal(t, "user123", subject)
 
@@ -214,13 +215,13 @@ func TestMiddlewareChain(t *testing.T) {
 }
 
 func TestMiddlewareChain_FailedValidation(t *testing.T) {
-	validator := &mockValidator{Subject: "", Err: ErrUnauthorized}
+	validator := &mockValidator{Subject: "", Err: auth.ErrUnauthorized}
 	logger := zap.NewNop()
-	auth, err := NewAuth(validator, WithLogger(logger))
+	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
 	assert.NoError(t, err)
 
-	authMiddleware := auth.Middleware()
-	requireAuthMiddleware := auth.RequireAuthentication()
+	authMiddleware := authLegacy.Middleware()
+	requireAuthMiddleware := authLegacy.RequireAuthentication()
 
 	req := httptest.NewRequest("GET", "/", nil)
 	rr := httptest.NewRecorder()

@@ -1,12 +1,12 @@
-package auth
+package v1
 
 import (
 	"context"
 	"testing"
 
-	"go.uber.org/zap"
-
+	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 const (
@@ -15,47 +15,47 @@ const (
 
 func TestNewSubjectContext(t *testing.T) {
 	ctx := context.Background()
-	a, err := NewAuth(&mockValidator{}, WithLogger(zap.NewNop()))
+	a, err := NewAuth(&mockValidator{}, WithLoggerLegacy(zap.NewNop()))
 	assert.NotNil(t, a)
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
-	newCtx, err := a.newSubjectContext(ctx, defaultUID)
+	newCtx, err := newAuthSubjectContext(ctx, a.contextKey, defaultUID)
 	assert.NotNil(t, newCtx)
 	assert.Nil(t, err)
-	assert.NotEqualf(t, ctx, newCtx, "context should be different")
+	assert.NotEqual(t, ctx, newCtx, "context should be different")
 }
 
 func TestNewSubjectContext_InvalidType(t *testing.T) {
 	ctx := context.Background()
-	a, err := NewAuth(&mockValidator{}, WithLogger(zap.NewNop()))
+	a, err := NewAuth(&mockValidator{}, WithLoggerLegacy(zap.NewNop()))
 	assert.NotNil(t, a)
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
-	newCtx, expectedErr := a.newSubjectContext(ctx, "")
+	newCtx, expectedErr := newAuthSubjectContext(ctx, a.contextKey, "")
 	assert.Nil(t, newCtx)
 	assert.NotNil(t, expectedErr)
-	authErr, err := GetError(expectedErr)
+	authErr, err := auth.GetError(expectedErr)
 	assert.NotNil(t, authErr)
 	assert.Nil(t, err)
-	assert.Equal(t, authErr.Err, ErrEmptySubject)
+	assert.Equal(t, authErr.Err, auth.ErrEmptySubject)
 }
 
 func TestNewSubjectContextWithCustomKey(t *testing.T) {
 	ctx := context.Background()
-	a, err := NewAuth(&mockValidator{}, WithLogger(zap.NewNop()), WithContextKey("custom"))
+	a, err := NewAuth(&mockValidator{}, WithLoggerLegacy(zap.NewNop()), WithContextKeyLegacy("custom"))
 	assert.NotNil(t, a)
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
-	newCtx, err := a.newSubjectContext(ctx, defaultUID)
+	newCtx, err := newAuthSubjectContext(ctx, a.contextKey, defaultUID)
 	assert.NotNil(t, newCtx)
 	assert.Nil(t, err)
-	assert.NotEqualf(t, ctx, newCtx, "context should be different")
+	assert.NotEqual(t, ctx, newCtx, "context should be different")
 	subject, err := subjectFromContext(newCtx, "custom")
 	assert.NotEmpty(t, subject)
 	assert.Nil(t, err)
