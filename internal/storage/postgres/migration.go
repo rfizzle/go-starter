@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/rfizzle/go-starter/internal/storage/driver"
+	"github.com/rfizzle/go-starter/internal/storage"
 )
 
 type migration struct {
@@ -77,28 +77,28 @@ func (provider *Provider) Migrate(migrationFs embed.FS) error {
 	return nil
 }
 
-func (provider *Provider) MigrationStatus(migrationFs embed.FS) (driver.MigrationStatus, error) {
+func (provider *Provider) MigrationStatus(migrationFs embed.FS) (storage.MigrationStatus, error) {
 	err := provider._addMigrationTable()
 	if err != nil {
-		return driver.NoMigrationsCompleted, err
+		return storage.NoMigrationsCompleted, err
 	}
 
 	fileMigrations, err := provider._getMigrationsFromFs(migrationFs)
 	if err != nil {
-		return driver.NoMigrationsCompleted, err
+		return storage.NoMigrationsCompleted, err
 	}
 
 	dbMigrations, err := provider._getDbMigrations()
 	if err != nil {
-		return driver.NoMigrationsCompleted, err
+		return storage.NoMigrationsCompleted, err
 	}
 
 	if len(dbMigrations) == len(fileMigrations) {
-		return driver.AllMigrationsCompleted, nil
+		return storage.AllMigrationsCompleted, nil
 	} else if len(dbMigrations) == 0 {
-		return driver.NoMigrationsCompleted, nil
+		return storage.NoMigrationsCompleted, nil
 	}
-	return driver.SomeMigrationsCompleted, nil
+	return storage.SomeMigrationsCompleted, nil
 }
 
 func (provider *Provider) _addMigrationTable() error {

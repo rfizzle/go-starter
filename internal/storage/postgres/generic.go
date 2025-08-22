@@ -1,13 +1,13 @@
 package postgres
 
 import (
-	"github.com/rfizzle/go-starter/internal/storage/driver"
+	"github.com/rfizzle/go-starter/internal/storage"
 	"go.uber.org/zap"
 
 	"github.com/jackc/pgx/v5"
 )
 
-func (provider *Provider) Query(sql string, args ...interface{}) (driver.Scanner, error) {
+func (provider *Provider) Query(sql string, args ...interface{}) (storage.Scanner, error) {
 	rows, err := provider._query(sql, args...)
 	if err != nil {
 		return nil, err

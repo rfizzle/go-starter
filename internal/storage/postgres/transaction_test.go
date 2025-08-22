@@ -8,7 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/pashagolub/pgxmock/v4"
-	"github.com/rfizzle/go-starter/internal/storage/driver"
+	"github.com/rfizzle/go-starter/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 )
@@ -215,7 +215,7 @@ func TestProvider_WithTx(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupMock func(mock pgxmock.PgxPoolIface)
-		txFunc    func(tx driver.Tx) error
+		txFunc    func(tx storage.Tx) error
 		wantErr   bool
 	}{
 		{
@@ -224,7 +224,7 @@ func TestProvider_WithTx(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectCommit()
 			},
-			txFunc: func(tx driver.Tx) error {
+			txFunc: func(tx storage.Tx) error {
 				return nil
 			},
 			wantErr: false,
@@ -235,7 +235,7 @@ func TestProvider_WithTx(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectRollback()
 			},
-			txFunc: func(tx driver.Tx) error {
+			txFunc: func(tx storage.Tx) error {
 				return errors.New("business logic error")
 			},
 			wantErr: true,
@@ -245,7 +245,7 @@ func TestProvider_WithTx(t *testing.T) {
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectBegin().WillReturnError(errors.New("begin failed"))
 			},
-			txFunc: func(tx driver.Tx) error {
+			txFunc: func(tx storage.Tx) error {
 				return nil
 			},
 			wantErr: true,
@@ -256,7 +256,7 @@ func TestProvider_WithTx(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectCommit().WillReturnError(errors.New("commit failed"))
 			},
-			txFunc: func(tx driver.Tx) error {
+			txFunc: func(tx storage.Tx) error {
 				return nil
 			},
 			wantErr: true,
@@ -319,7 +319,7 @@ func TestTransaction_Query(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = provider.WithTx(func(tx driver.Tx) error {
+	err = provider.WithTx(func(tx storage.Tx) error {
 		scanner, err := tx.Query("SELECT id, name FROM users WHERE id = $1", 1)
 		assert.NoError(t, err)
 		assert.NotNil(t, scanner)
@@ -354,7 +354,7 @@ func TestTransaction_Execute(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectCommit()
 
-	err = provider.WithTx(func(tx driver.Tx) error {
+	err = provider.WithTx(func(tx storage.Tx) error {
 		return tx.Execute("UPDATE users SET name = $1 WHERE id = $2", "Jane", 1)
 	})
 
@@ -383,7 +383,7 @@ func TestTransaction_InsertMany(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 
-	err = provider.WithTx(func(tx driver.Tx) error {
+	err = provider.WithTx(func(tx storage.Tx) error {
 		// Skip batch operations due to pgxmock limitations
 		// Just test that transaction begins and commits properly
 		return nil

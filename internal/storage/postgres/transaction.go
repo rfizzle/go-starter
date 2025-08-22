@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/rfizzle/go-starter/internal/storage/driver"
+	"github.com/rfizzle/go-starter/internal/storage"
 
 	"github.com/jackc/pgx/v5"
 )
@@ -45,7 +45,7 @@ func (tx *transaction) rollback() error {
 }
 
 // WithTx creates a function with core.Transaction and core.Provider to be called throughout the app
-func (provider *Provider) WithTx(fn func(tx driver.Tx) error) error {
+func (provider *Provider) WithTx(fn func(tx storage.Tx) error) error {
 	startTime := time.Now()
 	tx, err := provider.begin()
 	if err != nil {
@@ -84,7 +84,7 @@ func (provider *Provider) _withTx(fn func(tx *transaction) error) error {
 	return err
 }
 
-func (tx *transaction) Query(sql string, args ...interface{}) (driver.Scanner, error) {
+func (tx *transaction) Query(sql string, args ...interface{}) (storage.Scanner, error) {
 	rows, err := tx._query(sql, args...)
 	if err != nil {
 		return nil, err

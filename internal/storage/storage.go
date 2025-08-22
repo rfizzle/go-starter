@@ -1,4 +1,4 @@
-package driver
+package storage
 
 type Scanner interface {
 	ScanOne(dst interface{}) error

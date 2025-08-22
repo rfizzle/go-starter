@@ -1,4 +1,4 @@
-package driver
+package storage
 
 // MigrationStatus is an internal type for migration state
 type MigrationStatus int

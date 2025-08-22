@@ -1,4 +1,4 @@
-package driver
+package storage
 
 import (
 	"testing"
@@ -38,7 +38,7 @@ func TestMigrationStatus_Values(t *testing.T) {
 
 func TestMigrationStatus_TypeSafety(t *testing.T) {
 	// Test that MigrationStatus is a distinct type
-	var status MigrationStatus = NoMigrationsCompleted
+	var status = NoMigrationsCompleted
 	assert.IsType(t, MigrationStatus(0), status)
 
 	// Test that it can be compared

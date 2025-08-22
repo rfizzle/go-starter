@@ -13,8 +13,8 @@ echo -e "${MAGENTA}Updating files to use version: ${VERSION}...${RESET}"
 # Now do the replacement in-place (MacOS/Unix compatible)
 REPLACE=' version: .*$'
 WITH=" version: \"${VERSION}\""
-sed -i.tmp "s#${REPLACE}#${WITH}#g" "${PROJECT_PATH}/api/openapi.yaml"
-rm -f "${PROJECT_PATH}/api/openapi.yaml.tmp"
+sed -i.tmp "s#${REPLACE}#${WITH}#g" "${PROJECT_PATH}/api/openapi.yml"
+rm -f "${PROJECT_PATH}/api/openapi.yml.tmp"
 
 REPLACE=' "version": ".*"'
 WITH=" \"version\": \"${VERSION}\""

@@ -103,7 +103,7 @@ Update project documentation when:
 - **Application core**: `internal/app/app.go` - Main application lifecycle management
 - **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
 - **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
-- **Storage interface**: `internal/storage/driver` - Database abstraction driver
+- **Storage interface**: `internal/storage` - Database abstraction driver
 - **Storage layer**: `internal/storage/postgres` - PostgreSQL implementation
 - **Authentication**: `internal/auth/` - JWT-based auth system with middleware
 

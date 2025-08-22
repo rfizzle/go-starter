@@ -38,8 +38,8 @@ This project uses **ogen** for OpenAPI-first API development:
 - **Application core**: `internal/app/app.go` - Main application lifecycle management
 - **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
 - **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
-- **Storage interface**: `internal/storage/driver` - Database abstraction driver
-- **Storage layer**: `internal/storage/postgres` - PostgreSQL implementation of the database driver abstraction
+- **Storage interface**: `internal/storage` - Database abstraction
+- **Storage layer**: `internal/storage/postgres` - PostgreSQL implementation of the database abstraction
 - **Authentication**: `internal/auth/` - JWT-based auth system with middleware
 
 ### Key Dependencies

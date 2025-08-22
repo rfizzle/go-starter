@@ -202,8 +202,8 @@ internal/auth
 # Review the config package
 pkg/config
 
-# Review the storage driver package
-internal/storage/driver
+# Review the storage package
+internal/storage
 ```
 
 ### Git Changes Mode Examples

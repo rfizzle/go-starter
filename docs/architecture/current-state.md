@@ -32,7 +32,7 @@ Overview of the current implementation status, components, and technical state o
 - **Helper Functions** - Token validation and utility functions
 
 #### Storage Layer
-- **Driver Abstraction** (`internal/storage/driver/`) - Database interface layer
+- **Driver Abstraction** (`internal/storage/`) - Database interface layer
   - Scanner interface for query results
   - Client interface for database operations
   - Transaction management
@@ -145,10 +145,9 @@ auth/
 #### `internal/storage/`
 ```
 storage/
-├── driver/          # Abstraction layer
-│   ├── storage.go   # Core interfaces
-│   ├── migration.go # Migration support
-│   └── transaction.go # Transaction management
+│── storage.go       # Core interfaces
+│── migration.go     # Migration support
+│── transaction.go   # Transaction management
 └── postgres/        # Implementation
     ├── postgres.go  # Main implementation
     ├── scanner.go   # Result scanning

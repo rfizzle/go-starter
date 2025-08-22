@@ -40,7 +40,7 @@
 - **Interfaces:** internal/[domain] 
 - **Implementation:** internal/[domain]/v1
 - **Controllers:** internal/controller/[feature]
-- **Repository:** internal/storage/driver additions
+- **Repository:** internal/storage additions
 
 ### Patterns
 - Error handling: Domain-specific errors with wrapping

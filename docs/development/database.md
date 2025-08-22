@@ -18,7 +18,7 @@ This project uses PostgreSQL with a **generic storage abstraction layer**. The s
 ├─────────────────────────────────┤
 │     Domain Repositories         │  ← internal/user/repository.go
 ├─────────────────────────────────┤
-│     Generic Storage Driver      │  ← internal/storage/driver
+│     Generic Storage Driver      │  ← internal/storage
 ├─────────────────────────────────┤
 │     PostgreSQL Implementation   │  ← internal/storage/postgres
 ├─────────────────────────────────┤
@@ -28,7 +28,7 @@ This project uses PostgreSQL with a **generic storage abstraction layer**. The s
 
 ### Key Components
 
-- **Generic Storage Driver** (`internal/storage/driver/`) - Database abstraction without business logic
+- **Generic Storage Driver** (`internal/storage/`) - Database abstraction without business logic
 - **PostgreSQL Implementation** (`internal/storage/postgres/`) - Concrete database implementation
 - **Domain Repositories** (`internal/<domain>/repository.go`) - Business-specific data operations
 - **Domain Models** (`internal/<domain>/types.go`) - Business entities and structs
@@ -40,8 +40,8 @@ This project uses PostgreSQL with a **generic storage abstraction layer**. The s
 ### Interface Definition
 
 ```go
-// internal/storage/driver/storage.go
-package driver
+// internal/storage/storage.go
+package storage
 
 import "context"
 
@@ -97,14 +97,14 @@ import (
     "time"
     
     "github.com/jackc/pgx/v5/pgxpool"
-    "github.com/rfizzle/go-starter/internal/storage/driver"
+    "github.com/rfizzle/go-starter/internal/storage"
 )
 
 type Client struct {
     pool *pgxpool.Pool
 }
 
-func New(ctx context.Context, dsn string) (driver.Client, error) {
+func New(ctx context.Context, dsn string) (storage.Client, error) {
     config, err := pgxpool.ParseConfig(dsn)
     if err != nil {
         return nil, fmt.Errorf("parse config: %w", err)
@@ -125,7 +125,7 @@ func New(ctx context.Context, dsn string) (driver.Client, error) {
 }
 
 // Generic query execution - no business logic
-func (c *Client) Query(sql string, args ...interface{}) (driver.Scanner, error) {
+func (c *Client) Query(sql string, args ...interface{}) (storage.Scanner, error) {
     rows, err := c.pool.Query(context.Background(), sql, args...)
     if err != nil {
         return nil, fmt.Errorf("query failed: %w", err)
@@ -187,14 +187,14 @@ import (
     "context"
     "fmt"
     
-    "github.com/rfizzle/go-starter/internal/storage/driver"
+    "github.com/rfizzle/go-starter/internal/storage"
 )
 
 type Repository struct {
-    db driver.Client
+    db storage.Client
 }
 
-func NewRepository(db driver.Client) *Repository {
+func NewRepository(db storage.Client) *Repository {
     return &Repository{db: db}
 }
 
@@ -615,10 +615,10 @@ func (s *OrderService) CreateOrderWithInventoryCheck(ctx context.Context, userID
 ```go
 // internal/app/transaction.go - application-level transaction management
 type TransactionManager struct {
-    db driver.Client
+    db storage.Client
 }
 
-func (tm *TransactionManager) WithTransaction(ctx context.Context, fn func(driver.Transaction) error) error {
+func (tm *TransactionManager) WithTransaction(ctx context.Context, fn func(storage.Transaction) error) error {
     tx, err := tm.db.BeginTx(ctx)
     if err != nil {
         return err
@@ -647,24 +647,24 @@ func (tm *TransactionManager) WithTransaction(ctx context.Context, fn func(drive
 ### Mock Storage Client
 
 ```go
-// internal/storage/driver/mock/mock.go
+// internal/storage/mock/mock.go
 package mock
 
 import (
     "github.com/stretchr/testify/mock"
-    "github.com/rfizzle/go-starter/internal/storage/driver"
+    "github.com/rfizzle/go-starter/internal/storage"
 )
 
 type MockClient struct {
     mock.Mock
 }
 
-func (m *MockClient) Query(sql string, args ...interface{}) (driver.Scanner, error) {
+func (m *MockClient) Query(sql string, args ...interface{}) (storage.Scanner, error) {
     mockArgs := m.Called(sql, args)
     if mockArgs.Get(0) == nil {
         return nil, mockArgs.Error(1)
     }
-    return mockArgs.Get(0).(driver.Scanner), mockArgs.Error(1)
+    return mockArgs.Get(0).(storage.Scanner), mockArgs.Error(1)
 }
 
 func (m *MockClient) Execute(sql string, args ...interface{}) error {
@@ -699,7 +699,7 @@ import (
     
     "github.com/stretchr/testify/assert"
     "github.com/stretchr/testify/mock"
-    "github.com/rfizzle/go-starter/internal/storage/driver/mock"
+    "github.com/rfizzle/go-starter/internal/storage/mock"
     "github.com/rfizzle/go-starter/internal/user"
 )
 
@@ -895,11 +895,11 @@ func (db *DB) GetUser(ctx context.Context, id string) (*User, error) {
 ```go
 if err != nil {
     if errors.Is(err, pgx.ErrNoRows) {
-        return nil, driver.ErrNotFound
+        return nil, storage.ErrNotFound
     }
     if pgErr, ok := err.(*pgconn.PgError); ok {
         if pgErr.Code == "23505" { // Unique violation
-            return nil, driver.ErrDuplicate
+            return nil, storage.ErrDuplicate
         }
     }
     return nil, fmt.Errorf("query failed: %w", err)

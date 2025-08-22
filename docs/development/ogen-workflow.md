@@ -122,14 +122,14 @@ package controller
 import (
     "context"
     "github.com/rfizzle/go-starter/internal/api/v1"
-    "github.com/rfizzle/go-starter/internal/storage/driver"
+    "github.com/rfizzle/go-starter/internal/storage"
 )
 
 type UserController struct {
-    db driver.DB
+    db storage.DB
 }
 
-func NewUserController(db driver.DB) *UserController {
+func NewUserController(db storage.DB) *UserController {
     return &UserController{db: db}
 }
 
@@ -137,7 +137,7 @@ func NewUserController(db driver.DB) *UserController {
 func (c *UserController) GetUser(ctx context.Context, params api.GetUserParams) (api.GetUserRes, error) {
     user, err := c.db.GetUser(ctx, params.ID)
     if err != nil {
-        if errors.Is(err, driver.ErrNotFound) {
+        if errors.Is(err, storage.ErrNotFound) {
             return &api.GetUserNotFound{
                 Message: "User not found",
             }, nil
@@ -278,7 +278,7 @@ func TestGetUser(t *testing.T) {
     mockDB := &mockDriver.DB{}
     controller := NewUserController(mockDB)
     
-    mockDB.On("GetUser", mock.Anything, "123").Return(&driver.User{
+    mockDB.On("GetUser", mock.Anything, "123").Return(&User{
         ID:    "123",
         Email: "test@example.com",
         Name:  "Test User",
