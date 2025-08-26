@@ -6,7 +6,7 @@
 
 ## Overview
 
-We follow a pattern where **high-level interfaces** are defined at the package level (e.g., `internal/auth`) and **concrete implementations** are placed in versioned subfolders (e.g., `internal/auth/v1`). This approach provides clean abstraction boundaries, enables versioning of implementations, and maintains backward compatibility.
+We follow a pattern where **interfaces** are defined at the package level (e.g., `internal/auth`). For single implementations, place them directly in the package. For multiple implementations (e.g., different database drivers), use named subdirectories (e.g., `internal/storage/postgres`, `internal/storage/mysql`).
 
 ## Purpose
 - Enforce consistent, predictable package structure across Go project
@@ -20,16 +20,12 @@ We follow a pattern where **high-level interfaces** are defined at the package l
 ```
 internal/
 └── <domain>/
-    ├── interfaces.go          # Core domain interfaces and types
-    ├── types.go              # Domain-specific types
-    ├── errors.go             # Domain-specific errors
-    ├── v1/                   # Version 1 implementations
-    │   ├── service.go        # Core business logic implementation
-    │   ├── handlers.go       # HTTP handlers (if applicable)
-    │   └── models.go         # Version-specific models/DTOs
-    ├── v2/                   # Version 2 implementations (future)
-    └── <provider>/           # Provider-specific implementations
-        └── implementation.go
+    ├── interfaces.go         # Core domain interfaces (if multiple impls)
+    ├── service.go           # Implementation (for single impl)
+    ├── types.go             # Domain-specific types  
+    ├── errors.go            # Domain-specific errors
+    └── <provider>/          # Multiple implementations only
+        └── client.go        # Provider-specific implementation
 ```
 
 ## Requirements
@@ -44,7 +40,7 @@ internal/
 1. Domain interfaces defined in `internal/<domain>/interfaces.go`
 2. Supporting types and constants in `internal/<domain>/types.go`
 3. Domain-specific errors in `internal/<domain>/errors.go`
-4. Primary implementation in `internal/<domain>/v1/`
+4. For single implementation: directly in `internal/<domain>/`
 5. Constructor functions use pattern `New<InterfaceName>(dependencies...)`
 6. Implementation structs should not be exported unless necessary
 
@@ -75,13 +71,13 @@ type Repository interface {
 }
 ```
 
-### Versioned Implementations
+### Single Implementation
 
-Place concrete implementations in versioned subdirectories:
+For packages with one implementation, place it directly in the package:
 
 ```go
-// internal/auth/v1/service.go
-package v1
+// internal/auth/service.go
+package auth
 
 import (
     "context"
@@ -148,7 +144,7 @@ var (
 Use constructor functions that accept interfaces:
 
 ```go
-// internal/auth/v1/service.go
+// internal/auth/service.go
 func NewService(
     repo auth.Repository,
     tokenManager TokenManager,
@@ -164,7 +160,7 @@ func NewService(
 
 ### For Development Teams
 - **Interface First**: Always define or reference interface before implementing
-- **Version Awareness**: Place new implementations in appropriate version sub-packages
+- **Implementation Strategy**: Use named subdirectories only when multiple implementations exist
 - **Testing Strategy**: Write tests against interfaces, not concrete implementations
 - **Documentation**: Document interface contracts thoroughly, including error conditions
 
@@ -213,13 +209,13 @@ func TestServiceConformance(t *testing.T, factory func() auth.Service) {
 Test concrete implementations separately:
 
 ```go
-// internal/auth/v1/service_test.go
+// internal/auth/service_test.go
 package v1_test
 
 import (
     "testing"
     "github.com/rfizzle/go-starter/internal/auth"
-    "github.com/rfizzle/go-starter/internal/auth/v1"
+    "github.com/rfizzle/go-starter/internal/auth"
 )
 
 func TestService(t *testing.T) {
@@ -235,35 +231,39 @@ func TestService(t *testing.T) {
 }
 ```
 
-## Migration and Versioning
+## Multiple Implementations
 
-### Adding New Versions
+### When to Use Subdirectories
 
-When implementing breaking changes, create a new version:
+Use subdirectories only when you have multiple implementations:
 
 ```go
-// internal/auth/v2/service.go - New implementation with breaking changes
-package v2
+// internal/storage/postgres/client.go
+package postgres
 
-// Enhanced interface with additional methods
-func NewService(config Config) auth.Service {
-    return &serviceV2{
-        config: config,
-    }
-}
+func NewClient(dsn string) storage.Client { ... }
+
+// internal/storage/mysql/client.go  
+package mysql
+
+func NewClient(dsn string) storage.Client { ... }
 ```
 
-### Gradual Migration
+### Selection Strategy
 
-Use feature flags or configuration to gradually migrate:
+Use configuration or dependency injection to select implementation:
 
 ```go
 // internal/app/app.go
-func (a *App) setupAuth() auth.Service {
-    if a.config.UseAuthV2 {
-        return v2.NewService(a.config.AuthV2Config)
+func (a *App) setupStorage() storage.Client {
+    switch a.config.DatabaseType {
+    case "postgres":
+        return postgres.NewClient(a.config.DatabaseURL)
+    case "mysql":
+        return mysql.NewClient(a.config.DatabaseURL)
+    default:
+        panic("unsupported database type")
     }
-    return v1.NewService(a.authRepo)
 }
 ```
 
@@ -313,7 +313,7 @@ func (a *App) setupServices() {
 - [ ] Domain interfaces defined in `internal/<domain>/interfaces.go`
 - [ ] Types defined in `internal/<domain>/types.go`
 - [ ] Errors defined in `internal/<domain>/errors.go`
-- [ ] Implementation in versioned subpackage (`internal/<domain>/v1/`)
+- [ ] Implementation in appropriate location (root for single, subdirs for multiple)
 - [ ] Constructor follows `New<InterfaceName>` pattern
 - [ ] All methods accept `context.Context` as first parameter where appropriate
 - [ ] Interface methods return explicit errors
@@ -337,7 +337,7 @@ func (a *App) setupServices() {
 3. **Versioning**: Multiple implementations can coexist
 4. **Flexibility**: Easy to swap implementations
 5. **Maintainability**: Clear separation of concerns
-6. **Backward Compatibility**: Old versions remain available during migration
+6. **Clean Architecture**: Clear separation between single and multiple implementations
 
 ## Examples in Codebase
 
