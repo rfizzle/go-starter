@@ -6,13 +6,39 @@ This directory contains feature specifications and requirements for the Go Start
 
 Provide a single source of truth for feature requirements, ensuring alignment between product vision, engineering implementation, and quality assurance.
 
-## Feature Document Structure
+## How Features Work
 
-All feature documents follow the template in [../ai/templates/feature.md](../ai/templates/feature.md) and include:
+### Feature Lifecycle
+
+1. **Discovery**: Identify user need or business requirement
+2. **Documentation**: Create feature document using the template
+3. **Planning**: Create implementation plan in `../plans/`  
+4. **Implementation**: Follow TDD approach with regular updates
+5. **Validation**: Verify acceptance criteria and run comprehensive tests
+6. **Completion**: Update status and archive materials
+
+### Creating New Features
+
+Use the AI-powered feature agent configured in `docs/ai/prompts/feature.md` to:
+
+- Gather comprehensive business and user requirements
+- Create user stories following "As a [user], I want [goal] so that [benefit]" format
+- Document features using the standardized template
+- Define testable, measurable acceptance criteria
+
+```bash
+# The AI agent will use this template automatically
+# Template location: docs/ai/templates/feature.md
+# Output location: docs/features/YYYY-MM-DD-feature-name.md
+```
+
+## Feature Structure
+
+All feature documents follow the template at `docs/ai/templates/feature.md` and include:
 
 ### Essential Sections
 1. **User Story** - Who wants what and why
-2. **Problem & Solution** - Context and approach
+2. **Problem & Solution** - Context and approach  
 3. **Acceptance Criteria** - Definition of done
 4. **Technical Requirements** - API, database, implementation details
 5. **Testing Strategy** - How we validate success
@@ -23,83 +49,28 @@ All feature documents follow the template in [../ai/templates/feature.md](../ai/
 - **Owner**: Responsible person/role
 - **Created**: Creation date
 
-## Feature Lifecycle
-
-### 1. Discovery
-- Identify user need or business requirement
-- Research existing solutions
-- Define initial scope
-
-### 2. Documentation
-- Create feature document from template
-- Define user stories and acceptance criteria
-- Specify technical requirements
-- Review with stakeholders
-
-### 3. Planning
-- Create implementation plan in [../plans/](../plans/)
-- Break down into tasks
-- Estimate effort
-- Identify risks
-
-### 4. Implementation
-- Follow TDD approach
-- Implement according to plan
-- Update documentation as needed
-
-### 5. Validation
-- Verify acceptance criteria met
-- Run comprehensive tests
-- Perform security review
-- Complete performance testing
-
-### 6. Completion
-- Update feature status to Complete
-- Document lessons learned
-- Archive related materials
-
-## Creating a New Feature Document
-
-```bash
-# Copy the template
-cp ../ai/templates/feature.md ./YYYY-MM-DD-feature-name.md
-
-# Edit the document
-# - Replace all [PLACEHOLDER] values
-# - Fill in all sections
-# - Remove template comments
-```
-
 ## Feature Categories
 
 ### API Features
-- New endpoints
-- API versioning
+- New endpoints and API versioning
 - Authentication/authorization
-- Rate limiting
-- Response caching
+- Rate limiting and response caching
 
-### Data Features
-- Database schema changes
-- Data migration
-- Caching strategies
-- Search capabilities
+### Data Features  
+- Database schema changes and data migration
+- Caching strategies and search capabilities
 
 ### Infrastructure Features
-- Monitoring improvements
-- Performance optimization
-- Security enhancements
-- Deployment automation
+- Monitoring improvements and performance optimization
+- Security enhancements and deployment automation
 
 ### Integration Features
 - Third-party service integration
-- Webhook support
-- Event streaming
-- Message queuing
+- Webhook support and event streaming
 
-## Best Practices
+## Quality Standards
 
-### Writing Feature Documents
+### Writing Requirements
 1. **Be Specific** - Clear, measurable acceptance criteria
 2. **Consider Edge Cases** - Document error scenarios
 3. **Include Examples** - Sample requests/responses
@@ -108,10 +79,9 @@ cp ../ai/templates/feature.md ./YYYY-MM-DD-feature-name.md
 
 ### Technical Requirements
 - Reference existing patterns in codebase
-- Follow project conventions
+- Follow Standard Go Project Layout
 - Consider backward compatibility
-- Plan for observability
-- Include security considerations
+- Plan for observability and security
 
 ### Acceptance Criteria Format
 ```
@@ -124,17 +94,10 @@ Then [expected result]
 
 Features are prioritized based on:
 1. **User Impact** - Number of users affected
-2. **Business Value** - Revenue or cost implications  
+2. **Business Value** - Revenue or cost implications
 3. **Technical Debt** - Addressing system limitations
 4. **Risk Mitigation** - Security or reliability concerns
 5. **Strategic Alignment** - Long-term product vision
-
-## Related Documentation
-
-- [../plans/](../plans/) - Implementation plans from features
-- [../ai/templates/feature.md](../ai/templates/feature.md) - Feature template
-- [../development/project-context.md](../development/project-context.md) - Project overview
-- [../architecture/](../architecture/) - Technical architecture
 
 ## Sign-off Process
 
@@ -143,15 +106,38 @@ Each feature requires sign-off from:
 2. **Technical Lead** - Technical approach is sound
 3. **Security Review** - No security concerns (if applicable)
 
-## Examples
+## File Organization
 
-### Well-Written Features
-Look for features that include:
-- Clear problem statement
-- Specific acceptance criteria
-- Comprehensive test strategy
-- Detailed technical requirements
-- Risk assessment and mitigation
+```
+docs/features/
+├── README.md                    # This file - process documentation
+├── YYYY-MM-DD-feature-name.md   # Individual feature documents
+└── archive/                     # Completed features (optional)
+```
+
+## Integration with Development
+
+Features integrate with the overall development workflow:
+
+- **Requirements gathering**: Use AI agent to create comprehensive features
+- **Implementation planning**: Reference features when creating plans
+- **Development**: Follow TDD approach with regular feature updates
+- **Testing**: Validate against acceptance criteria
+- **Deployment**: Use rollout plans defined in features
+
+## Best Practices
+
+### For Product Owners
+1. **Engage stakeholders**: Include all relevant voices in requirements
+2. **Think like users**: Write stories from user perspective
+3. **Be measurable**: Define clear success criteria
+4. **Consider technical constraints**: Work with engineering early
+
+### For Developers
+1. **Read the full feature**: Understand the business context
+2. **Question unclear requirements**: Ask for clarification early
+3. **Update as you learn**: Keep feature docs current during implementation
+4. **Test against acceptance criteria**: Use feature docs to guide testing
 
 ### Common Pitfalls to Avoid
 - Vague requirements ("should be fast")
@@ -159,6 +145,14 @@ Look for features that include:
 - Incomplete API specifications
 - No success metrics
 - Unclear dependencies
+
+## Related Documentation
+
+- `docs/ai/templates/feature.md` - Feature template structure
+- `docs/ai/prompts/feature.md` - AI agent configuration
+- `docs/plans/` - Implementation plans derived from features
+- `docs/development/project-context.md` - Project overview
+- `docs/architecture/` - Technical architecture
 
 ---
 

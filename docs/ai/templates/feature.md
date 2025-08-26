@@ -1,11 +1,13 @@
-# Feature: [Feature Name]
+# Feature Template
+
+<!-- Replace [PLACEHOLDER] text and remove these comments -->
+
+## Metadata
 
 **ID:** [YYYY-MM-DD-feature-name]  
 **Created:** [YYYY-MM-DD]  
 **Status:** [Draft/Review/Approved/In Development/Complete]  
 **Owner:** [Name/Role]
-
-<!-- Replace [PLACEHOLDER] text and remove these comments -->
 
 ## User Story
 **As a** [user type]  
@@ -107,7 +109,12 @@
 - **Audience:** [Target users]
 - **Rollback:** [Revert strategy]
 
-## Template Validation Checklist
+## Sign-off
+- [ ] **Product Owner:** [Name] - [Date]
+- [ ] **Technical Lead:** [Name] - [Date]
+- [ ] **Security Review:** [Name] - [Date]
+
+## TEMPLATE VALIDATION CHECKLIST
 
 Before finalizing this feature document, verify:
 
@@ -137,8 +144,3 @@ Before finalizing this feature document, verify:
 - [ ] Feature scope is clear and bounded
 - [ ] Integration points with existing systems are documented
 - [ ] Error scenarios and edge cases are considered
-
-## Sign-off
-- [ ] **Product Owner:** [Name] - [Date]
-- [ ] **Technical Lead:** [Name] - [Date]
-- [ ] **Security Review:** [Name] - [Date]
