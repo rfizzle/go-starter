@@ -78,7 +78,7 @@
 - **Steps:** [How to revert safely]
 - **Data:** [Migration reversal if needed]
 
-## Template Validation Checklist
+## TEMPLATE VALIDATION CHECKLIST
 
 Before finalizing this implementation plan, verify:
 

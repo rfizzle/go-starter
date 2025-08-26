@@ -6,17 +6,37 @@ This directory contains detailed implementation plans created from feature speci
 
 Transform feature requirements into concrete implementation roadmaps that development teams can execute, ensuring systematic delivery and risk management.
 
+## How Implementation Planning Works
+
+### Planning Agent
+
+The project uses an AI-powered implementation planning agent configured via `docs/ai/prompts/plan.md` that:
+
+- Analyzes feature documents from `docs/features/`
+- Converts features into specific, actionable development tasks
+- Defines Go-specific implementation approaches and patterns
+- Creates comprehensive testing plans (unit, integration, e2e)
+- Identifies technical and business risks with mitigation strategies
+
+### Planning Process
+
+1. **Feature Analysis**: Review feature document thoroughly
+2. **Technical Design**: Define package structure, interfaces, API changes, database modifications
+3. **Task Decomposition**: Break into manageable tasks (4-8 hours each)
+4. **Risk Assessment**: Identify technical risks, integration challenges, mitigation strategies
+5. **Review and Approval**: Technical lead review, team estimation, stakeholder approval
+
 ## Plan Document Structure
 
-All implementation plans follow the template in [../ai/templates/plan.md](../ai/templates/plan.md) and include:
+All implementation plans follow the template in `docs/ai/templates/plan.md` and include:
 
 ### Essential Components
-1. **Feature Summary** - What we're building and why
-2. **Technical Scope** - Packages, APIs, database changes
-3. **Task Breakdown** - Phased approach with specific tasks
-4. **Go Implementation** - Package structure and patterns
-5. **Test Strategy** - Unit, integration, and E2E testing
-6. **Risk Assessment** - Potential issues and mitigation
+1. **Feature Summary** - Problem statement, solution approach, users, success criteria
+2. **Technical Scope** - Packages, APIs, database changes, dependencies
+3. **Task Breakdown** - Phased approach with specific, actionable tasks
+4. **Go Implementation** - Package structure following `internal/[domain]/v1/` patterns
+5. **Test Strategy** - Unit, integration, and E2E testing requirements
+6. **Risk Assessment** - Potential issues with mitigation plans
 
 ### Metadata
 - **Source**: Links to feature document
@@ -25,43 +45,13 @@ All implementation plans follow the template in [../ai/templates/plan.md](../ai/
 - **Priority**: High, Medium, Low
 - **Status**: Planning, Ready, In Progress, Complete
 
-## Planning Process
-
-### 1. Feature Analysis
-- Review feature document thoroughly
-- Identify all requirements
-- Understand acceptance criteria
-- Note technical constraints
-
-### 2. Technical Design
-- Define package structure
-- Design interfaces and types
-- Plan API changes
-- Identify database modifications
-
-### 3. Task Decomposition
-- Break into manageable tasks (4-8 hours each)
-- Define task dependencies
-- Assign effort estimates
-- Identify task owners
-
-### 4. Risk Assessment
-- Identify technical risks
-- Consider integration challenges
-- Plan rollback procedures
-- Define mitigation strategies
-
-### 5. Review and Approval
-- Technical lead review
-- Team estimation session
-- Stakeholder approval
-- Plan finalization
+Refer to the template for detailed structure requirements and validation guidelines.
 
 ## Creating a New Plan
 
 ```bash
 # Copy the template
-cp ../ai/templates/plan.md ./YYYY-MM-DD-feature-name-plan.md
+cp docs/ai/templates/plan.md docs/plans/YYYY-MM-DD-feature-name-plan.md
 
 # Link to source feature
 # Update all [PLACEHOLDER] values
@@ -144,13 +134,13 @@ internal/
 - Rollback procedures documented
 - Security review before deployment
 
-## Tracking Progress
+## Quality Standards
 
-### Status Updates
-- Update task completion regularly
-- Note any blockers or issues
-- Adjust estimates if needed
-- Communicate delays early
+### Planning Criteria
+- **Actionable Tasks**: Every task must be specific, measurable, and assignable
+- **Complete Coverage**: Plan covers all aspects from development through deployment
+- **Go Idioms**: All technical approaches follow Go best practices and project patterns
+- **Test-Driven**: Planning assumes a TDD approach with tests written first
 
 ### Definition of Done
 Tasks are complete when:
@@ -160,10 +150,28 @@ Tasks are complete when:
 - Documentation updated
 - No linting errors
 
+## File Organization
+
+```
+docs/plans/
+├── README.md                          # This file - process documentation
+├── YYYY-MM-DD-feature-name-plan.md    # Individual implementation plans
+└── archive/                           # Completed plans (optional)
+```
+
+## Integration with Development
+
+Implementation plans integrate with the overall development workflow:
+
+- **Feature development**: Convert feature specs into actionable plans
+- **Sprint planning**: Break plans into sprint-sized tasks
+- **Risk management**: Proactively identify and mitigate risks
+- **Quality assurance**: Ensure comprehensive test coverage and standards compliance
+
 ## Best Practices
 
 ### Effective Planning
-1. **Right-size tasks** - Not too big, not too small
+1. **Right-size tasks** - Not too big, not too small (4-8 hours each)
 2. **Clear ownership** - Every task has an owner
 3. **Realistic estimates** - Include testing and review time
 4. **Dependency awareness** - Identify critical path
@@ -171,7 +179,7 @@ Tasks are complete when:
 
 ### Technical Excellence
 - Follow TDD approach
-- Maintain >90% test coverage
+- Maintain >85% test coverage
 - Use existing patterns
 - Consider performance early
 - Plan for observability
@@ -179,20 +187,10 @@ Tasks are complete when:
 ## Related Documentation
 
 - [../features/](../features/) - Source feature specifications
-- [../ai/templates/plan.md](../ai/templates/plan.md) - Plan template
+- [../ai/templates/plan.md](../ai/templates/plan.md) - Implementation plan template
+- [../ai/prompts/plan.md](../ai/prompts/plan.md) - Planning agent configuration
 - [../development/project-context.md](../development/project-context.md) - Development workflows
 - [../guidelines/](../guidelines/) - Coding standards
-
-## Review Checklist
-
-Before marking a plan as Ready:
-- [ ] All requirements addressed
-- [ ] Tasks clearly defined
-- [ ] Estimates reviewed by team
-- [ ] Risks identified and mitigated
-- [ ] Dependencies documented
-- [ ] Test strategy comprehensive
-- [ ] Rollback plan defined
 
 ---
 
