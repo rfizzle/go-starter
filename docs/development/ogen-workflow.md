@@ -434,7 +434,6 @@ func (c *Controller) ValidateRequest(req api.Request) error {
 - [Ogen Documentation](https://ogen.dev)
 - [OpenAPI Specification](https://swagger.io/specification/)
 - [project-context.md](project-context.md) - Project overview
-- [interface-pattern.md](../guidelines/interface-pattern.md) - Package patterns
 
 ---
 

@@ -74,10 +74,10 @@ This project follows an OpenAPI-first approach where:
 3. Changes start with the OpenAPI specification
 
 ### Interface-Implementation Pattern
-All domain packages follow a consistent pattern:
-- Interfaces defined at package level (`internal/<domain>/`)
-- Implementations in versioned subdirectories (`internal/<domain>/v1/`)
-- See [guidelines/interface-pattern.md](guidelines/interface-pattern.md) for details
+All domain packages follow a standard pattern:
+- Interfaces defined in `internal/<domain>/interfaces.go`
+- Single implementations directly in `internal/<domain>/`
+- Multiple implementations in named subdirectories (e.g., `internal/<domain>/postgres/`)
 
 ### Standard Go Project Layout
 The codebase follows the Standard Go Project Layout:

@@ -1,111 +1,75 @@
-# AI Documentation
+# AI Agent Documentation
 
-This directory contains AI agent documentation, prompts, and templates designed to enable effective AI-human collaboration on the Go Starter project.
+This directory contains AI agent configurations, prompts, templates, and reference materials for consistent AI interactions with the Go Starter codebase.
 
-## Purpose
+## Overview
 
-Provide structured guidance for AI agents working with this codebase, ensuring consistent, high-quality contributions that follow project patterns and standards.
+The AI documentation system provides structured guidance for AI agents working on this Go project. It includes role-specific prompts, reusable templates, and comprehensive reference materials.
 
 ## Directory Structure
 
-### 📁 prompts/
-AI agent role definitions with specific scopes and responsibilities.
-
-- **[ai.md](prompts/ai.md)** - AI documentation specialist for maintaining docs
-- **[feature.md](prompts/feature.md)** - Product owner agent for gathering requirements
-- **[plan.md](prompts/plan.md)** - Senior engineer for implementation planning
-- **[review.md](prompts/review.md)** - Code reviewer for quality assurance
-
-### 📁 templates/
-Reusable templates for creating consistent documentation.
-
-- **[README.md](templates/README.md)** - Guide for using templates
-- **[feature.md](templates/feature.md)** - Feature specification template
-- **[plan.md](templates/plan.md)** - Implementation plan template
-- **[prompt.md](templates/prompt.md)** - AI agent prompt template
-
-### 📄 Agent Coordination
-Documentation for effective AI agent collaboration.
-
-- **[agent-responsibility-matrix.md](agent-responsibility-matrix.md)** - Agent roles, boundaries, and coordination patterns
-- **[escalation-criteria.md](escalation-criteria.md)** - When and how agents should hand off tasks
-
-## Working with AI Agents
-
-### Quick Reference for AI Agents
-
-#### Key File Paths
-- **Project overview**: `docs/development/project-context.md`
-- **Go patterns**: `docs/development/foundations.md`
-- **Coding standards**: `docs/guidelines/go-standards.md`
-- **Interface pattern**: `docs/guidelines/interface-pattern.md`
-- **OpenAPI spec**: `api/openapi.yml`
-- **Main entry**: `main.go` → `cmd/serve.go`
-
-#### Essential Commands
-```bash
-make generate  # Generate API code from OpenAPI spec
-make fmt       # Format code
-make lint      # Check code quality
-make test      # Run tests
-make build     # Build binaries
+```
+ai/
+├── README.md                    # This file - AI system overview
+├── agent-responsibility-matrix.md # Agent roles and boundaries
+├── escalation-criteria.md       # When to escalate beyond AI capabilities
+├── prompts/                     # AI agent role definitions
+│   ├── ai.md                   # Documentation agent
+│   ├── feature.md              # Product owner agent
+│   ├── plan.md                 # Implementation planning agent
+│   ├── review.md               # Code review agent
+│   └── implementation.md       # Development implementation agent
+└── templates/                   # Reusable document templates
+    ├── README.md               # Template usage guide
+    ├── feature.md              # Feature specification template
+    ├── plan.md                 # Implementation plan template
+    └── prompt.md               # AI agent prompt template
 ```
 
-#### Development Workflow
-1. Read feature from `docs/features/`
-2. Apply standards from `docs/guidelines/`
-3. Use templates from `docs/ai/templates/`
-4. Reference context in `docs/development/`
+## Agent Roles
 
-### Agent Capabilities and Scopes
+### AI Documentation Agent (`prompts/ai.md`)
+- **Scope**: Documentation within `docs/ai/` directory
+- **Responsibilities**: Create and refine prompts, templates, AI-specific documentation
+- **Boundaries**: Cannot modify code or non-AI documentation
 
-#### Documentation Agent (`ai.md`)
-- **Scope**: AI documentation in `docs/ai/` directory
-- **Tools**: Read, Write, Edit, Glob, LS, Grep
-- **Responsibilities**: Create and maintain AI-facing documentation
+### Feature Agent (`prompts/feature.md`)
+- **Scope**: Feature specifications and requirements
+- **Responsibilities**: Create user stories, acceptance criteria, technical requirements
+- **Boundaries**: Planning only, no implementation
 
-#### Feature Agent (`feature.md`)
-- **Scope**: Feature requirements in `docs/features/`
-- **Tools**: Read, Write, Bash
-- **Responsibilities**: Gather requirements, create user stories
+### Planning Agent (`prompts/plan.md`)
+- **Scope**: Implementation planning and task breakdown
+- **Responsibilities**: Convert features to actionable development plans
+- **Boundaries**: Planning only, no code implementation
 
-#### Planning Agent (`plan.md`)
-- **Scope**: Implementation plans in `docs/plans/`
-- **Tools**: Read, Bash
-- **Responsibilities**: Convert features to technical tasks (no coding)
+### Review Agent (`prompts/review.md`)
+- **Scope**: Code quality and architectural review
+- **Responsibilities**: Ensure code standards, patterns, and best practices
+- **Boundaries**: Review only, no implementation changes
 
-#### Review Agent (`review.md`)
-- **Scope**: Code review and quality checks
-- **Tools**: Read, Bash
-- **Responsibilities**: Analyze code changes, provide feedback
+### Implementation Agent (`prompts/implementation.md`)
+- **Scope**: Code implementation and development
+- **Responsibilities**: Write code following plans and specifications
+- **Boundaries**: Implementation only, no planning or requirements changes
 
-## Best Practices for AI Collaboration
+## Using AI Agents
 
-### Understanding the Codebase
-1. **Start with context**: Always read `docs/development/project-context.md` first
-2. **Follow patterns**: Study `docs/guidelines/interface-pattern.md` for package structure
-3. **Check existing code**: Use similar implementations as reference
-4. **Respect conventions**: Follow naming and style in `docs/guidelines/go-standards.md`
+### Getting Started
 
-### Making Changes
-1. **OpenAPI first**: API changes start in `api/openapi.yml`
-2. **Generate code**: Run `make generate` after API changes
-3. **Test-driven**: Write tests before implementation
-4. **Quality checks**: Always run `make fmt lint test`
-5. **Document changes**: Update relevant documentation
+1. **Choose the right agent** based on the task type
+2. **Reference the agent's prompt** to understand scope and capabilities
+3. **Provide context** using the reference files in `docs/development/`
+4. **Use templates** from `templates/` for consistent outputs
 
-### Code Organization Pattern
-```
-internal/<domain>/
-├── interfaces.go     # Domain interfaces
-├── types.go         # Shared types
-├── errors.go        # Domain errors
-└── v1/              # Implementation version
-    ├── service.go   # Business logic
-    └── service_test.go
-```
+### Best Practices
 
-### Common Tasks
+- **Stay in scope**: Each agent has defined boundaries
+- **Use references**: Point to specific file paths and documentation
+- **Follow templates**: Use provided templates for consistency
+- **Document decisions**: Update documentation when making changes
+
+## Common Workflows
 
 #### Adding an API Endpoint
 1. Update `api/openapi.yml`
@@ -116,7 +80,7 @@ internal/<domain>/
 
 #### Creating a Service
 1. Define interface in `internal/<domain>/interfaces.go`
-2. Implement in `internal/<domain>/v1/`
+2. Implement directly in `internal/<domain>/` (single impl) or `internal/<domain>/<provider>/` (multiple impls)
 3. Write unit tests
 4. Wire up in `internal/app/app.go`
 
@@ -127,144 +91,91 @@ internal/<domain>/
 #### For Features
 ```bash
 cp templates/feature.md ../../features/YYYY-MM-DD-feature-name.md
-# Fill in all [PLACEHOLDER] values
 ```
 
 #### For Plans
 ```bash
-cp templates/plan.md ../../plans/YYYY-MM-DD-feature-plan.md
-# Link to source feature and define tasks
+cp templates/plan.md ../../plans/YYYY-MM-DD-plan-name.md
 ```
 
 #### For AI Agents
 ```bash
 cp templates/prompt.md prompts/new-agent.md
-# Define scope and responsibilities
 ```
 
 ### Template Guidelines
-1. Replace all `[PLACEHOLDER]` text
-2. Remove template comments
-3. Ensure all sections are complete
-4. Cross-reference related documents
-5. Follow existing patterns
 
-## Agent Coordination
+1. **Replace all placeholders** marked with `[BRACKETS]`
+2. **Remove template comments** after completion
+3. **Follow validation checklists** included in templates
+4. **Update cross-references** to ensure links work
 
-### Responsibility Matrix
-See [agent-responsibility-matrix.md](agent-responsibility-matrix.md) for detailed agent roles and boundaries:
-- **AI Documentation Agent**: `docs/ai/` directory only
-- **Feature Agent**: Requirements in `docs/features/`  
-- **Plan Agent**: Implementation plans in `docs/plans/` (READ-ONLY elsewhere)
-- **Review Agent**: Code analysis and feedback (READ-ONLY)
-- **General Purpose Agent**: Full implementation capabilities
+## Integration with Development
 
-### Escalation Guidelines
-See [escalation-criteria.md](escalation-criteria.md) for detailed handoff procedures:
+### With Standard Go Project Layout
+- All agent prompts reference the Standard Go Project Layout
+- Templates follow project conventions and patterns
+- Documentation stays synchronized with code structure
 
-**Immediate Escalation Triggers:**
-- Task requires tools agent doesn't have
-- Work falls outside defined scope
-- Quality standards cannot be met
+### With Interface Pattern
+Follow the standard interface-implementation pattern:
+- Interfaces in `internal/<domain>/interfaces.go`
+- Single implementations directly in `internal/<domain>/`
+- Multiple implementations in named subdirectories
 
-**Planned Handoffs:**
-- Feature complete → Plan Agent
-- Plan complete → General Purpose Agent
-- Implementation complete → Review Agent
+### With OpenAPI Workflow
+- API changes start with OpenAPI specification
+- Code generation follows spec updates
+- Controllers implement generated interfaces
 
-### Communication Patterns
-- Use specific file paths when referencing code
-- Quote exact error messages
-- Provide complete context for handoffs
-- Link to relevant documentation
-- Follow escalation procedures
+## Quality Standards
 
-### Quality Standards
-All AI contributions must:
-- Follow Go conventions (`gofmt`, `golint`)
-- Include appropriate tests
-- Update documentation
-- Handle errors properly
-- Use existing patterns
-- Stay within defined agent scope
+### Documentation Quality
+- **Clear scope definitions** for each agent
+- **Specific boundaries** and limitations
+- **Actionable templates** with validation checklists
+- **Consistent formatting** and structure
 
-## Prompt Engineering
+### Technical Accuracy
+- **Up-to-date references** to current codebase structure
+- **Correct Go patterns** and conventions
+- **Valid file paths** and cross-references
+- **Working examples** and code snippets
 
-### Effective Prompts Include
-1. **Clear scope** - What the agent can and cannot do
-2. **Specific tools** - Which tools are available
-3. **Quality standards** - Expected output quality
-4. **Common tasks** - Examples of typical work
-5. **Error handling** - How to handle edge cases
+### Maintainability
+- **Version controlled** templates and prompts
+- **Automated validation** where possible
+- **Clear change processes** for updates
+- **Regular review** for accuracy and relevance
 
-### Scope Boundaries
-- **READ-ONLY**: Agents that analyze but don't modify
-- **PLANNING ONLY**: Agents that plan but don't implement
-- **IMPLEMENTATION**: Agents that write code
-- **REVIEW**: Agents that assess quality
+## Error Handling
 
-## Integration with Development Workflow
+### Common Issues
+- **Scope violations**: Agents working outside defined boundaries
+- **Outdated references**: File paths or patterns that have changed
+- **Template inconsistencies**: Variations from standard formats
+- **Missing context**: Insufficient project context for decisions
 
-### Pre-Implementation
-1. Feature agent gathers requirements
-2. Planning agent creates technical approach
-3. Review agent validates plan
+### Resolution Process
+1. **Check agent scope** in the relevant prompt file
+2. **Verify file paths** and references are current
+3. **Use escalation criteria** for complex decisions
+4. **Update templates** if patterns have changed
 
-### During Implementation
-1. Development agent writes code
-2. Follow TDD approach
-3. Regular quality checks
+## Maintenance
 
-### Post-Implementation
-1. Review agent analyzes changes
-2. Documentation updates
-3. Quality validation
+### Regular Updates
+- **Review agent boundaries** quarterly for relevance
+- **Update file references** when project structure changes
+- **Validate templates** against current project standards
+- **Test workflows** with sample tasks
 
-## Troubleshooting AI Issues
-
-### Common Problems
-
-#### Scope Confusion
-- **Issue**: Agent tries to work outside its area
-- **Solution**: Check prompt scope definition
-- **Prevention**: Clear boundaries in prompt
-
-#### Pattern Violations
-- **Issue**: Code doesn't follow project patterns
-- **Solution**: Reference `docs/guidelines/`
-- **Prevention**: Include pattern examples in context
-
-#### Missing Context
-- **Issue**: Agent lacks necessary information
-- **Solution**: Provide relevant file paths
-- **Prevention**: Include key references upfront
-
-## Implemented Features
-
-AI collaboration framework includes:
-- ✅ **Agent Responsibility Matrix** - Clear role definitions and boundaries
-- ✅ **Escalation Criteria** - Detailed handoff procedures and triggers
-- ✅ **Template Validation** - Comprehensive checklists for quality
-- ✅ **Scope Enforcement** - Clear boundaries and handoff points
-- ✅ **Workflow Integration** - Seamless development process integration
-
-## Future Enhancements
-
-Planned improvements for AI collaboration:
-- Automated scope validation tools
-- Enhanced error recovery patterns
-- Performance optimization guides
-- Security review automation
-- Agent coordination metrics
-
-## Related Documentation
-
-- [../development/](../development/) - Core development docs
-- [../guidelines/](../guidelines/) - Coding standards
-- [../architecture/](../architecture/) - System design
-- [../features/](../features/) - Feature specifications
-- [../plans/](../plans/) - Implementation plans
+### Version Management
+- **Track changes** to prompts and templates
+- **Document reasoning** for major updates
+- **Maintain backwards compatibility** where possible
+- **Coordinate with project changes**
 
 ---
 
-*This directory enables effective AI-human collaboration by providing clear guidance, templates, and patterns for AI agents working with the Go Starter codebase.*
+*This AI documentation system enables consistent, high-quality interactions between AI agents and the Go Starter codebase while maintaining clear boundaries and responsibilities.*

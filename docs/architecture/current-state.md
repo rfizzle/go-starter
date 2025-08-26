@@ -22,13 +22,13 @@ Overview of the current implementation status, components, and technical state o
 - **Health Checks** - Basic health monitoring endpoints
 
 #### Authentication & Authorization
-- **Auth Service** (`internal/auth/`) - JWT-based authentication
+- **Auth Service** (`internal/auth/`) - JWT-based authentication following the [interface pattern](../guidelines/interface-pattern.md)
   - Interface definition (`interfaces.go`)
   - Core types and errors (`types.go`, `error.go`)
-  - Implementation (`v1/service.go`)
-  - Middleware integration (`v1/middleware.go`)
-  - Context management (`v1/context.go`)
-  - Audit logging (`v1/audit.go`)
+  - Implementation (`service.go`)
+  - Middleware integration (`middleware.go`)
+  - Context management (`context.go`)
+  - Audit logging (`audit.go`)
 - **Helper Functions** - Token validation and utility functions
 
 #### Storage Layer
@@ -134,20 +134,19 @@ auth/
 ├── types.go         # Domain types
 ├── error.go         # Domain errors
 ├── helpers.go       # Utility functions
-└── v1/              # Implementation
-    ├── service.go   # Business logic
-    ├── middleware.go # HTTP middleware
-    ├── context.go   # Context management
-    └── audit.go     # Audit logging
+├── service.go       # Business logic
+├── middleware.go    # HTTP middleware
+├── context.go       # Context management
+└── audit.go         # Audit logging
 ```
-**Status**: Follows interface-implementation pattern correctly
+**Status**: Follows interface-implementation pattern correctly with single implementation
 
 #### `internal/storage/`
 ```
 storage/
-│── storage.go       # Core interfaces
-│── migration.go     # Migration support
-│── transaction.go   # Transaction management
+├── storage.go       # Core interfaces
+├── migration.go     # Migration support
+├── transaction.go   # Transaction management
 └── postgres/        # Implementation
     ├── postgres.go  # Main implementation
     ├── scanner.go   # Result scanning

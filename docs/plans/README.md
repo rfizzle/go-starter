@@ -1,32 +1,18 @@
 # Implementation Plans
 
-This directory contains detailed implementation plans created from feature specifications. Plans break down features into actionable tasks with technical approaches and risk assessments.
+This directory contains detailed implementation plans created from feature specifications. Each plan breaks down features into specific, actionable development tasks with Go-specific technical approaches.
 
-## Purpose
+## Overview
 
-Transform feature requirements into concrete implementation roadmaps that development teams can execute, ensuring systematic delivery and risk management.
+Implementation plans bridge the gap between high-level feature requirements and actual development work. They provide:
 
-## How Implementation Planning Works
+- **Task Breakdown**: Features decomposed into manageable development tasks
+- **Technical Approach**: Go-specific implementation strategies and patterns
+- **Risk Assessment**: Potential issues and mitigation strategies  
+- **Test Strategy**: Comprehensive testing requirements
+- **Definition of Done**: Clear completion criteria
 
-### Planning Agent
-
-The project uses an AI-powered implementation planning agent configured via `docs/ai/prompts/plan.md` that:
-
-- Analyzes feature documents from `docs/features/`
-- Converts features into specific, actionable development tasks
-- Defines Go-specific implementation approaches and patterns
-- Creates comprehensive testing plans (unit, integration, e2e)
-- Identifies technical and business risks with mitigation strategies
-
-### Planning Process
-
-1. **Feature Analysis**: Review feature document thoroughly
-2. **Technical Design**: Define package structure, interfaces, API changes, database modifications
-3. **Task Decomposition**: Break into manageable tasks (4-8 hours each)
-4. **Risk Assessment**: Identify technical risks, integration challenges, mitigation strategies
-5. **Review and Approval**: Technical lead review, team estimation, stakeholder approval
-
-## Plan Document Structure
+## Plan Structure
 
 All implementation plans follow the template in `docs/ai/templates/plan.md` and include:
 
@@ -34,7 +20,7 @@ All implementation plans follow the template in `docs/ai/templates/plan.md` and 
 1. **Feature Summary** - Problem statement, solution approach, users, success criteria
 2. **Technical Scope** - Packages, APIs, database changes, dependencies
 3. **Task Breakdown** - Phased approach with specific, actionable tasks
-4. **Go Implementation** - Package structure following `internal/[domain]/v1/` patterns
+4. **Go Implementation** - Package structure following standard patterns
 5. **Test Strategy** - Unit, integration, and E2E testing requirements
 6. **Risk Assessment** - Potential issues with mitigation plans
 
@@ -47,151 +33,117 @@ All implementation plans follow the template in `docs/ai/templates/plan.md` and 
 
 Refer to the template for detailed structure requirements and validation guidelines.
 
-## Creating a New Plan
+## Creating Implementation Plans
 
-```bash
-# Copy the template
-cp docs/ai/templates/plan.md docs/plans/YYYY-MM-DD-feature-name-plan.md
+### Prerequisites
+1. **Complete feature document** in `docs/features/`
+2. **Technical requirements** clearly defined
+3. **Acceptance criteria** specified
+4. **Dependencies** identified
 
-# Link to source feature
-# Update all [PLACEHOLDER] values
-# Define specific tasks
-# Add risk assessment
+### Process
+1. **Use the planning agent** defined in `docs/ai/prompts/plan.md`
+2. **Follow the template** in `docs/ai/templates/plan.md`
+3. **Reference existing patterns** from the codebase
+4. **Include validation checklist** completion
+
+### Naming Convention
+```
+YYYY-MM-DD-feature-name-plan.md
 ```
 
-## Task Breakdown Guidelines
+Examples:
+- `2024-01-15-user-authentication-plan.md`
+- `2024-02-03-api-rate-limiting-plan.md`
 
-### Phase Structure
-Plans typically follow these phases:
+## Go-Specific Considerations
 
-#### Phase 1: Foundation
-- Set up package structure
-- Define interfaces and types
-- Create database migrations
-- Set up test infrastructure
+### Package Organization
+Follow standard interface-implementation patterns:
+- **Interfaces**: `internal/<domain>/interfaces.go`
+- **Single Implementation**: `internal/<domain>/service.go`
+- **Multiple Implementations**: `internal/<domain>/<provider>/`
+- **Controllers**: `internal/controller/`
 
-#### Phase 2: Implementation
-- Core business logic
-- API endpoints
-- Database operations
-- Error handling
+### Implementation Patterns
+- **Error Handling**: Domain-specific errors with proper wrapping
+- **Context Usage**: Cancellation and timeout support
+- **Testing**: Table-driven tests with comprehensive coverage
+- **Documentation**: Godoc comments on all exported items
 
-#### Phase 3: Integration
-- Wire up dependencies
-- Integration testing
-- Performance testing
-- Documentation updates
+### Quality Standards
+- **Go Conventions**: `gofmt`, `golangci-lint`, `go vet` compliance
+- **Test Coverage**: 85%+ coverage for new code
+- **Interface Design**: Small, focused interfaces
+- **Dependency Injection**: Constructor functions accepting interfaces
 
-### Task Definition
-Each task should specify:
-- **Description** - What needs to be done
-- **Owner** - Who is responsible
-- **Effort** - Time estimate in hours
-- **Dependencies** - What must complete first
-- **Acceptance** - How we know it's done
+## Plan Lifecycle
 
-## Implementation Patterns
+### Status Progression
+1. **Planning** - Initial plan creation and review
+2. **Ready** - Plan approved and ready for development
+3. **In Progress** - Active development underway
+4. **Complete** - All tasks completed and accepted
 
-### Following Project Standards
-All plans must align with:
-- [Interface-implementation pattern](../guidelines/interface-pattern.md)
-- [Go coding standards](../guidelines/go-standards.md)
-- [Testing strategy](../guidelines/testing-strategy.md)
-- [OpenAPI-first development](../development/project-context.md)
-
-### Code Organization
-```
-internal/
-└── <feature>/
-    ├── interfaces.go     # Feature interfaces
-    ├── types.go         # Domain types
-    ├── errors.go        # Feature-specific errors
-    └── v1/
-        ├── service.go   # Business logic
-        └── service_test.go
-```
-
-### API Development Flow
-1. Update `api/openapi.yml`
-2. Run `make generate`
-3. Implement controller
-4. Add integration tests
-5. Update documentation
-
-## Risk Management
-
-### Common Risks
-- **Data Migration** - Backward compatibility, rollback plan
-- **Performance** - Load testing, optimization strategy
-- **Dependencies** - External service reliability
-- **Security** - Authentication, authorization, data protection
-- **Integration** - Breaking changes, version compatibility
-
-### Mitigation Strategies
-- Feature flags for gradual rollout
-- Comprehensive testing at all levels
-- Performance benchmarks and monitoring
-- Rollback procedures documented
-- Security review before deployment
-
-## Quality Standards
-
-### Planning Criteria
-- **Actionable Tasks**: Every task must be specific, measurable, and assignable
-- **Complete Coverage**: Plan covers all aspects from development through deployment
-- **Go Idioms**: All technical approaches follow Go best practices and project patterns
-- **Test-Driven**: Planning assumes a TDD approach with tests written first
-
-### Definition of Done
-Tasks are complete when:
-- Code follows conventions
-- Tests pass with good coverage
-- Code reviewed and approved
-- Documentation updated
-- No linting errors
-
-## File Organization
-
-```
-docs/plans/
-├── README.md                          # This file - process documentation
-├── YYYY-MM-DD-feature-name-plan.md    # Individual implementation plans
-└── archive/                           # Completed plans (optional)
-```
+### Review Process
+1. **Technical Review** - Architecture and approach validation
+2. **Effort Review** - Task sizing and timeline validation  
+3. **Risk Review** - Risk assessment and mitigation strategies
+4. **Approval** - Final approval for development
 
 ## Integration with Development
 
-Implementation plans integrate with the overall development workflow:
+### With Feature Documents
+- Plans directly reference source feature documents
+- Feature acceptance criteria become plan validation criteria
+- Feature requirements drive technical task breakdown
 
-- **Feature development**: Convert feature specs into actionable plans
-- **Sprint planning**: Break plans into sprint-sized tasks
-- **Risk management**: Proactively identify and mitigate risks
-- **Quality assurance**: Ensure comprehensive test coverage and standards compliance
+### With Code Implementation
+- Plans guide development agent work
+- Task completion tracked against plan checklist
+- Code reviews verify plan adherence
 
-## Best Practices
+### With Testing Strategy
+- Plans define comprehensive test requirements
+- Testing approaches align with Go best practices
+- Coverage targets specified for each component
 
-### Effective Planning
-1. **Right-size tasks** - Not too big, not too small (4-8 hours each)
-2. **Clear ownership** - Every task has an owner
-3. **Realistic estimates** - Include testing and review time
-4. **Dependency awareness** - Identify critical path
-5. **Risk mitigation** - Plan for what could go wrong
+## Common Plan Templates
 
-### Technical Excellence
-- Follow TDD approach
-- Maintain >85% test coverage
-- Use existing patterns
-- Consider performance early
-- Plan for observability
+### API Feature Plan
+- OpenAPI specification updates
+- Controller implementation tasks
+- Integration test requirements
+- Database migration considerations
 
-## Related Documentation
+### Service Feature Plan
+- Interface design decisions
+- Implementation task breakdown
+- Unit testing strategies
+- Dependency injection setup
 
-- [../features/](../features/) - Source feature specifications
-- [../ai/templates/plan.md](../ai/templates/plan.md) - Implementation plan template
-- [../ai/prompts/plan.md](../ai/prompts/plan.md) - Planning agent configuration
-- [../development/project-context.md](../development/project-context.md) - Development workflows
-- [../guidelines/](../guidelines/) - Coding standards
+### Infrastructure Plan
+- Configuration management updates
+- Deployment requirement changes
+- Monitoring and observability setup
+- Performance testing criteria
+
+## Quality Assurance
+
+### Plan Validation
+- [ ] All template sections completed
+- [ ] Tasks are specific and actionable (4-8 hours each)
+- [ ] Go implementation patterns correct
+- [ ] Risk assessment comprehensive
+- [ ] Test strategy complete
+
+### Technical Review Criteria
+- [ ] Architecture decisions sound
+- [ ] Package structure follows project patterns
+- [ ] Integration points clearly defined
+- [ ] Performance implications considered
+- [ ] Security requirements addressed
 
 ---
 
-*This directory ensures features are systematically implemented with clear roadmaps and risk management.*
+*Implementation plans are living documents that guide development while maintaining flexibility for technical decisions during implementation.*

@@ -18,8 +18,10 @@ This document defines Go-specific coding standards, patterns, and conventions fo
 - **Package comments** describing the package purpose
 
 ### Interface Design
+Follow the standard interface-implementation pattern:
 - **Define interfaces** in `internal/<domain>/interfaces.go`
-- **Implement interfaces** in `internal/<domain>/v1/`
+- **Single implementations** directly in `internal/<domain>/`
+- **Multiple implementations** in named subdirectories (e.g., `internal/<domain>/postgres/`)
 - **Small interfaces** - prefer many small interfaces over large ones
 
 ---
@@ -80,7 +82,7 @@ type Repository interface {
     Delete(ctx context.Context, id string) error
 }
 
-// Implement in internal/<domain>/v1/repository.go
+// Single implementation in internal/<domain>/repository.go
 type repository struct {
     db Database
 }
@@ -235,8 +237,9 @@ type UserRepository interface {
 // including authentication, profile management, and user preferences.
 //
 // The package follows the interface-implementation pattern with
-// interfaces defined in this package and implementations in versioned
-// subpackages.
+// interfaces defined in this package and implementations in the same
+// package for single implementations, or named subdirectories for
+// multiple implementations.
 package user
 ```
 

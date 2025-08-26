@@ -108,7 +108,7 @@ Update project documentation when:
 - **Authentication**: `internal/auth/` - JWT-based auth system with middleware
 
 ### Key Patterns
-* **Interface-Implementation Pattern** - Interfaces in domain packages, implementations in versioned subpackages
+* **Interface-Implementation Pattern** - Standard pattern with interfaces in domain packages and implementations directly in the same package (single impl) or in named subdirectories (multiple impls)
 * **OpenAPI-First Development** - API definitions drive code generation
 * **Standard Go Project Layout** - Consistent directory structure and organization
 

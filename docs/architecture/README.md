@@ -32,12 +32,12 @@ The project follows a layered architecture:
 
 #### OpenAPI-First Development
 - Single source of truth: `api/openapi.yml`
-- Generated code in `internal/api/v1/`
+- Generated code in `internal/api/ (single impl) or internal/api/<provider>/ (multiple impls)`
 - Controllers implement generated interfaces
 
 #### Interface-Implementation Pattern
 - Interfaces at package level: `internal/<domain>/`
-- Implementations in versioned subdirs: `internal/<domain>/v1/`
+- Implementations in versioned subdirs: `internal/<domain>/ (single impl) or internal/<domain>/<provider>/ (multiple impls)`
 - Enables multiple implementations and versioning
 
 #### Dependency Injection

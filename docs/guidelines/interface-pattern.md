@@ -32,7 +32,7 @@ internal/
 
 ### Core Principles
 - **Interface Segregation**: Interfaces defined at top level of domain package, separate from implementation
-- **Implementation Isolation**: All concrete implementations reside in versioned sub-packages (e.g., `v1/`, `v2/`)
+- **Implementation Isolation**: Single implementations in package root; multiple implementations in named subdirectories
 - **Dependency Inversion**: Higher-level packages depend on interfaces, not concrete implementations
 - **Single Responsibility**: Each interface defines cohesive set of related operations
 
@@ -210,23 +210,22 @@ Test concrete implementations separately:
 
 ```go
 // internal/auth/service_test.go
-package v1_test
+package auth_test
 
 import (
     "testing"
-    "github.com/rfizzle/go-starter/internal/auth"
     "github.com/rfizzle/go-starter/internal/auth"
 )
 
 func TestService(t *testing.T) {
     // Run conformance tests
     auth_test.TestServiceConformance(t, func() auth.Service {
-        return v1.NewService(mockRepo, mockTokenManager, mockLogger)
+        return auth.NewService(mockRepo, mockTokenManager, mockLogger)
     })
     
-    // Add v1-specific tests
-    t.Run("V1_SpecificBehavior", func(t *testing.T) {
-        // Test v1-specific functionality
+    // Add implementation-specific tests
+    t.Run("SpecificBehavior", func(t *testing.T) {
+        // Test specific functionality
     })
 }
 ```
@@ -297,7 +296,7 @@ func (a *App) setupServices() {
     authRepo := postgres.NewAuthRepository(a.db)
     
     // Create service implementations  
-    authService := v1.NewService(authRepo)
+    authService := auth.NewService(authRepo)
     
     // Create controllers
     authController := controller.NewAuthController(authService)

@@ -126,8 +126,8 @@ type Service interface {
 
 ### Implementation Structure
 ```go
-// internal/auth/v1/service.go
-package v1
+// internal/auth/service.go
+package auth
 
 type service struct {
     repo auth.Repository

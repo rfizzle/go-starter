@@ -32,8 +32,10 @@ project/
 - **Standard library preference** over external dependencies
 
 ### Interface Strategy
-- **Define interfaces** in `internal/<domain>/`
-- **Implement interfaces** in `internal/<domain>/v1/`
+Follow the interface pattern defined in [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md):
+- **Define interfaces** in `internal/<domain>/interfaces.go`
+- **Single implementations** directly in `internal/<domain>/`
+- **Multiple implementations** in named subdirectories (e.g., `internal/<domain>/postgres/`)
 
 ### Package & Naming
 - **Short, lowercase names** - no underscores or mixedCaps
@@ -86,15 +88,19 @@ func ServiceMethod(ctx context.Context, params Params) error {
 
 ### Interface Design
 ```go
-// Define in internal/<domain>/
+// Define in internal/<domain>/interfaces.go
 type Repository interface {
     Create(ctx context.Context, item Item) error
     GetByID(ctx context.Context, id string) (Item, error)
 }
 
-// Implement in internal/<domain>/v1/
+// Single implementation in internal/<domain>/repository.go
 type repository struct {
     db Database
+}
+
+func NewRepository(db Database) Repository {
+    return &repository{db: db}
 }
 ```
 

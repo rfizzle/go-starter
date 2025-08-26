@@ -57,9 +57,10 @@
 - **Performance:** [Indexes needed]
 
 ### Go Implementation
+Follow the standard interface-implementation pattern:
 - **Packages:** [Package organization]
-- **Interfaces:** [Key interfaces in internal/[domain]]
-- **Implementation:** [Implementation in internal/[domain]/v1]
+- **Interfaces:** [Key interfaces in internal/[domain]/interfaces.go]
+- **Implementation:** [Single impl directly in internal/[domain]/ or multiple impls in subdirectories]
 - **Testing:** [Test strategy and coverage goals]
 
 ## Success Metrics
@@ -129,7 +130,7 @@ Before finalizing this feature document, verify:
 - [ ] API endpoints align with OpenAPI specification standards
 - [ ] Database changes include migration strategy
 - [ ] Go implementation follows interface-implementation pattern
-- [ ] Package structure matches `internal/[domain]/v1/` convention
+- [ ] Package structure matches project interface pattern conventions
 - [ ] Testing strategy covers unit, integration, and E2E levels
 
 ### Quality Standards

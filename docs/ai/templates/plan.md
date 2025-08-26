@@ -37,8 +37,10 @@
 ## Go Implementation
 
 ### Package Structure
-- **Interfaces:** internal/[domain] 
-- **Implementation:** internal/[domain]/v1
+Follow the standard interface-implementation pattern:
+- **Interfaces:** internal/[domain]/interfaces.go
+- **Single Implementation:** internal/[domain]/service.go
+- **Multiple Implementations:** internal/[domain]/[provider]/
 - **Controllers:** internal/controller/[feature]
 - **Repository:** internal/storage additions
 
@@ -90,7 +92,7 @@ Before finalizing this implementation plan, verify:
 - [ ] Effort estimates provided for each task
 
 ### Technical Accuracy
-- [ ] Package structure follows `internal/[domain]/v1/` pattern
+- [ ] Package structure follows the interface-implementation pattern
 - [ ] API changes align with OpenAPI workflow (spec → generate → implement)
 - [ ] Database changes include proper migration strategy
 - [ ] Go implementation patterns are idiomatic and consistent

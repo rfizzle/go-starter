@@ -1,80 +1,75 @@
 # Development Environment
 
-This document outlines the canonical development environment setup and tooling used by all contributors.
+This document covers development environment setup, tooling requirements, and troubleshooting for the Go Starter project.
 
----
+## Prerequisites
 
-## Target Platform
+### Go Version
+- **Go 1.22+** is required
+- **Latest stable version** is recommended
+- Use `go version` to check your current version
 
-- **Language:** Go (Golang)
-- **Project layout:** Go Standard Project Layout
-- **Primary dev machine:** macOS on Apple Silicon (M‑series)
-- **OS/Arch:** `darwin/arm64`
-- **Shell:** zsh (default macOS), bash acceptable
-- **Package manager:** Homebrew (preferred)
-
-**Apple Silicon notes**
-- Prefer ARM64 binaries via Homebrew.
-- Avoid CUDA‑only libs; use CPU/Metal builds when applicable.
-
----
-
-## Required Versions
-
-- **Go:** `>= 1.22` (use latest stable patch)
-- **golangci-lint:** pinned in CI; local can follow latest
-- **ogen:** latest stable (OpenAPI‑first code generation)
-- **Mock generator (optional):** **Uber** mockgen (`go.uber.org/mock/mockgen`)
-
-> If your local setup needs different versions, document them in your local development notes.
-
----
-
-## Toolchain Installation
-
-### Homebrew packages
 ```bash
-# Core development tools
-brew install go golangci-lint git pre-commit make
+go version
+# Should show: go version go1.22.x platform/arch
 ```
 
-### Go tools (install with Go)
+### Development Tools
 
+#### Required Tools
 ```bash
-# OpenAPI -> Go codegen
+# Install golangci-lint for code quality
+go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+
+# Install ogen for OpenAPI code generation
 go install github.com/ogen-go/ogen/cmd/ogen@latest
 
-# Mock generator (Uber's)
-go install go.uber.org/mock/mockgen@latest
+# Install goimports for import management
+go install golang.org/x/tools/cmd/goimports@latest
+
+# Install yamlfmt for YAML formatting (optional but recommended)
+go install github.com/google/yamlfmt/cmd/yamlfmt@latest
 ```
 
-### Editor Setup
+#### Development Database
+```bash
+# PostgreSQL 15+ (via Docker recommended)
+docker run --name go-starter-postgres \
+  -e POSTGRES_PASSWORD=devpassword \
+  -e POSTGRES_DB=gostarter \
+  -p 5432:5432 -d postgres:15
+```
 
-* Use Go tooling with LSP: `gopls`, `gofmt`, `goimports`.
-* Configure for tabs, UTF‑8 (see `.editorconfig` in repo root).
-* Recommended extensions: Go language support, golangci-lint integration
+## Project Setup
 
----
+### Initial Setup
+```bash
+# Clone and setup project
+git clone <repository-url>
+cd go-starter
 
-## Repository Conventions
+# Install dependencies
+go mod tidy
 
-* **Interfaces** in `internal/<domain>`; **implementations** in `internal/<domain>/v1` (or `pkg/<domain>/v1` if public).
-* **Main binaries** under `cmd/<app>/main.go`.
-* **OpenAPI source** at `api/openapi.yml` (or `.json`).
-* **ogen output** kept internal, e.g., `internal/api/v1` (do **not** export generated code unless needed).
-* **HTTP handlers** implement the ogen‑generated `Server` interface in `internal/controllers/<feature>`.
+# Generate API code
+make generate
 
-> Architectural specifics are documented in `docs/architecture/`.
+# Verify everything works
+make ci
+```
 
----
+### Environment Configuration
+```bash
+# Copy example environment file
+cp .env.example .env
 
-## OpenAPI‑First Development with ogen
+# Edit with your local settings
+vim .env
+```
 
-### Source of truth
+### Generated Code
 
-* `api/openapi.yml` defines HTTP API (OpenAPI v3.x).
-
-### Code generation
+The project uses ogen for OpenAPI code generation:
 
 ```bash
 # Generate server/client/types into an internal package
@@ -87,98 +82,246 @@ go run github.com/ogen-go/ogen/cmd/ogen -convenient-errors --clean --package api
 * Implement server methods in `internal/controller/...` where handlers satisfy the generated `Server` interface.
 * Compose middlewares (auth/logging/metrics) in `internal/http`.
 
----
+## Build System
 
-## Build, Lint, Test Commands
+### Makefile Commands
 
-### Format
+The project uses a Makefile for all common operations:
+
 ```bash
-go fmt ./...
+# Code generation and formatting
+make generate    # Regenerate OpenAPI code
+make fmt         # Format Go and YAML files
+make tidy        # Clean up go.mod
+
+# Quality checks
+make lint        # Run golangci-lint
+make vet         # Run go vet
+make test        # Run tests
+make race        # Run tests with race detector
+
+# Building
+make build       # Multi-platform builds
+make linux       # Linux build only  
+make osx         # macOS build only
+make windows     # Windows build only
+
+# Development workflow
+make ci          # Full CI pipeline (generate, fmt, lint, test)
+make clean       # Clean build artifacts
+make docker      # Build Docker image
 ```
 
-### Lint
+### NPM Script Alternative
 ```bash
-golangci-lint run
+# The project also supports npm-style commands
+npm run build
+npm run test  
+npm run fmt
+npm run lint
 ```
 
-### Unit tests
-```bash
-go test ./... -race -count=1
+## IDE Setup
+
+### VS Code
+Recommended extensions:
+- Go (official Go extension)
+- YAML (Red Hat)
+- OpenAPI (Swagger) Viewer
+
+Settings (`.vscode/settings.json`):
+```json
+{
+  "go.lintTool": "golangci-lint",
+  "go.lintOnSave": "package",
+  "go.formatTool": "goimports",
+  "go.useLanguageServer": true
+}
 ```
 
-### Coverage
+### GoLand/IntelliJ
+- Enable Go modules support
+- Set goimports as formatter
+- Configure golangci-lint as external tool
+
+## Quality Standards
+
+### Code Quality
+All code must pass:
 ```bash
-go test ./... -race -coverprofile=coverage.out
-go tool cover -func=coverage.out
+make fmt         # Code formatting
+make lint        # Code linting  
+make vet         # Static analysis
+make test        # All tests
 ```
 
-### Build
+### Pre-commit Hooks (Recommended)
 ```bash
-go build -o bin/<app> ./cmd/<app>
+# Install pre-commit
+pip install pre-commit
+
+# Install hooks
+pre-commit install
+
+# Run on all files
+pre-commit run --all-files
 ```
-
-### Development cycle (via Makefile)
-```bash
-make generate fmt lint test
-```
-
-See `CLAUDE.md` for the complete list of available make targets.
-
----
-
-## Security & Compliance
-
-* No secrets in code or documentation. Use env vars or secret managers.
-* Prefer least‑privilege local credentials.
-* Redact sensitive logs (tokens, passwords, PII).
-* Third‑party code: prefer well‑maintained libs; avoid unsafe/CGO unless justified.
-
-Project-specific security policies are documented in `docs/architecture/` and `docs/guidelines/`.
-
----
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Go module issues:**
+#### Build Failures
 ```bash
+# Clean and rebuild
+make clean
 go mod tidy
-go mod vendor  # if using vendor/
+make generate
+make build
 ```
 
-**golangci-lint failures:**
+#### Test Failures
 ```bash
-golangci-lint run --fix  # auto-fix where possible
+# Run with verbose output
+go test -v ./...
+
+# Run specific test
+go test -v ./internal/auth -run TestService
+
+# Run with race detector
+make race
 ```
 
-**OpenAPI generation issues:**
+#### Generated Code Issues
 ```bash
-make generate  # regenerate from OpenAPI spec
+# Clean generated files
+rm -rf internal/api/v1/*_gen.go
+
+# Regenerate
+make generate
 ```
 
-### Environment Validation
-
+#### Database Issues
 ```bash
-make env  # validate development environment setup
+# Reset database
+docker stop go-starter-postgres
+docker rm go-starter-postgres
+# Run initial setup command again
+```
+
+### Performance Issues
+
+#### Slow Tests
+```bash
+# Run tests in parallel
+go test -v -parallel 4 ./...
+
+# Skip integration tests
+go test -short ./...
+```
+
+#### Slow Builds
+```bash
+# Use build cache
+export GOCACHE=$(go env GOCACHE)
+
+# Parallel builds
+make build -j4
+```
+
+### Environment Variables
+
+#### Required Variables
+```bash
+DATABASE_URL=postgres://user:pass@localhost/gostarter
+PORT=8080
+LOG_LEVEL=info
+```
+
+#### Optional Variables
+```bash
+ENABLE_PPROF=true
+CORS_ORIGINS=*
+JWT_SECRET=your-secret-key
+```
+
+## Docker Development
+
+### Development Container
+```bash
+# Build development image
+docker build -f Dockerfile.dev -t go-starter:dev .
+
+# Run with hot reload
+docker run -v $(pwd):/app -p 8080:8080 go-starter:dev
+```
+
+### Production Container
+```bash
+# Build production image
+make docker
+
+# Run production container
+docker run -p 8080:8080 go-starter:latest
+```
+
+## Testing
+
+### Test Categories
+- **Unit Tests**: Fast, isolated tests
+- **Integration Tests**: Database and external service tests  
+- **E2E Tests**: Full application tests
+
+### Test Commands
+```bash
+# All tests
+make test
+
+# Unit tests only
+go test -short ./...
+
+# Integration tests
+go test -tags=integration ./...
+
+# Specific package
+go test ./internal/auth
+
+# With coverage
+go test -cover ./...
+```
+
+### Test Database
+```bash
+# Use separate test database
+export TEST_DATABASE_URL=postgres://user:pass@localhost/gostarter_test
+
+# Or use in-memory database for faster tests
+export USE_MEMORY_DB=true
+```
+
+## Performance Profiling
+
+### CPU Profiling
+```bash
+# Start server with profiling
+ENABLE_PPROF=true go run main.go
+
+# Generate CPU profile
+go tool pprof http://localhost:8080/debug/pprof/profile
+
+# Memory profile
+go tool pprof http://localhost:8080/debug/pprof/heap
+```
+
+### Benchmarks
+```bash
+# Run benchmarks
+go test -bench=. ./...
+
+# With memory allocation stats
+go test -bench=. -benchmem ./...
 ```
 
 ---
 
-## IDE Integration
-
-This project works well with:
-- **VS Code** with Go extension
-- **GoLand** from JetBrains
-- **Vim/Neovim** with Go LSP setup
-- Any editor with `gopls` language server support
-
-Configure your editor to:
-- Use `gopls` for Go language support
-- Run `gofmt`/`goimports` on save
-- Integrate with `golangci-lint`
-- Support Go debugging
-
----
-
-*For core development principles and workflows, see `docs/development/foundations.md`. For project-specific context, see `docs/development/project-context.md`.*
+*This development environment setup ensures consistent, high-quality development across all contributors to the Go Starter project.*
