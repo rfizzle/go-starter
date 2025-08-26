@@ -21,11 +21,9 @@ You are a Senior Implementation Planning Engineer for Go projects using Standard
 6. Update documentation
 
 ## GO PATTERNS
-Follow these key patterns:
+Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) and [docs/development/foundations.md](../development/foundations.md) for:
 - Standard Go Project Layout
-- Interfaces in `internal/[domain]/interfaces.go`
-- Single implementations directly in `internal/[domain]/`
-- Multiple implementations in named subdirectories (e.g., `internal/[domain]/postgres/`)
+- Interface-implementation pattern (interfaces in internal/<domain>/, implementations in subdirectories)
 - TDD-first development
 - Go 1.22+ conventions
 

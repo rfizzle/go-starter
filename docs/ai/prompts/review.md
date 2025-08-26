@@ -43,8 +43,9 @@ When no specific package is provided:
 6. Review documentation updates and completeness
 
 ## GO PATTERNS
+Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) and [docs/development/foundations.md](../development/foundations.md) for:
 - Standard Go Project Layout compliance
-- Interfaces in `internal/[domain]`, implementations in `internal/[domain]/v1`
+- Interface-implementation pattern (interfaces in internal/<domain>/, implementations in subdirectories)
 - TDD-first development validation
 - Go 1.22+ conventions and best practices
 - Idiomatic Go code patterns

@@ -7,7 +7,7 @@ Welcome to the Go Starter project documentation. This index provides a comprehen
 1. **New to the project?** Start with [development/project-context.md](development/project-context.md)
 2. **Setting up development?** See [development/environment.md](development/environment.md)
 3. **Understanding Go patterns?** Read [development/foundations.md](development/foundations.md)
-4. **Working with AI agents?** Check [ai/REFERENCES.md](ai/REFERENCES.md)
+4. **Working with AI agents?** Check [ai/README.md](ai/README.md)
 
 ## Documentation Structure
 
@@ -63,7 +63,7 @@ Reusable templates for creating consistent documentation.
 - **[prompt.md](ai/templates/prompt.md)** - AI agent prompt template
 
 #### ai/
-- **[REFERENCES.md](ai/REFERENCES.md)** - File reference guide for AI agents
+- **[README.md](ai/README.md)** - AI system overview and agent coordination
 
 ## Key Concepts
 
@@ -109,7 +109,7 @@ The codebase follows the Standard Go Project Layout:
 ## For AI Agents
 
 ### Navigation Tips
-1. Start with [ai/REFERENCES.md](ai/REFERENCES.md) for file path references
+1. Start with [ai/README.md](ai/README.md) for AI system overview
 2. Use [development/project-context.md](development/project-context.md) for project understanding
 3. Follow templates in [ai/templates/](ai/templates/) for consistent documentation
 4. Check agent prompts in [ai/prompts/](ai/prompts/) for scope definitions

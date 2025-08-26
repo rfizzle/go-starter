@@ -116,9 +116,9 @@ Each template includes a comprehensive validation checklist covering:
 5. Validate scope definitions are clear
 
 ### Using with AI Agents
-1. Reference `docs/development/foundations.md` for core principles
+1. Reference core Go principles from `docs/development/foundations.md`
 2. Use scope enforcement consistently
-3. Provide relevant context from `docs/development/` and `docs/architecture/`
+3. Provide relevant context from development documentation
 4. Keep documents current with project evolution
 
 ## Examples

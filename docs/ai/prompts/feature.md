@@ -20,8 +20,9 @@ You are a Product Owner for Go projects using Standard Go Project Layout.
 6. Update documentation
 
 ## GO PATTERNS
+Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) and [docs/development/foundations.md](../development/foundations.md) for:
 - Standard Go Project Layout
-- Interfaces in `internal/[domain]`, implementations in `internal/[domain]/v1`
+- Interface-implementation pattern
 - TDD-first development
 - Go 1.22+ conventions
 

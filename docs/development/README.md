@@ -71,12 +71,7 @@ make ci          # Full CI pipeline (generate, fmt, lint, test)
 5. Update integration tests
 
 #### Creating a New Service
-Follow the standard interface-implementation pattern:
-1. Define interface in `internal/<domain>/interfaces.go`
-2. Create implementation in `internal/<domain>/` (single) or `internal/<domain>/<provider>/` (multiple)
-3. Write unit tests for the service
-4. Wire up in `internal/app/app.go`
-5. Document in architecture docs
+Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) for the standard pattern.
 
 #### Database Changes
 1. Create migration in `migrations/`
@@ -128,21 +123,6 @@ make clean-gen && make generate
 make test-race   # Run tests with race detector
 make test-cover  # Run tests with coverage report
 ```
-
-## Integration with Other Documentation
-
-### Guidelines
-- **[../guidelines/go-standards.md](../guidelines/go-standards.md)** - Detailed Go coding standards
-- **[../guidelines/interface-pattern.md](../guidelines/interface-pattern.md)** - Interface implementation patterns
-- **[../guidelines/testing-strategy.md](../guidelines/testing-strategy.md)** - Testing approaches
-
-### Architecture
-- **[../architecture/current-state.md](../architecture/current-state.md)** - Current implementation status
-- **[../architecture/README.md](../architecture/README.md)** - Architectural decisions
-
-### AI Documentation
-- **[../ai/README.md](../ai/README.md)** - AI agent documentation system
-- **[../ai/prompts/](../ai/prompts/)** - AI agent role definitions
 
 ## For New Developers
 

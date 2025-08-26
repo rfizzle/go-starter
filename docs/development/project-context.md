@@ -23,18 +23,6 @@ Go Starter is a production-ready, enterprise-grade foundation for building scala
 
 ---
 
-## Project Documentation Structure
-
-Core engineering documentation in `docs/`:
-
-1. **`development/foundations.md`** - Core Go principles, patterns, workflows (READ FIRST)
-2. **`development/project-context.md`** - This file - project-specific context and workflows  
-3. **`development/environment.md`** - Go version, dependencies, dev setup, troubleshooting
-4. **`architecture/`** - Architectural decisions and patterns
-5. **`guidelines/`** - Specific development guidelines and standards
-
----
-
 ## Core Workflows
 
 ### Planning and Design
@@ -112,8 +100,6 @@ Update project documentation when:
 * **OpenAPI-First Development** - API definitions drive code generation
 * **Standard Go Project Layout** - Consistent directory structure and organization
 
-For architectural decisions and patterns specific to this project, see the `docs/architecture/` directory.
-
 ---
 
 ## Tech Stack
@@ -134,10 +120,6 @@ For architectural decisions and patterns specific to this project, see the `docs
 - **Generated code**: `internal/api/v1/oas_*_gen.go`
 - **Generation trigger**: `make generate` or `go generate`
 - **Never edit generated files directly** - all API changes must be made in the OpenAPI spec
-
-## Development Environment
-
-For development environment setup, tooling, and troubleshooting, see `docs/development/environment.md`.
 
 ---
 
