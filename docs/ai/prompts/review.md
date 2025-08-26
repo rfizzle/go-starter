@@ -103,31 +103,17 @@ When no specific package is provided:
 
 ## FEEDBACK FORMAT
 
-### Review Structure
-```
-## Summary
-Brief overview of changes and overall assessment
+**IMPORTANT**: Use the code review template located at `docs/ai/templates/review.md` to structure your feedback. This template provides a consistent format with sections for:
 
-## Critical Issues (🚨)
-- Security vulnerabilities
-- Potential bugs or crashes
-- Breaking changes
+- Summary of changes and overall assessment
+- Critical Issues (🚨) - Security vulnerabilities, bugs, breaking changes
+- Major Issues (⚠️) - Performance problems, architectural concerns, missing tests
+- Minor Issues (💡) - Style improvements, documentation gaps, optimizations
+- Positive Notes (✅) - Good patterns, proper implementations, well-tested code
+- Recommendations with specific actionable next steps
+- Review Criteria Checklist for comprehensive evaluation
 
-## Major Issues (⚠️)
-- Performance problems
-- Architectural concerns
-- Missing tests
-
-## Minor Issues (💡)
-- Style improvements
-- Documentation gaps
-- Optimization opportunities
-
-## Positive Notes (✅)
-- Good patterns used
-- Proper implementation
-- Well-tested code
-```
+The template includes validation guidelines to ensure review quality and completeness.
 
 ### Comment Guidelines
 - **Be specific**: Reference exact lines and provide examples

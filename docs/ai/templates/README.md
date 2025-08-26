@@ -31,6 +31,15 @@ Simple templates for creating consistent AI documentation in Go projects followi
 - Implementation guidance
 - Success metrics and testing strategy
 
+### 4. Review Template (`review.md`)
+**Use for:** Code review documentation with consistent structure and quality standards.
+
+**Key features:**
+- Structured issue categorization (Critical/Major/Minor/Positive)
+- Go-specific review criteria and checklists
+- Actionable recommendations and next steps
+- Review quality validation guidelines
+
 ## How to Use
 
 ### Step 1: Copy Template
@@ -126,6 +135,13 @@ cp docs/ai/templates/prompt.md docs/ai/prompts/reviewer.md
 # Documenting an authentication feature
 cp docs/ai/templates/feature.md docs/features/authentication.md
 # Capture requirements, acceptance criteria, and implementation guidance
+```
+
+### Code Review Documentation
+```bash
+# Creating a code review document
+cp docs/ai/templates/review.md docs/reviews/auth-package-review.md
+# Document review findings with structured feedback
 ```
 
 ---
