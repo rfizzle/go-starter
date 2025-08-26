@@ -13,7 +13,7 @@ import (
 
 func TestWithURI(t *testing.T) {
 	ctx := context.Background()
-	provider := &Provider{ctx: ctx}
+	provider := &Provider{}
 
 	tests := []struct {
 		name    string
@@ -31,7 +31,7 @@ func TestWithURI(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			option := WithURI(tt.uri)
+			option := WithURI(ctx, tt.uri)
 			err := option(provider)
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -56,7 +56,7 @@ func TestWithPool(t *testing.T) {
 
 func TestWithMockPool(t *testing.T) {
 	ctx := context.Background()
-	provider := &Provider{ctx: ctx}
+	provider := &Provider{}
 
 	// Create pgxmock
 	mock, err := pgxmock.NewPool()

@@ -47,14 +47,13 @@ func TestProvider_begin(t *testing.T) {
 			tt.setupMock(mock)
 
 			provider := &Provider{
-				ctx:         ctx,
 				logger:      logger,
 				db:          mock,
 				pingTimeout: 15 * time.Second,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
-			tx, err := provider.begin()
+			tx, err := provider.begin(ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, tx)
@@ -127,7 +126,7 @@ func TestTransaction_commit(t *testing.T) {
 				startTime:      time.Now(),
 			}
 
-			err := tx.commit()
+			err := tx.Commit()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -195,7 +194,7 @@ func TestTransaction_rollback(t *testing.T) {
 				startTime:      time.Now(),
 			}
 
-			err := tx.rollback()
+			err := tx.Rollback()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -215,7 +214,7 @@ func TestProvider_WithTx(t *testing.T) {
 	tests := []struct {
 		name      string
 		setupMock func(mock pgxmock.PgxPoolIface)
-		txFunc    func(tx storage.Tx) error
+		txFunc    func(tx storage.Transaction) error
 		wantErr   bool
 	}{
 		{
@@ -224,7 +223,7 @@ func TestProvider_WithTx(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectCommit()
 			},
-			txFunc: func(tx storage.Tx) error {
+			txFunc: func(tx storage.Transaction) error {
 				return nil
 			},
 			wantErr: false,
@@ -235,7 +234,7 @@ func TestProvider_WithTx(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectRollback()
 			},
-			txFunc: func(tx storage.Tx) error {
+			txFunc: func(tx storage.Transaction) error {
 				return errors.New("business logic error")
 			},
 			wantErr: true,
@@ -245,7 +244,7 @@ func TestProvider_WithTx(t *testing.T) {
 			setupMock: func(mock pgxmock.PgxPoolIface) {
 				mock.ExpectBegin().WillReturnError(errors.New("begin failed"))
 			},
-			txFunc: func(tx storage.Tx) error {
+			txFunc: func(tx storage.Transaction) error {
 				return nil
 			},
 			wantErr: true,
@@ -256,7 +255,7 @@ func TestProvider_WithTx(t *testing.T) {
 				mock.ExpectBegin()
 				mock.ExpectCommit().WillReturnError(errors.New("commit failed"))
 			},
-			txFunc: func(tx storage.Tx) error {
+			txFunc: func(tx storage.Transaction) error {
 				return nil
 			},
 			wantErr: true,
@@ -272,14 +271,13 @@ func TestProvider_WithTx(t *testing.T) {
 			tt.setupMock(mock)
 
 			provider := &Provider{
-				ctx:         ctx,
 				logger:      logger,
 				db:          mock,
 				pingTimeout: 15 * time.Second,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
-			err = provider.WithTx(tt.txFunc)
+			err = provider.WithTx(ctx, tt.txFunc)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -301,7 +299,6 @@ func TestTransaction_Query(t *testing.T) {
 	defer mock.Close()
 
 	provider := &Provider{
-		ctx:         ctx,
 		logger:      logger,
 		db:          mock,
 		pingTimeout: 15 * time.Second,
@@ -319,8 +316,8 @@ func TestTransaction_Query(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = provider.WithTx(func(tx storage.Tx) error {
-		scanner, err := tx.Query("SELECT id, name FROM users WHERE id = $1", 1)
+	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
+		scanner, err := tx.Query(ctx, "SELECT id, name FROM users WHERE id = $1", 1)
 		assert.NoError(t, err)
 		assert.NotNil(t, scanner)
 		return nil
@@ -340,7 +337,6 @@ func TestTransaction_Execute(t *testing.T) {
 	defer mock.Close()
 
 	provider := &Provider{
-		ctx:         ctx,
 		logger:      logger,
 		db:          mock,
 		pingTimeout: 15 * time.Second,
@@ -354,8 +350,8 @@ func TestTransaction_Execute(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectCommit()
 
-	err = provider.WithTx(func(tx storage.Tx) error {
-		return tx.Execute("UPDATE users SET name = $1 WHERE id = $2", "Jane", 1)
+	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
+		return tx.Execute(ctx, "UPDATE users SET name = $1 WHERE id = $2", "Jane", 1)
 	})
 
 	assert.NoError(t, err)
@@ -372,7 +368,6 @@ func TestTransaction_InsertMany(t *testing.T) {
 	defer mock.Close()
 
 	provider := &Provider{
-		ctx:         ctx,
 		logger:      logger,
 		db:          mock,
 		pingTimeout: 15 * time.Second,
@@ -383,7 +378,7 @@ func TestTransaction_InsertMany(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 
-	err = provider.WithTx(func(tx storage.Tx) error {
+	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
 		// Skip batch operations due to pgxmock limitations
 		// Just test that transaction begins and commits properly
 		return nil
@@ -394,35 +389,3 @@ func TestTransaction_InsertMany(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestProvider__withTx(t *testing.T) {
-	ctx := context.Background()
-	logger := zaptest.NewLogger(t)
-
-	mock, err := pgxmock.NewPool()
-	assert.NoError(t, err)
-	defer mock.Close()
-
-	provider := &Provider{
-		ctx:         ctx,
-		logger:      logger,
-		db:          mock,
-		pingTimeout: 15 * time.Second,
-		closeFunc:   func(ctx context.Context) error { return nil },
-	}
-
-	// Test internal _withTx method
-	mock.ExpectBegin()
-	mock.ExpectCommit()
-
-	err = provider._withTx(func(tx *transaction) error {
-		assert.NotNil(t, tx.transaction)
-		assert.NotNil(t, tx.transactionCtx)
-		assert.NotNil(t, tx.cancelFunc)
-		assert.False(t, tx.startTime.IsZero())
-		return nil
-	})
-
-	assert.NoError(t, err)
-	err = mock.ExpectationsWereMet()
-	assert.NoError(t, err)
-}

@@ -69,13 +69,12 @@ func TestProvider_Query(t *testing.T) {
 			tt.setupMock(mock)
 
 			provider := &Provider{
-				ctx:       ctx,
 				logger:    logger,
 				db:        mock,
 				closeFunc: func(ctx context.Context) error { return nil },
 			}
 
-			scanner, err := provider.Query(tt.sql, tt.args...)
+			scanner, err := provider.Query(ctx, tt.sql, tt.args...)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, scanner)
@@ -146,13 +145,12 @@ func TestProvider_Execute(t *testing.T) {
 			tt.setupMock(mock)
 
 			provider := &Provider{
-				ctx:       ctx,
 				logger:    logger,
 				db:        mock,
 				closeFunc: func(ctx context.Context) error { return nil },
 			}
 
-			err = provider.Execute(tt.sql, tt.args...)
+			err = provider.Execute(ctx, tt.sql, tt.args...)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -174,7 +172,6 @@ func TestProvider_privateQuery(t *testing.T) {
 	defer mock.Close()
 
 	provider := &Provider{
-		ctx:       ctx,
 		logger:    logger,
 		db:        mock,
 		closeFunc: func(ctx context.Context) error { return nil },
@@ -185,7 +182,7 @@ func TestProvider_privateQuery(t *testing.T) {
 	mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
 		WillReturnRows(rows)
 
-	result, err := provider._query("SELECT COUNT(*) FROM users")
+	result, err := provider._query(ctx, "SELECT COUNT(*) FROM users")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 
@@ -193,7 +190,7 @@ func TestProvider_privateQuery(t *testing.T) {
 	mock.ExpectQuery("SELECT \\* FROM invalid").
 		WillReturnError(errors.New("syntax error"))
 
-	result, err = provider._query("SELECT * FROM invalid")
+	result, err = provider._query(ctx, "SELECT * FROM invalid")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 
@@ -210,7 +207,6 @@ func TestProvider_privateExec(t *testing.T) {
 	defer mock.Close()
 
 	provider := &Provider{
-		ctx:       ctx,
 		logger:    logger,
 		db:        mock,
 		closeFunc: func(ctx context.Context) error { return nil },
@@ -221,14 +217,14 @@ func TestProvider_privateExec(t *testing.T) {
 		WithArgs(true).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 
-	err = provider._exec("UPDATE users SET active = $1", true)
+	err = provider._exec(ctx, "UPDATE users SET active = $1", true)
 	assert.NoError(t, err)
 
 	// Test _exec error
 	mock.ExpectExec("INSERT INTO users").
 		WillReturnError(errors.New("constraint violation"))
 
-	err = provider._exec("INSERT INTO users")
+	err = provider._exec(ctx, "INSERT INTO users")
 	assert.Error(t, err)
 
 	err = mock.ExpectationsWereMet()
@@ -244,7 +240,6 @@ func TestProvider_QueryExecuteIntegration(t *testing.T) {
 	defer mock.Close()
 
 	provider := &Provider{
-		ctx:       ctx,
 		logger:    logger,
 		db:        mock,
 		closeFunc: func(ctx context.Context) error { return nil },
@@ -262,11 +257,11 @@ func TestProvider_QueryExecuteIntegration(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Execute insert
-	err = provider.Execute("INSERT INTO users (name) VALUES ($1)", "Alice")
+	err = provider.Execute(ctx, "INSERT INTO users (name) VALUES ($1)", "Alice")
 	assert.NoError(t, err)
 
 	// Query the inserted data
-	scanner, err := provider.Query("SELECT id, name FROM users WHERE name = $1", "Alice")
+	scanner, err := provider.Query(ctx, "SELECT id, name FROM users WHERE name = $1", "Alice")
 	assert.NoError(t, err)
 	assert.NotNil(t, scanner)
 

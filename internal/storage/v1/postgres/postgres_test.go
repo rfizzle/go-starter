@@ -197,14 +197,13 @@ func TestProvider_Ping(t *testing.T) {
 			}
 
 			provider := &Provider{
-				ctx:         ctx,
 				logger:      zaptest.NewLogger(t),
 				db:          tt.mockConn,
 				pingTimeout: timeout,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
-			err := provider.Ping()
+			err := provider.Ping(ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -214,23 +213,21 @@ func TestProvider_Ping(t *testing.T) {
 	}
 }
 
-func TestProvider_Disconnect(t *testing.T) {
-	ctx := context.Background()
-
+func TestProvider_Close(t *testing.T) {
 	tests := []struct {
 		name      string
 		closeFunc func(ctx context.Context) error
 		wantErr   bool
 	}{
 		{
-			name: "successful disconnect",
+			name: "successful close",
 			closeFunc: func(ctx context.Context) error {
 				return nil
 			},
 			wantErr: false,
 		},
 		{
-			name: "disconnect error",
+			name: "close error",
 			closeFunc: func(ctx context.Context) error {
 				return errors.New("failed to close connection")
 			},
@@ -241,13 +238,12 @@ func TestProvider_Disconnect(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			provider := &Provider{
-				ctx:       ctx,
 				logger:    zaptest.NewLogger(t),
 				db:        &mockDBConn{},
 				closeFunc: tt.closeFunc,
 			}
 
-			err := provider.Disconnect()
+			err := provider.Close()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -258,11 +254,9 @@ func TestProvider_Disconnect(t *testing.T) {
 }
 
 func TestProvider_Logger(t *testing.T) {
-	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
 	provider := &Provider{
-		ctx:    ctx,
 		logger: logger,
 	}
 
@@ -345,11 +339,11 @@ func TestProvider_IntegrationWithPgxMock(t *testing.T) {
 
 	// Test ping
 	mock.ExpectPing()
-	err = provider.Ping()
+	err = provider.Ping(ctx)
 	assert.NoError(t, err)
 
-	// Test disconnect
-	err = provider.Disconnect()
+	// Test close
+	err = provider.Close()
 	assert.NoError(t, err)
 
 	// Verify all expectations were met

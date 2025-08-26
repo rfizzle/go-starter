@@ -12,11 +12,16 @@ import (
 	"github.com/pashagolub/pgxmock/v4"
 )
 
+// Option configures a Provider instance during initialization.
+// Options are passed to the Open function to customize the provider's behavior.
 type Option func(p *Provider) error
 
-func WithURI(uri string) Option {
+// WithURI configures the provider to connect using a PostgreSQL connection URI.
+// The context is used for connection timeout and cancellation.
+// Example: "postgres://user:password@localhost/dbname" or "postgres://user:password@localhost:5432/dbname"
+func WithURI(ctx context.Context, uri string) Option {
 	return func(p *Provider) error {
-		conn, err := pgxpool.New(p.ctx, uri)
+		conn, err := pgxpool.New(ctx, uri)
 		if err != nil {
 			return err
 		}
@@ -31,6 +36,8 @@ func WithURI(uri string) Option {
 	}
 }
 
+// WithConnection configures the provider to use an existing PostgreSQL connection.
+// Useful for sharing connections or when you need custom connection configuration.
 func WithConnection(conn *pgx.Conn) Option {
 	return func(p *Provider) error {
 		p.db = conn
@@ -42,6 +49,8 @@ func WithConnection(conn *pgx.Conn) Option {
 	}
 }
 
+// WithPool configures the provider to use an existing PostgreSQL connection pool.
+// This is the recommended option for production use as it provides connection pooling.
 func WithPool(pool *pgxpool.Pool) Option {
 	return func(p *Provider) error {
 		p.db = pool
@@ -54,6 +63,8 @@ func WithPool(pool *pgxpool.Pool) Option {
 	}
 }
 
+// WithMockPool configures the provider to use a mock PostgreSQL pool for testing.
+// This option should only be used in tests to simulate database behavior.
 func WithMockPool(pool pgxmock.PgxPoolIface) Option {
 	return func(p *Provider) error {
 		p.db = pool
@@ -65,6 +76,8 @@ func WithMockPool(pool pgxmock.PgxPoolIface) Option {
 	}
 }
 
+// WithPingTimeout sets the timeout duration in seconds for database ping operations.
+// Default timeout is DefaultPingTimeoutSeconds. Set to 0 to disable timeout.
 func WithPingTimeout(timeout int) Option {
 	return func(p *Provider) error {
 		p.pingTimeout = time.Duration(timeout) * time.Second
@@ -72,6 +85,8 @@ func WithPingTimeout(timeout int) Option {
 	}
 }
 
+// WithLogger configures the provider to use a specific logger instance.
+// If not provided, operations will use a no-op logger.
 func WithLogger(logger *zap.Logger) Option {
 	return func(p *Provider) error {
 		if logger == nil {

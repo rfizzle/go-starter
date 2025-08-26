@@ -1,6 +1,7 @@
 package postgres
 
 import (
+	"context"
 	"embed"
 	"io/fs"
 	"path/filepath"
@@ -14,22 +15,29 @@ type migration struct {
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 }
 
+// Migrate executes pending database migrations from the provided embedded filesystem.
+// It reads .sql files from migrationFs, compares them with executed migrations,
+// and runs any new migrations atomically within a transaction.
+// Returns an error if any migration fails.
 func (provider *Provider) Migrate(migrationFs embed.FS) error {
+	// Setup context
+	ctx := context.Background()
+
 	// Add migration table if not exists
-	err := provider._addMigrationTable()
+	err := provider._addMigrationTable(ctx)
 	if err != nil {
 		provider.logger.Error("issue adding migration table")
 		return err
 	}
 
 	// Get migration current state
-	dbMigrations, err := provider._getDbMigrations()
+	dbMigrations, err := provider._getDbMigrations(ctx)
 	if err != nil {
 		provider.logger.Error("issue getting database migrations")
 		return err
 	}
 
-	fileMigrations, err := provider._getMigrationsFromFs(migrationFs)
+	fileMigrations, err := provider._getMigrationsFromFs(ctx, migrationFs)
 	if err != nil {
 		provider.logger.Error("issue getting migrations from virtual filesystem")
 		return err
@@ -44,7 +52,7 @@ func (provider *Provider) Migrate(migrationFs embed.FS) error {
 	}
 
 	// Execute migrations inside a transaction
-	err = provider._withTx(func(tx *transaction) error {
+	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
 		for _, v := range newMigrations {
 			// Read sql file
 			data, err := fs.ReadFile(migrationFs, v)
@@ -54,14 +62,14 @@ func (provider *Provider) Migrate(migrationFs embed.FS) error {
 			}
 
 			// Execute sql file
-			err = tx.Execute(string(data))
+			err = tx.Execute(ctx, string(data))
 			if err != nil {
 				provider.logger.Error("issue running migration")
 				return err
 			}
 
 			// Add the new migration to the database
-			err = tx.Execute(`INSERT into migrations(id) VALUES ($1::text);`, v)
+			err = tx.Execute(ctx, `INSERT into migrations(id) VALUES ($1::text);`, v)
 			if err != nil {
 				provider.logger.Error("issue adding executed migration to row")
 				return err
@@ -77,34 +85,37 @@ func (provider *Provider) Migrate(migrationFs embed.FS) error {
 	return nil
 }
 
-func (provider *Provider) MigrationStatus(migrationFs embed.FS) (storage.MigrationStatus, error) {
-	err := provider._addMigrationTable()
+// MigrationStatus returns the current status of database migrations.
+// It compares migration files in migrationFs with executed migrations in the database
+// to determine if all migrations are applied, partially applied, or none are applied.
+func (provider *Provider) MigrationStatus(ctx context.Context, migrationFs embed.FS) (storage.MigrationStatus, error) {
+	err := provider._addMigrationTable(ctx)
 	if err != nil {
-		return storage.NoMigrationsCompleted, err
+		return storage.StatusNone, err
 	}
 
-	fileMigrations, err := provider._getMigrationsFromFs(migrationFs)
+	fileMigrations, err := provider._getMigrationsFromFs(ctx, migrationFs)
 	if err != nil {
-		return storage.NoMigrationsCompleted, err
+		return storage.StatusNone, err
 	}
 
-	dbMigrations, err := provider._getDbMigrations()
+	dbMigrations, err := provider._getDbMigrations(ctx)
 	if err != nil {
-		return storage.NoMigrationsCompleted, err
+		return storage.StatusNone, err
 	}
 
 	if len(dbMigrations) == len(fileMigrations) {
-		return storage.AllMigrationsCompleted, nil
+		return storage.StatusComplete, nil
 	} else if len(dbMigrations) == 0 {
-		return storage.NoMigrationsCompleted, nil
+		return storage.StatusNone, nil
 	}
-	return storage.SomeMigrationsCompleted, nil
+	return storage.StatusPartial, nil
 }
 
-func (provider *Provider) _addMigrationTable() error {
-	err := provider._withTx(func(tx *transaction) error {
+func (provider *Provider) _addMigrationTable(ctx context.Context) error {
+	err := provider.WithTx(ctx, func(tx storage.Transaction) error {
 		// Setup UUID extension
-		err := tx.Execute(
+		err := tx.Execute(ctx,
 			`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`,
 		)
 		if err != nil {
@@ -113,12 +124,8 @@ func (provider *Provider) _addMigrationTable() error {
 		}
 
 		// Setup migrations table
-		err = tx.Execute(
-			`CREATE TABLE IF NOT EXISTS migrations (
-	    id text NOT NULL,
-		  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-		  PRIMARY KEY (id)
-			);`,
+		err = tx.Execute(ctx,
+			`CREATE TABLE IF NOT EXISTS migrations (id text NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (id));`,
 		)
 		if err != nil {
 			provider.logger.Error("issue creating migrations table")
@@ -133,7 +140,7 @@ func (provider *Provider) _addMigrationTable() error {
 	return nil
 }
 
-func (provider *Provider) _getMigrationsFromFs(migrationFs embed.FS) ([]string, error) {
+func (provider *Provider) _getMigrationsFromFs(ctx context.Context, migrationFs embed.FS) ([]string, error) {
 	migrationNames := make([]string, 0)
 
 	// Read all migration files
@@ -154,9 +161,9 @@ func (provider *Provider) _getMigrationsFromFs(migrationFs embed.FS) ([]string, 
 }
 
 // _getDbMigrations returns the successfully executed migrations
-func (provider *Provider) _getDbMigrations() ([]*migration, error) {
+func (provider *Provider) _getDbMigrations(ctx context.Context) ([]*migration, error) {
 	var migrations []*migration
-	values, err := provider.Query(`SELECT id, created_at FROM migrations`)
+	values, err := provider.Query(ctx, `SELECT id, created_at FROM migrations`)
 	if err != nil {
 		return nil, err
 	}
