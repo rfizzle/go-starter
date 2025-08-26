@@ -1,9 +1,7 @@
-package v1
+package auth
 
 import (
 	"context"
-
-	"github.com/rfizzle/go-starter/internal/auth"
 )
 
 type (
@@ -18,8 +16,8 @@ type authSubjectContext struct {
 // newAuthSubjectContext creates a new context for a Subject.
 func newAuthSubjectContext(ctx context.Context, key string, subject string) (context.Context, error) {
 	if subject == "" {
-		return nil, &auth.Error{
-			Err: auth.ErrEmptySubject,
+		return nil, &Error{
+			Err: ErrEmptySubject,
 		}
 	}
 
@@ -44,15 +42,15 @@ func newAuthSubjectContext(ctx context.Context, key string, subject string) (con
 func subjectFromContext(ctx context.Context, key string) (string, error) {
 	v, ok := ctx.Value(authSubjectContextKey{}).(authSubjectContext)
 	if !ok {
-		return "", &auth.Error{
-			Err: auth.ErrMissingSubjectContext,
+		return "", &Error{
+			Err: ErrMissingSubjectContext,
 		}
 	}
 
 	s, ok := v.SubjectMap[key]
 	if !ok {
-		return "", &auth.Error{
-			Err: auth.ErrMissingKeyFromSubjectContext,
+		return "", &Error{
+			Err: ErrMissingKeyFromSubjectContext,
 		}
 	}
 

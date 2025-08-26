@@ -1,4 +1,4 @@
-package v1
+package auth
 
 import (
 	"context"
@@ -6,18 +6,17 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
 
 // Mock audit logger for testing
 type mockAuditLogger struct {
-	events []auth.AuditEvent
+	events []AuditEvent
 	err    error
 }
 
-func (m *mockAuditLogger) LogEvent(ctx context.Context, event auth.AuditEvent) error {
+func (m *mockAuditLogger) LogEvent(ctx context.Context, event AuditEvent) error {
 	if m.err != nil {
 		return m.err
 	}
@@ -26,16 +25,19 @@ func (m *mockAuditLogger) LogEvent(ctx context.Context, event auth.AuditEvent) e
 }
 
 func TestAuditMiddleware(t *testing.T) {
+	ctx := context.Background()
 	validator := &mockValidator{}
 	logger := zap.NewNop()
-	authLegacy, err := NewAuth(validator, WithLoggerLegacy(logger))
+	authService, err := NewService(ctx, validator, Logger(logger))
 	assert.NoError(t, err)
 
+	// Cast to concrete type for testing
+	svc := authService.(*service)
 	auditor := &mockAuditLogger{}
-	middleware := authLegacy.AuditMiddleware(auditor)
+	middleware := authService.AuditMiddleware(auditor)
 
 	t.Run("logs successful request", func(t *testing.T) {
-		ctx, err := newAuthSubjectContext(context.Background(), authLegacy.contextKey, "user123")
+		ctx, err := newAuthSubjectContext(context.Background(), svc.contextKey, "user123")
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest("GET", "/auth/login", nil).WithContext(ctx)
@@ -59,7 +61,7 @@ func TestAuditMiddleware(t *testing.T) {
 	})
 
 	t.Run("logs failed request", func(t *testing.T) {
-		auditor.events = []auth.AuditEvent{} // Reset
+		auditor.events = []AuditEvent{} // Reset
 
 		req := httptest.NewRequest("POST", "/auth/login", nil)
 		req.Header.Set("User-Agent", "TestAgent/1.0")

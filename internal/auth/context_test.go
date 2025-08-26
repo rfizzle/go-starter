@@ -1,10 +1,9 @@
-package v1
+package auth
 
 import (
 	"context"
 	"testing"
 
-	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap"
 )
@@ -15,13 +14,14 @@ const (
 
 func TestNewSubjectContext(t *testing.T) {
 	ctx := context.Background()
-	a, err := NewAuth(&mockValidator{}, WithLoggerLegacy(zap.NewNop()))
-	assert.NotNil(t, a)
+	authService, err := NewService(context.Background(), &mockValidator{}, Logger(zap.NewNop()))
+	assert.NotNil(t, authService)
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
-	newCtx, err := newAuthSubjectContext(ctx, a.contextKey, defaultUID)
+	svc := authService.(*service)
+	newCtx, err := newAuthSubjectContext(ctx, svc.contextKey, defaultUID)
 	assert.NotNil(t, newCtx)
 	assert.Nil(t, err)
 	assert.NotEqual(t, ctx, newCtx, "context should be different")
@@ -29,30 +29,31 @@ func TestNewSubjectContext(t *testing.T) {
 
 func TestNewSubjectContext_InvalidType(t *testing.T) {
 	ctx := context.Background()
-	a, err := NewAuth(&mockValidator{}, WithLoggerLegacy(zap.NewNop()))
-	assert.NotNil(t, a)
+	authService, err := NewService(context.Background(), &mockValidator{}, Logger(zap.NewNop()))
+	assert.NotNil(t, authService)
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
-	newCtx, expectedErr := newAuthSubjectContext(ctx, a.contextKey, "")
+	svc := authService.(*service)
+	newCtx, expectedErr := newAuthSubjectContext(ctx, svc.contextKey, "")
 	assert.Nil(t, newCtx)
 	assert.NotNil(t, expectedErr)
-	authErr, err := auth.GetError(expectedErr)
+	authErr, err := GetError(expectedErr)
 	assert.NotNil(t, authErr)
 	assert.Nil(t, err)
-	assert.Equal(t, authErr.Err, auth.ErrEmptySubject)
+	assert.Equal(t, authErr.Err, ErrEmptySubject)
 }
 
 func TestNewSubjectContextWithCustomKey(t *testing.T) {
 	ctx := context.Background()
-	a, err := NewAuth(&mockValidator{}, WithLoggerLegacy(zap.NewNop()), WithContextKeyLegacy("custom"))
-	assert.NotNil(t, a)
+	authService, err := NewService(context.Background(), &mockValidator{}, Logger(zap.NewNop()), ContextKey("custom"))
+	assert.NotNil(t, authService)
 	assert.Nil(t, err)
 	if err != nil {
 		return
 	}
-	newCtx, err := newAuthSubjectContext(ctx, a.contextKey, defaultUID)
+	newCtx, err := newAuthSubjectContext(ctx, "custom", defaultUID)
 	assert.NotNil(t, newCtx)
 	assert.Nil(t, err)
 	assert.NotEqual(t, ctx, newCtx, "context should be different")

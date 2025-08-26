@@ -1,4 +1,4 @@
-package v1
+package auth
 
 import (
 	"context"
@@ -6,12 +6,10 @@ import (
 	"net/http"
 	"strings"
 	"time"
-
-	"github.com/rfizzle/go-starter/internal/auth"
 )
 
 // AuditMiddleware returns a middleware that logs authentication events
-func (s *service) AuditMiddleware(auditor auth.AuditLogger) func(next http.Handler) http.Handler {
+func (s *service) AuditMiddleware(auditor AuditLogger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			// Create a response writer that captures status code
@@ -99,8 +97,8 @@ func GetClientIP(r *http.Request) string {
 }
 
 // LogAuthEvent logs an authentication event using the provided auditor
-func LogAuthEvent(ctx context.Context, auditor auth.AuditLogger, eventType, userID, clientIP, userAgent string, success bool, err error, metadata map[string]string) {
-	event := auth.AuditEvent{
+func LogAuthEvent(ctx context.Context, auditor AuditLogger, eventType, userID, clientIP, userAgent string, success bool, err error, metadata map[string]string) {
+	event := AuditEvent{
 		EventType: eventType,
 		UserID:    userID,
 		ClientIP:  clientIP,
@@ -121,40 +119,3 @@ func LogAuthEvent(ctx context.Context, auditor auth.AuditLogger, eventType, user
 	}
 }
 
-// Legacy audit function for backward compatibility
-func (a *legacyAuth) AuditMiddleware(auditor auth.AuditLogger) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Create a response writer that captures status code
-			rw := &responseWriter{
-				ResponseWriter: w,
-				statusCode:     http.StatusOK,
-			}
-
-			// Serve the request
-			next.ServeHTTP(rw, r)
-
-			// Determine if this was an authentication attempt
-			if isAuthRelatedRequest(r) {
-				// Get user information if available
-				userID, _ := subjectFromContext(r.Context(), a.contextKey)
-				
-				// Determine success based on status code
-				success := rw.statusCode < 400
-
-				// Log the event
-				LogAuthEvent(
-					r.Context(),
-					auditor,
-					"authentication_attempt",
-					userID,
-					GetClientIP(r),
-					r.UserAgent(),
-					success,
-					nil,
-					nil,
-				)
-			}
-		})
-	}
-}

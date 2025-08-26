@@ -1,10 +1,9 @@
-package v1
+package auth
 
 import (
 	"errors"
 	"net/http"
 
-	"github.com/rfizzle/go-starter/internal/auth"
 	"go.uber.org/zap"
 )
 
@@ -17,7 +16,7 @@ func (s *service) Middleware() func(next http.Handler) http.Handler {
 			// Get a validated authenticated subject from request
 			subject, err := s.validator.Validate(r)
 			if err != nil {
-				if !errors.Is(err, auth.ErrUnauthorized) {
+				if !errors.Is(err, ErrUnauthorized) {
 					s.logger.Error("request auth validation failed", zap.Error(err))
 				}
 				next.ServeHTTP(w, r)
@@ -77,7 +76,7 @@ func (s *service) RequireAuthenticationWithCustomResponse(errorHandler func(w ht
 			}
 
 			if subject == "" {
-				errorHandler(w, r, auth.ErrUnauthorized)
+				errorHandler(w, r, ErrUnauthorized)
 				return
 			}
 
@@ -86,75 +85,3 @@ func (s *service) RequireAuthenticationWithCustomResponse(errorHandler func(w ht
 	}
 }
 
-// Legacy middleware implementations for backward compatibility
-func (a *legacyAuth) Middleware() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get a validated authenticated subject from request
-			subject, err := a.validator.Validate(r)
-			if err != nil {
-				if !errors.Is(err, auth.ErrUnauthorized) {
-					a.logger.Error("request auth validation failed", zap.Error(err))
-				}
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			// Get the current request context
-			ctx := r.Context()
-
-			// Build the new context with the authenticated subject
-			newCtx, err := newAuthSubjectContext(ctx, a.contextKey, subject)
-			if err != nil {
-				a.logger.Error("middleware: failed to build new context with authenticated subject", zap.Error(err))
-				next.ServeHTTP(w, r)
-				return
-			}
-
-			// Serve the next handler with the new context
-			next.ServeHTTP(w, r.WithContext(newCtx))
-		})
-	}
-}
-
-func (a *legacyAuth) RequireAuthentication() func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Get the authenticated subject from the context
-			subject, err := subjectFromContext(r.Context(), a.contextKey)
-			if err != nil {
-				a.logger.Debug("authentication required but no subject in context", zap.Error(err))
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			// Fail if the entity ID is empty
-			if subject == "" {
-				a.logger.Error("middleware: subject from context is empty")
-				http.Error(w, "Unauthorized", http.StatusUnauthorized)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
-func (a *legacyAuth) RequireAuthenticationWithCustomResponse(errorHandler func(w http.ResponseWriter, r *http.Request, err error)) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			subject, err := subjectFromContext(r.Context(), a.contextKey)
-			if err != nil {
-				errorHandler(w, r, err)
-				return
-			}
-
-			if subject == "" {
-				errorHandler(w, r, auth.ErrUnauthorized)
-				return
-			}
-
-			next.ServeHTTP(w, r)
-		})
-	}
-}
