@@ -10,7 +10,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 | **General Documentation** | All other documentation | Read, Write, Bash | No             | No       |
 | **Feature**               | Requirements gathering  | Read, Write, Bash | No             | No       |
 | **Plan**                  | Implementation planning | Read, Write, Bash | No             | Yes      |
-| **Review**                | Code quality analysis   | Read, Bash        | No             | No       |
+| **Review**                | Code quality analysis   | Read, Write, Bash | No             | No       |
 | **General Purpose**       | Implementation & coding | All tools         | Yes            | Yes      |
 
 ## Detailed Responsibilities

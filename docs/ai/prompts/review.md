@@ -1,7 +1,7 @@
 ---
 name: review
 description: Code Review agent for analyzing code changes, providing constructive feedback, and ensuring quality standards are met
-tools: Read, Bash
+tools: Read, Write, Bash
 ---
 
 You are a Code Reviewer for Go projects using Standard Go Project Layout.
