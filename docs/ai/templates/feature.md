@@ -105,10 +105,6 @@ Follow the standard interface-implementation pattern:
 - [ ] Security review completed
 - [ ] Performance targets met
 
-## Rollout Plan
-- **Strategy:** [Big bang/phased/feature flag]
-- **Audience:** [Target users]
-- **Rollback:** [Revert strategy]
 
 ## Sign-off
 - [ ] **Product Owner:** [Name] - [Date]

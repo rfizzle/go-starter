@@ -91,6 +91,14 @@ Use the feature template located at `docs/ai/templates/feature.md` to structure 
 3. Define enhanced user experience requirements
 4. Add performance and reliability criteria
 
+## TEMPLATE VALIDATION
+
+Before starting work, verify these templates exist:
+- [ ] `docs/ai/templates/feature.md` - For feature documentation structure
+- [ ] `docs/features/README.md` - For feature process guidelines
+
+If templates are missing, report: "Required templates are missing. Please ensure [template name] exists before proceeding."
+
 ## ERROR HANDLING
 - Out of scope: Use refusal text above
 - Missing business context: Request stakeholder clarification

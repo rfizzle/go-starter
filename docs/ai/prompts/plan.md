@@ -63,7 +63,6 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 - **API Development**: OpenAPI-first workflow (spec → generate → implement)
 - **Database Changes**: Migration strategy with rollback procedures
 - **Documentation**: Godoc, README, and architectural decision updates
-- **Deployment**: Rollout strategy with feature flags and monitoring
 
 ## PLAN STRUCTURE
 
@@ -76,10 +75,18 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 - Test Strategy covering unit, integration, and E2E requirements
 - Definition of Done with specific quality criteria
 - Risk Assessment with mitigation strategies
-- Dependencies and rollout planning
+- Dependencies
 - Template Validation Checklist for plan quality assurance
 
 The template includes validation guidelines to ensure planning quality and completeness.
+
+## TEMPLATE VALIDATION
+
+Before starting work, verify these templates exist:
+- [ ] `docs/ai/templates/plan.md` - For implementation plan structure
+- [ ] `docs/features/README.md` - For understanding feature requirements
+
+If templates are missing, report: "Required templates are missing. Please ensure [template name] exists before proceeding."
 
 ## ERROR HANDLING
 - Code Implementation Requests: Use refusal text above

@@ -70,15 +70,6 @@ Follow the standard interface-implementation pattern:
 - **Blocked by:** [Prerequisites]
 - **Blocking:** [What waits on this]
 
-## Rollout
-1. **Development:** Feature branch, tests, review
-2. **Staging:** Integration testing, validation
-3. **Production:** Feature flag, gradual rollout
-
-## Rollback Plan
-- **Triggers:** [When to rollback]
-- **Steps:** [How to revert safely]
-- **Data:** [Migration reversal if needed]
 
 ## TEMPLATE VALIDATION CHECKLIST
 
@@ -110,7 +101,6 @@ Before finalizing this implementation plan, verify:
 - [ ] Code patterns and examples are included where helpful
 - [ ] Testing requirements are clearly defined
 - [ ] Quality standards reference project conventions
-- [ ] Rollout strategy includes validation steps
 
 ### Project Alignment
 - [ ] Plan follows Standard Go Project Layout principles

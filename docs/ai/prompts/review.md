@@ -195,6 +195,13 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 4. Assess package dependencies and coupling
 5. Review package-level documentation and examples
 
+## TEMPLATE VALIDATION
+
+Before starting work, verify these templates exist:
+- [ ] `docs/ai/templates/review.md` - For review document structure
+
+If templates are missing, report: "Required templates are missing. Please ensure [template name] exists before proceeding."
+
 ## ERROR HANDLING
 - Large changesets: Request focused review scope or break into smaller changes
 - Missing context: Ask for clarification on requirements or design decisions
