@@ -117,45 +117,76 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 ### Review Agent (`docs/ai/prompts/review.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: READ-ONLY code analysis
+- **Scope**: READ-ONLY code analysis + review document creation
+- **Output**: Write review results to `docs/reviews/YYYY-MM-DD-HHmm-[feature-name]-review.md`
 - Analyze code changes and pull requests
+- Create structured review documents with findings and required changes
+- Support iterative review cycles (initial → implementation → confirmation)
 - Provide constructive feedback on code quality
 - Ensure adherence to Go standards and project patterns
 - Validate test coverage and quality
 - Check for security and performance issues
+- Track review status through approval workflow
 
 #### ❌ Out of Scope
 - Writing or modifying application code
 - Creating implementation plans
 - Gathering feature requirements
 - AI documentation creation
-- Making code changes based on review feedback
+- Making code changes based on review feedback (delegate to Implementation Agent)
 
 #### 🔄 Handoff Criteria
-- **To General Purpose**: When code changes need to be implemented
+- **To Implementation Agent**: When review document contains required changes to be addressed
+- **To General Purpose**: When complex code changes need to be implemented outside of review fixes
 - **To Plan Agent**: When architectural changes require planning
 - **To Feature Agent**: When requirements clarification is needed
+- **From Implementation Agent**: When fixes are ready for re-review and confirmation
+
+---
+
+### Implementation Agent (`docs/ai/prompts/implementation.md`)
+
+#### ✅ Primary Responsibilities
+- **Scope**: Execute tasks from plans (`docs/plans/`) or reviews (`docs/reviews/`)
+- Implement features according to implementation plans
+- Address issues identified in review documents
+- Write and modify application code following specified approaches
+- Create and update tests as defined in plans or required by reviews
+- Update progress in plan documents or review status
+- Support both plan-based and review-based implementation workflows
+
+#### ❌ Out of Scope
+- Creating implementation plans (delegate to Plan Agent)
+- Creating feature requirements (delegate to Feature Agent)
+- Performing code reviews (delegate to Review Agent)
+- Modifying plan structure or review findings
+
+#### 🔄 Handoff Criteria
+- **From Plan Agent**: When implementation plan is complete and ready for execution
+- **From Review Agent**: When review document contains specific required changes
+- **To Review Agent**: When implementation is complete and ready for review/re-review
+- **To Plan Agent**: When plan modifications are needed during implementation
 
 ---
 
 ### General Purpose Agent
 
 #### ✅ Primary Responsibilities
-- **Scope**: Entire codebase for implementation
-- Implement features according to plans
-- Write and modify application code
-- Create and update tests
-- Execute complex, multi-step development tasks
-- Handle tasks requiring all tool types
+- **Scope**: Entire codebase for complex, multi-step tasks
+- Handle complex development tasks requiring multiple agent capabilities
+- Execute tasks requiring all tool types
+- Research and implement features without formal plans
 
 #### ❌ Out of Scope
 - Creating feature requirements (delegate to Feature Agent)
-- Formal implementation planning (delegate to Plan Agent)
+- Formal implementation planning (delegate to Plan Agent) 
 - Formal code reviews (delegate to Review Agent)
+- Routine implementation tasks with existing plans (delegate to Implementation Agent)
 
 #### 🔄 Handoff Criteria
 - **To Feature Agent**: When requirements are unclear or missing
 - **To Plan Agent**: When complex features need detailed planning
+- **To Implementation Agent**: When formal plans or review documents exist for the task
 - **To Review Agent**: When code review is requested
 - **To AI Documentation**: When AI documentation needs updates
 
@@ -168,6 +199,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **AI prompts** → AI Documentation Agent
 - **General documentation** → General Documentation Agent
 - **Implementation plans** → Plan Agent
+- **Review documents** → Review Agent
 
 ### Analysis & Review
 - **Code quality analysis** → Review Agent
@@ -175,13 +207,16 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **Security assessment** → Review Agent
 - **Performance analysis** → Review Agent
 - **Test coverage analysis** → Review Agent
+- **Review document creation** → Review Agent
+- **Review-based fixes** → Implementation Agent
 
 ### Implementation & Development
-- **Feature implementation** → General Purpose Agent
-- **Bug fixes** → General Purpose Agent
-- **Refactoring** → General Purpose Agent
-- **Test writing** → General Purpose Agent
-- **Configuration changes** → General Purpose Agent
+- **Plan-based implementation** → Implementation Agent
+- **Review-based fixes** → Implementation Agent
+- **Complex multi-step development** → General Purpose Agent
+- **Ad-hoc bug fixes** → General Purpose Agent
+- **Refactoring without plans** → General Purpose Agent
+- **Exploratory development** → General Purpose Agent
 
 ### Planning & Strategy
 - **Technical task breakdown** → Plan Agent
@@ -197,8 +232,10 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 ```
 1. Feature Agent → Creates requirements in docs/features/
 2. Plan Agent → Creates implementation plan in docs/plans/
-3. General Purpose → Implements according to plan
-4. Review Agent → Reviews completed implementation
+3. Implementation Agent → Implements according to plan
+4. Review Agent → Creates review document in docs/reviews/
+5. Implementation Agent → Addresses review findings (if any)
+6. Review Agent → Confirms fixes and provides final approval
 ```
 
 #### Documentation Updates Flow
@@ -213,7 +250,8 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 #### Multi-Domain Features
 - Feature Agent: Gathers requirements
 - Plan Agent: Creates technical plans
-- Review Agent: Analyzes existing related code
+- Review Agent: Analyzes existing related code and creates review documents
+- Implementation Agent: Executes plans and addresses review feedback
 - AI Documentation: Updates relevant AI guidance
 
 ## Conflict Resolution
@@ -226,19 +264,22 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 3. **Check workflow phase** - Match agent to current development phase
 
 #### Examples:
-- **Writing tests**: General Purpose (needs code modification tools)
+- **Writing tests from plans**: Implementation Agent (following plan specifications)
+- **Writing tests for review fixes**: Implementation Agent (addressing review requirements)
+- **Complex test architecture**: General Purpose Agent (multi-step, exploratory)
 - **Planning test strategy**: Plan Agent (analysis and documentation)
-- **Reviewing test quality**: Review Agent (analysis and feedback)
+- **Reviewing test quality**: Review Agent (analysis and feedback via review documents)
 
 ### Scope Boundary Disputes
 
 #### Clear Decision Tree:
-1. **Does it require writing/modifying code?** → General Purpose
-2. **Is it requirements/user story related?** → Feature Agent  
-3. **Is it planning/architecture related?** → Plan Agent
-4. **Is it code analysis/review related?** → Review Agent
-5. **Is it AI documentation related?** → AI Documentation Agent
-6. **Is it general documentation related?** → General Documentation Agent
+1. **Is there an existing plan or review document?** → Implementation Agent
+2. **Is it complex multi-step development without formal docs?** → General Purpose
+3. **Is it requirements/user story related?** → Feature Agent  
+4. **Is it planning/architecture related?** → Plan Agent
+5. **Is it code analysis/review related?** → Review Agent
+6. **Is it AI documentation related?** → AI Documentation Agent
+7. **Is it general documentation related?** → General Documentation Agent
 
 ## Quality Gates
 
