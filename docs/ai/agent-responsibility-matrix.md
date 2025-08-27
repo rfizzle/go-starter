@@ -4,20 +4,21 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 ## Agent Overview
 
-| Agent                | Primary Focus           | Tools             | Can Write Code | Can Plan |
-|----------------------|-------------------------|-------------------|----------------|----------|
-| **AI Documentation** | AI-facing docs          | Read, Write, Bash | No             | No       |
-| **Feature**          | Requirements gathering  | Read, Write, Bash | No             | No       |
-| **Plan**             | Implementation planning | Read, Bash        | No             | Yes      |
-| **Review**           | Code quality analysis   | Read, Bash        | No             | No       |
-| **General Purpose**  | Implementation & coding | All tools         | Yes            | Yes      |
+| Agent                     | Primary Focus           | Tools             | Can Write Code | Can Plan |
+|---------------------------|-------------------------|-------------------|----------------|----------|
+| **AI Documentation**      | AI-facing docs          | Read, Write, Bash | No             | No       |
+| **General Documentation** | All other documentation | Read, Write, Bash | No             | No       |
+| **Feature**               | Requirements gathering  | Read, Write, Bash | No             | No       |
+| **Plan**                  | Implementation planning | Read, Write, Bash | No             | Yes      |
+| **Review**                | Code quality analysis   | Read, Bash        | No             | No       |
+| **General Purpose**       | Implementation & coding | All tools         | Yes            | Yes      |
 
 ## Detailed Responsibilities
 
 ### AI Documentation Agent (`docs/ai/prompts/ai.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: `docs/ai/` directory only
+- **Scope**: `docs/ai/` directory only - NO EXCEPTIONS
 - Create and maintain AI agent prompts
 - Update AI documentation templates
 - Maintain agent responsibility definitions
@@ -26,7 +27,8 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 #### ❌ Out of Scope
 - Writing application code
-- Making changes outside `docs/ai/`
+- Making changes outside `docs/ai/` directory
+- General documentation (README files, code comments, user guides)
 - Feature requirements gathering
 - Code implementation planning
 - Code review activities
@@ -35,6 +37,32 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **To Feature Agent**: When requirements need to be gathered
 - **To Plan Agent**: When implementation planning is needed
 - **To General Purpose**: When code needs to be written
+- **To General Documentation**: When non-AI documentation needs to be created or updated
+
+---
+
+### General Documentation Agent (`docs/ai/prompts/docs.md`)
+
+#### ✅ Primary Responsibilities
+- **Scope**: All documentation EXCEPT `docs/ai/` directory
+- Create and maintain README files throughout the project
+- Write and update inline Go code documentation and comments
+- Maintain user-facing documentation and guides
+- Create architecture and development documentation (non-AI specific)
+- Can READ from `docs/ai/` for coordination and reference
+
+#### ❌ Out of Scope
+- Writing application code
+- Making changes within `docs/ai/` directory (AI Documentation Agent's territory)
+- Feature requirements gathering
+- Code implementation planning
+- Code review activities
+
+#### 🔄 Handoff Criteria
+- **To Feature Agent**: When requirements need to be gathered
+- **To Plan Agent**: When implementation planning is needed
+- **To General Purpose**: When code needs to be written
+- **To AI Documentation**: When AI-specific documentation needs updates
 
 ---
 
@@ -138,6 +166,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **Acceptance criteria** → Feature Agent
 - **API specifications** → Feature Agent
 - **AI prompts** → AI Documentation Agent
+- **General documentation** → General Documentation Agent
 - **Implementation plans** → Plan Agent
 
 ### Analysis & Review
@@ -209,6 +238,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 3. **Is it planning/architecture related?** → Plan Agent
 4. **Is it code analysis/review related?** → Review Agent
 5. **Is it AI documentation related?** → AI Documentation Agent
+6. **Is it general documentation related?** → General Documentation Agent
 
 ## Quality Gates
 
