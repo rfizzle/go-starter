@@ -11,7 +11,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 | **Feature**               | Requirements gathering  | Read, Write, Bash | No             | No       |
 | **Plan**                  | Implementation planning | Read, Write, Bash | No             | Yes      |
 | **Review**                | Code quality analysis   | Read, Write, Bash | No             | No       |
-| **General Purpose**       | Implementation & coding | All tools         | Yes            | Yes      |
+| **Implementation**        | Implementation & fixes  | Read, Write, Bash | Yes            | No       |
 
 ## Detailed Responsibilities
 
@@ -36,7 +36,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 #### 🔄 Handoff Criteria
 - **To Feature Agent**: When requirements need to be gathered
 - **To Plan Agent**: When implementation planning is needed
-- **To General Purpose**: When code needs to be written
+- **To Implementation Agent**: When code needs to be written
 - **To General Documentation**: When non-AI documentation needs to be created or updated
 
 ---
@@ -61,7 +61,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 #### 🔄 Handoff Criteria
 - **To Feature Agent**: When requirements need to be gathered
 - **To Plan Agent**: When implementation planning is needed
-- **To General Purpose**: When code needs to be written
+- **To Implementation Agent**: When code needs to be written
 - **To AI Documentation**: When AI-specific documentation needs updates
 
 ---
@@ -86,7 +86,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 #### 🔄 Handoff Criteria
 - **To Plan Agent**: When feature document is complete and ready for implementation planning
 - **To AI Documentation**: When AI prompts need updates based on new features
-- **To General Purpose**: When feature requires immediate prototyping
+- **To Implementation Agent**: When feature requires immediate prototyping
 
 ---
 
@@ -108,7 +108,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - Making code changes
 
 #### 🔄 Handoff Criteria
-- **To General Purpose**: When plan is complete and ready for implementation
+- **To Implementation Agent**: When plan is complete and ready for implementation
 - **To Feature Agent**: When requirements are incomplete or unclear
 - **To Review Agent**: When existing code analysis is needed for planning
 
@@ -137,7 +137,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 #### 🔄 Handoff Criteria
 - **To Implementation Agent**: When review document contains required changes to be addressed
-- **To General Purpose**: When complex code changes need to be implemented outside of review fixes
+- **To Implementation Agent**: When complex code changes need to be implemented outside of review fixes
 - **To Plan Agent**: When architectural changes require planning
 - **To Feature Agent**: When requirements clarification is needed
 - **From Implementation Agent**: When fixes are ready for re-review and confirmation
@@ -169,27 +169,6 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 ---
 
-### General Purpose Agent
-
-#### ✅ Primary Responsibilities
-- **Scope**: Entire codebase for complex, multi-step tasks
-- Handle complex development tasks requiring multiple agent capabilities
-- Execute tasks requiring all tool types
-- Research and implement features without formal plans
-
-#### ❌ Out of Scope
-- Creating feature requirements (delegate to Feature Agent)
-- Formal implementation planning (delegate to Plan Agent) 
-- Formal code reviews (delegate to Review Agent)
-- Routine implementation tasks with existing plans (delegate to Implementation Agent)
-
-#### 🔄 Handoff Criteria
-- **To Feature Agent**: When requirements are unclear or missing
-- **To Plan Agent**: When complex features need detailed planning
-- **To Implementation Agent**: When formal plans or review documents exist for the task
-- **To Review Agent**: When code review is requested
-- **To AI Documentation**: When AI documentation needs updates
-
 ## Task Type Mapping
 
 ### Requirements & Documentation
@@ -213,10 +192,10 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 ### Implementation & Development
 - **Plan-based implementation** → Implementation Agent
 - **Review-based fixes** → Implementation Agent
-- **Complex multi-step development** → General Purpose Agent
-- **Ad-hoc bug fixes** → General Purpose Agent
-- **Refactoring without plans** → General Purpose Agent
-- **Exploratory development** → General Purpose Agent
+- **Complex multi-step development** → Implementation Agent
+- **Ad-hoc bug fixes** → Implementation Agent
+- **Refactoring tasks** → Implementation Agent
+- **Code modifications and updates** → Implementation Agent
 
 ### Planning & Strategy
 - **Technical task breakdown** → Plan Agent
@@ -266,7 +245,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 #### Examples:
 - **Writing tests from plans**: Implementation Agent (following plan specifications)
 - **Writing tests for review fixes**: Implementation Agent (addressing review requirements)
-- **Complex test architecture**: General Purpose Agent (multi-step, exploratory)
+- **Complex test architecture**: Implementation Agent (multi-step development)
 - **Planning test strategy**: Plan Agent (analysis and documentation)
 - **Reviewing test quality**: Review Agent (analysis and feedback via review documents)
 
@@ -274,10 +253,10 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 #### Clear Decision Tree:
 1. **Is there an existing plan or review document?** → Implementation Agent
-2. **Is it complex multi-step development without formal docs?** → General Purpose
-3. **Is it requirements/user story related?** → Feature Agent  
-4. **Is it planning/architecture related?** → Plan Agent
-5. **Is it code analysis/review related?** → Review Agent
+2. **Is it requirements/user story related?** → Feature Agent  
+3. **Is it planning/architecture related?** → Plan Agent
+4. **Is it code analysis/review related?** → Review Agent
+5. **Is it implementation/development related?** → Implementation Agent
 6. **Is it AI documentation related?** → AI Documentation Agent
 7. **Is it general documentation related?** → General Documentation Agent
 
