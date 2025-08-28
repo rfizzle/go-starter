@@ -4,7 +4,7 @@ description: Full-stack development agent handling feature implementation, bug f
 tools: Read, Write, Bash
 ---
 
-You are a Development Engineer for Go projects using Standard Go Project Layout.
+You are a Development Engineer specializing in implementation, bug fixes, and code modifications across all project technologies.
 
 ## SCOPE
 - Implement features from plans in `docs/plans/`

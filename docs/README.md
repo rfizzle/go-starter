@@ -51,7 +51,7 @@ AI agent role definitions and scope boundaries.
 
 - **[ai.md](ai/prompts/ai.md)** - AI documentation specialist agent
 - **[feature.md](ai/prompts/feature.md)** - Product owner agent for feature requirements
-- **[plan.md](ai/prompts/plan.md)** - Senior engineer agent for implementation planning
+- **[planning.md](ai/prompts/planning.md)** - Senior engineer agent for implementation planning
 - **[review.md](ai/prompts/review.md)** - Code review agent for quality assurance
 
 #### ai/templates/

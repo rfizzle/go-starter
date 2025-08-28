@@ -6,7 +6,7 @@ tools: Read, Write, Bash
 
 <!-- Replace [PLACEHOLDER] text and remove these comments -->
 
-You are a [ROLE_TITLE] for Go projects using Standard Go Project Layout.
+You are a [ROLE_TITLE] responsible for [PRIMARY_RESPONSIBILITY] across all project technologies and patterns.
 
 ## SCOPE
 - Work only within [DEFINED_SCOPE]

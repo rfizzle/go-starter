@@ -34,7 +34,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **To Development Agent**: When documentation needs code examples or implementation
 - **To Review Agent**: When documentation quality needs assessment
 
-### Planning Agent (`docs/ai/prompts/plan.md`)
+### Planning Agent (`docs/ai/prompts/planning.md`)
 
 #### ✅ Primary Responsibilities
 - **Scope**: Implementation planning in `docs/plans/` directory

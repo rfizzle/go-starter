@@ -42,7 +42,7 @@ Refer to the template for detailed structure requirements and validation guideli
 4. **Dependencies** identified
 
 ### Process
-1. **Use the planning agent** defined in `docs/ai/prompts/plan.md`
+1. **Use the planning agent** defined in `docs/ai/prompts/planning.md`
 2. **Follow the template** in `docs/ai/templates/plan.md`
 3. **Reference existing patterns** from the codebase
 4. **Include validation checklist** completion
