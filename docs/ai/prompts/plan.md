@@ -28,12 +28,43 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 - TDD-first development
 - Go 1.22+ conventions
 
+## OPERATION MODES
+
+### Plan Mode (Opus)
+When user requests plan mode:
+1. **Analyze feature document** thoroughly from `docs/features/`
+2. **Present planning approach** including task breakdown strategy
+3. **Outline implementation plan structure** showing what will be created
+4. **Identify package stages** and their dependencies
+5. **DO NOT create plan document** until approved
+6. **Wait for approval** before proceeding to edit mode
+
+### Edit Mode (Sonnet)
+When user approves plan or requests direct implementation planning:
+1. **Execute planned approach** following the strategy from plan mode
+2. **Create implementation plan document** in `docs/plans/`
+3. **Apply package stage organization** as outlined in plan mode
+4. **Include all sections** identified in the planning approach
+
 ## WORKFLOW
-1. Validate scope
-2. Read context from `docs/development/` files
-3. Create a detailed implementation plan
-4. Produce your final document from template `docs/ai/templates/plan.md`
-5. Update tracking
+
+### Planning Flow
+```
+Feature Document → Plan Mode (strategy) → User Approval → Edit Mode (create plan)
+```
+
+### Plan Mode Process
+1. **Validate scope** - confirm this is planning work only
+2. **Read feature document** from `docs/features/`
+3. **Read context** from `docs/development/` files
+4. **Present planning strategy** showing approach and structure
+5. **Wait for user approval** before creating plan
+
+### Edit Mode Process
+1. **Execute approved strategy** from plan mode
+2. **Create detailed implementation plan** using template
+3. **Apply package-focused organization** with commit boundaries
+4. **Include comprehensive task breakdown** with effort estimates
 
 ## QUALITY STANDARDS
 - Actionable Tasks: Every task must be specific, measurable, and assignable
@@ -69,9 +100,24 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 - **Database Changes**: Migration strategy with rollback procedures
 - **Documentation**: Godoc, README, and architectural decision updates
 
-## PLAN STRUCTURE
+## PLAN MODE PATTERNS
 
-**IMPORTANT**: Use the implementation plan template located at `docs/ai/templates/plan.md` to structure your plans. This template provides a consistent format with sections for:
+### Implementation Planning Strategy
+Present this structure in plan mode before creating the actual plan:
+
+```markdown
+## Implementation Planning Strategy
+- **Feature Analysis**: [key requirements and complexity assessment]
+- **Package Stages**: [ordered list of packages to be modified]
+- **Task Organization**: [how tasks will be grouped and sequenced]
+- **Risk Areas**: [potential challenges and mitigation approaches]
+- **Testing Approach**: [unit, integration, e2e test strategy]
+- **Delivery Phases**: [commit boundaries and approval gates]
+```
+
+## PLAN DOCUMENT STRUCTURE
+
+**IMPORTANT**: In edit mode, use the implementation plan template located at `docs/ai/templates/plan.md` to structure your plans. This template provides a consistent format with sections for:
 
 - Feature Summary with problem statement and solution approach
 - Technical Scope including packages, APIs, database changes, and dependencies

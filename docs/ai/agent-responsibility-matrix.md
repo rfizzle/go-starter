@@ -4,268 +4,209 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 ## Agent Overview
 
-| Agent                     | Primary Focus              | Tools             | Can Write Code | Can Plan |
-|---------------------------|----------------------------|-------------------|----------------|----------|
-| **AI Documentation**      | AI-facing docs             | Read, Write, Bash | No             | No       |
-| **General Documentation** | All other documentation    | Read, Write, Bash | No             | No       |
-| **Feature**               | Requirements gathering     | Read, Write, Bash | No             | No       |
-| **Plan**                  | Implementation planning    | Read, Write, Bash | No             | Yes      |
-| **Review**                | Code quality analysis      | Read, Write, Bash | No             | No       |
-| **Implementation**        | 3-phase implementation     | Read, Write, Bash | Yes            | Yes      |
+| Agent                     | Primary Focus              | Tools             | Can Write Code | Can Plan | Modes |
+|---------------------------|----------------------------|-------------------|----------------|----------|--------|
+| **Documentation**         | All documentation types    | Read, Write, Bash | No             | Yes      | Plan/Edit |
+| **Planning**              | Implementation planning    | Read, Write, Bash | No             | Yes      | Plan/Edit |
+| **Review**                | Code quality analysis      | Read, Write, Bash | No             | Yes      | Plan/Edit |
+| **Development**           | Code implementation        | Read, Write, Bash | Yes            | Yes      | Plan/Edit |
 
 ## Detailed Responsibilities
 
-### AI Documentation Agent (`docs/ai/prompts/ai.md`)
+### Documentation Agent (`docs/ai/prompts/documentation.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: `docs/ai/` directory only - NO EXCEPTIONS
-- Create and maintain AI agent prompts
-- Update AI documentation templates
-- Maintain agent responsibility definitions
-- Create context files for AI agents
-- Document AI workflow patterns
+- **Scope**: All documentation across the project
+- Create feature specifications in `docs/features/`
+- Manage AI prompts and templates in `docs/ai/`
+- Maintain README files and general documentation
+- Write inline code documentation and user guides
+- Support both plan mode (design) and edit mode (execution)
 
 #### ❌ Out of Scope
 - Writing application code
-- Making changes outside `docs/ai/` directory
-- General documentation (README files, code comments, user guides)
-- Feature requirements gathering
-- Code implementation planning
-- Code review activities
-
-#### 🔄 Handoff Criteria
-- **To Feature Agent**: When requirements need to be gathered
-- **To Plan Agent**: When implementation planning is needed
-- **To Implementation Agent**: When code needs to be written
-- **To General Documentation**: When non-AI documentation needs to be created or updated
-
----
-
-### General Documentation Agent (`docs/ai/prompts/docs.md`)
-
-#### ✅ Primary Responsibilities
-- **Scope**: All documentation EXCEPT `docs/ai/` directory
-- Create and maintain README files throughout the project
-- Write and update inline Go code documentation and comments
-- Maintain user-facing documentation and guides
-- Create architecture and development documentation (non-AI specific)
-- Can READ from `docs/ai/` for coordination and reference
-
-#### ❌ Out of Scope
-- Writing application code
-- Making changes within `docs/ai/` directory (AI Documentation Agent's territory)
-- Feature requirements gathering
-- Code implementation planning
-- Code review activities
-
-#### 🔄 Handoff Criteria
-- **To Feature Agent**: When requirements need to be gathered
-- **To Plan Agent**: When implementation planning is needed
-- **To Implementation Agent**: When code needs to be written
-- **To AI Documentation**: When AI-specific documentation needs updates
-
----
-
-### Feature Agent (`docs/ai/prompts/feature.md`)
-
-#### ✅ Primary Responsibilities
-- **Scope**: `docs/features/` directory
-- Gather and document feature requirements
-- Create user stories and acceptance criteria
-- Define success metrics and KPIs
-- Document technical requirements
-- Follow product owner best practices
-
-#### ❌ Out of Scope
 - Creating implementation plans
-- Writing application code
 - Code review activities
-- AI documentation updates
-- Technical architecture decisions
+- Code implementation or bug fixes
 
 #### 🔄 Handoff Criteria
-- **To Plan Agent**: When feature document is complete and ready for implementation planning
-- **To AI Documentation**: When AI prompts need updates based on new features
-- **To Implementation Agent**: When feature requires immediate prototyping
+- **To Planning Agent**: When feature docs are complete and need implementation planning
+- **To Development Agent**: When documentation needs code examples or implementation
+- **To Review Agent**: When documentation quality needs assessment
 
----
-
-### Plan Agent (`docs/ai/prompts/plan.md`)
+### Planning Agent (`docs/ai/prompts/plan.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: `docs/plans/` directory and READ-ONLY analysis
-- Transform feature documents into implementation plans
-- Break down features into specific tasks
-- Define Go-specific technical approaches
-- Create comprehensive testing strategies
-- Assess risks and mitigation strategies
+- **Scope**: Implementation planning in `docs/plans/` directory
+- Transform feature documents into actionable development plans
+- Break down features into package-based implementation stages
+- Define Go-specific technical approaches and testing strategies
+- Support both plan mode (analysis) and edit mode (planning)
+- Assess risks and dependencies
 
 #### ❌ Out of Scope
 - Writing application code
 - Implementing planned features
 - Gathering feature requirements
 - Code review activities
-- Making code changes
 
 #### 🔄 Handoff Criteria
-- **To Implementation Agent**: When plan is complete and ready for implementation
-- **To Feature Agent**: When requirements are incomplete or unclear
+- **To Development Agent**: When implementation plan is complete and ready for execution
+- **To Documentation Agent**: When requirements are incomplete or need clarification
 - **To Review Agent**: When existing code analysis is needed for planning
-
----
 
 ### Review Agent (`docs/ai/prompts/review.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: READ-ONLY code analysis + review document creation
-- **Output**: Write review results to `docs/reviews/YYYY-MM-DD-HHmm-[feature-name]-review.md`
-- Analyze code changes and pull requests
-- Create structured review documents with findings and required changes
-- Support iterative review cycles (initial → implementation → confirmation)
-- Provide constructive feedback on code quality
-- Ensure adherence to Go standards and project patterns
-- Validate test coverage and quality
-- Check for security and performance issues
-- Track review status through approval workflow
+- **Scope**: Code analysis and review document creation in `docs/reviews/`
+- Analyze code changes for quality, security, and standards compliance
+- Support both plan mode (analysis strategy) and edit mode (review execution)
+- Create structured review documents with findings and recommendations
+- Support iterative review cycles with status tracking
+- Validate test coverage and Go conventions
 
 #### ❌ Out of Scope
 - Writing or modifying application code
 - Creating implementation plans
 - Gathering feature requirements
-- AI documentation creation
-- Making code changes based on review feedback (delegate to Implementation Agent)
+- Making code changes based on review feedback
 
 #### 🔄 Handoff Criteria
-- **To Implementation Agent**: When review document contains required changes to be addressed
-- **To Implementation Agent**: When complex code changes need to be implemented outside of review fixes
-- **To Plan Agent**: When architectural changes require planning
-- **To Feature Agent**: When requirements clarification is needed
-- **From Implementation Agent**: When fixes are ready for re-review and confirmation
+- **To Development Agent**: When review identifies issues requiring fixes
+- **To Planning Agent**: When architectural changes require planning
+- **To Documentation Agent**: When documentation updates are needed
 
----
-
-### Implementation Agent (`docs/ai/prompts/implement.md`)
+### Development Agent (`docs/ai/prompts/development.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: Three-phase implementation with user approval between phases
-- **Phase 1**: Interface and Type Creation - Design contracts and data structures
-- **Phase 2**: Test Creation - Comprehensive test suite following TDD principles  
-- **Phase 3**: Implementation - Code implementation to satisfy all tests
-- Plan each phase in detail before execution
-- Wait for explicit user approval between phases
-- Support plan mode for each individual phase
-- Address issues identified in review documents (as separate implementation task)
+- **Scope**: All code implementation and modifications
+- Execute feature implementation following plans from `docs/plans/`
+- Fix issues identified in reviews from `docs/reviews/`
+- Support both plan mode (design approach) and edit mode (implementation)
+- Handle 3-phase feature implementation or direct bug fixes
+- Maintain package boundaries and commit points
 
 #### ❌ Out of Scope
-- Creating feature requirements (delegate to Feature Agent)
-- Performing code reviews (delegate to Review Agent)
-- Skipping phases or combining phases without approval
-- Proceeding to next phase without user approval
+- Creating feature requirements or specifications
+- Performing code reviews or creating review documents
+- Creating implementation plans (uses existing plans)
 
 #### 🔄 Handoff Criteria
-- **From Plan Agent**: When implementation plan is complete and ready for execution
-- **From Review Agent**: When review document contains specific required changes
-- **To Review Agent**: When all three phases are complete and ready for review
-- **Internal Phase Transitions**: User approval required between each phase
+- **From Planning Agent**: When implementation plan is ready for execution
+- **From Review Agent**: When review contains specific issues to fix
+- **To Review Agent**: When implementation is complete and ready for review
 
 ---
 
 ## Task Type Mapping
 
-### Requirements & Documentation
-- **User stories** → Feature Agent
-- **Acceptance criteria** → Feature Agent
-- **API specifications** → Feature Agent
-- **AI prompts** → AI Documentation Agent
-- **General documentation** → General Documentation Agent
-- **Implementation plans** → Plan Agent
-- **Review documents** → Review Agent
+### Documentation Tasks
+- **Feature specifications** → Documentation Agent
+- **User stories and acceptance criteria** → Documentation Agent  
+- **AI prompts and templates** → Documentation Agent
+- **README files** → Documentation Agent
+- **Code documentation** → Documentation Agent
+- **User guides** → Documentation Agent
 
-### Analysis & Review
+### Planning Tasks
+- **Implementation plans** → Planning Agent
+- **Technical task breakdown** → Planning Agent
+- **Risk assessment** → Planning Agent
+- **Architecture decisions** → Planning Agent
+- **Testing strategy** → Planning Agent
+- **Package stage organization** → Planning Agent
+
+### Review Tasks
 - **Code quality analysis** → Review Agent
-- **Architecture review** → Review Agent
 - **Security assessment** → Review Agent
 - **Performance analysis** → Review Agent
 - **Test coverage analysis** → Review Agent
 - **Review document creation** → Review Agent
-- **Review-based fixes** → Implementation Agent
+- **Standards compliance** → Review Agent
 
-### Implementation & Development
-- **Interface design** → Implementation Agent (Phase 1)
-- **Test creation** → Implementation Agent (Phase 2)
-- **Code implementation** → Implementation Agent (Phase 3)
-- **Three-phase development** → Implementation Agent (all phases)
-- **Review-based fixes** → Implementation Agent (single-phase task)
-- **Complex multi-step development** → Implementation Agent (three phases)
-- **Ad-hoc bug fixes** → Implementation Agent (appropriate phase)
-- **Refactoring tasks** → Implementation Agent (appropriate phases)
-
-### Planning & Strategy
-- **Technical task breakdown** → Plan Agent
-- **Risk assessment** → Plan Agent
-- **Architecture decisions** → Plan Agent
-- **Testing strategy** → Plan Agent
+### Development Tasks
+- **Feature implementation** → Development Agent
+- **Bug fixes** → Development Agent
+- **Interface design and implementation** → Development Agent
+- **Test creation and implementation** → Development Agent
+- **Review-based fixes** → Development Agent
+- **Refactoring tasks** → Development Agent
 
 ## Collaboration Patterns
 
 ### Sequential Workflows
 
-#### Feature Development Flow
+#### Full Feature Development Flow
 ```
-1. Feature Agent → Creates requirements in docs/features/
-2. Plan Agent → Creates implementation plan in docs/plans/
-3. Implementation Agent → Phase 1: Interface and Type Creation (with approval)
-4. Implementation Agent → Phase 2: Test Creation (with approval)
-5. Implementation Agent → Phase 3: Implementation (with approval)
-6. Review Agent → Creates review document in docs/reviews/
-7. Implementation Agent → Addresses review findings (if any)
-8. Review Agent → Confirms fixes and provides final approval
-```
-
-#### Documentation Updates Flow
-```
-1. AI Documentation → Updates prompts and templates
-2. Feature Agent → Updates feature templates if needed
-3. Plan Agent → Updates plan templates if needed
+1. Documentation Agent → Creates feature specifications in docs/features/
+2. Planning Agent → Creates implementation plan in docs/plans/
+3. Development Agent (Plan Mode) → Analyzes approach and gets approval
+4. Development Agent (Edit Mode) → Implements feature in phases
+5. Review Agent → Creates review document in docs/reviews/
+6. Development Agent → Addresses review findings (if any)
+7. Review Agent → Confirms fixes and provides final approval
 ```
 
-### Parallel Workflows
+#### Quick Fix Flow
+```
+1. Review Agent → Identifies issues and creates review document
+2. Development Agent (Plan Mode) → Analyzes fix approach
+3. Development Agent (Edit Mode) → Implements fixes
+4. Review Agent → Validates fixes
+```
 
-#### Multi-Domain Features
-- Feature Agent: Gathers requirements
-- Plan Agent: Creates technical plans
-- Review Agent: Analyzes existing related code and creates review documents
-- Implementation Agent: Executes plans and addresses review feedback
-- AI Documentation: Updates relevant AI guidance
+### Plan/Edit Mode Workflows
 
-## Conflict Resolution
+#### Opus Planning → Sonnet Execution
+```
+1. Agent (Plan Mode with Opus) → Detailed analysis and approach design
+2. User Approval → Review and approve the plan
+3. Same Agent (Edit Mode with Sonnet) → Execute the approved plan
+```
 
-### Overlapping Responsibilities
+This workflow maximizes the strengths of each model:
+- **Opus**: Deep analysis, comprehensive planning, risk assessment
+- **Sonnet**: Efficient execution, focused implementation
 
-#### When multiple agents could handle a task:
-1. **Default to most specific agent** - Use the agent with the narrowest, most relevant scope
-2. **Consider tool requirements** - Choose agent with appropriate tool access
-3. **Check workflow phase** - Match agent to current development phase
+## Agent Selection Decision Tree
 
-#### Examples:
-- **Interface design**: Implementation Agent (Phase 1)
-- **Test creation**: Implementation Agent (Phase 2) 
-- **Code implementation**: Implementation Agent (Phase 3)
-- **Writing tests for review fixes**: Implementation Agent (Phase 2 or targeted fix)
-- **Complex test architecture**: Implementation Agent (Phase 2 with detailed planning)
-- **Planning test strategy**: Plan Agent (analysis and documentation)
-- **Reviewing test quality**: Review Agent (analysis and feedback via review documents)
+### Simple Decision Process:
 
-### Scope Boundary Disputes
+```
+What type of work needs to be done?
 
-#### Clear Decision Tree:
-1. **Is there an existing plan or review document?** → Implementation Agent
-2. **Is it requirements/user story related?** → Feature Agent  
-3. **Is it planning/architecture related?** → Plan Agent
-4. **Is it code analysis/review related?** → Review Agent
-5. **Is it implementation/development related?** → Implementation Agent
-6. **Is it AI documentation related?** → AI Documentation Agent
-7. **Is it general documentation related?** → General Documentation Agent
+📝 Writing/updating documentation?
+   → Documentation Agent
+
+📋 Planning implementation tasks?
+   → Planning Agent  
+
+🔍 Reviewing/analyzing code?
+   → Review Agent
+
+💻 Writing/fixing code?
+   → Development Agent
+```
+
+### Mode Selection:
+
+```
+Do you want to see the approach first?
+   → Use Plan Mode (Opus)
+   
+Ready to execute immediately?
+   → Use Edit Mode (Sonnet)
+   
+Unsure of the complexity?
+   → Start with Plan Mode
+```
+
+### Common Scenarios:
+
+- **"Create a new feature"** → Documentation Agent (spec) → Planning Agent (tasks) → Development Agent (code)
+- **"Fix this bug"** → Review Agent (analyze) → Development Agent (fix)
+- **"Improve documentation"** → Documentation Agent (plan/edit)
+- **"Review my changes"** → Review Agent (analyze/document)
 
 ## Quality Gates
 

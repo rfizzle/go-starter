@@ -1,181 +1,114 @@
 # AI Agent Documentation
 
-This directory contains AI agent configurations, prompts, templates, and reference materials for consistent AI interactions with the Go Starter codebase.
+Simplified AI agent system for Go development with plan/edit mode support optimized for Opus planning and Sonnet execution.
 
-## Overview
+## 🎯 Quick Start
 
-The AI documentation system provides structured guidance for AI agents working on this Go project. It includes role-specific prompts, reusable templates, and comprehensive reference materials.
+**Need to choose an agent?** → See [Agent Selection Guide](agent-selection-guide.md)  
+**Want workflow shortcuts?** → See [Workflow Shortcuts](workflow-shortcuts.md)  
+**Need to hand off tasks?** → See [Escalation Criteria](escalation-criteria.md)
 
-## Directory Structure
+## 📁 Directory Structure
 
 ```
 ai/
-├── README.md                    # This file - AI system overview
-├── agent-responsibility-matrix.md # Agent roles and boundaries
-├── escalation-criteria.md       # When to escalate beyond AI capabilities
-├── prompts/                     # AI agent role definitions
-│   ├── ai.md                   # Documentation agent
-│   ├── feature.md              # Product owner agent
-│   ├── plan.md                 # Implementation planning agent
-│   ├── review.md               # Code review agent
-│   └── implement.md            # Three-phase implementation agent
-└── templates/                   # Reusable document templates
-    ├── README.md               # Template usage guide
-    ├── feature.md              # Feature specification template
-    ├── plan.md                 # Implementation plan template
-    └── prompt.md               # AI agent prompt template
+├── README.md                     # This overview
+├── agent-selection-guide.md      # Quick agent & mode selection  
+├── workflow-shortcuts.md         # Common task patterns
+├── agent-responsibility-matrix.md # Detailed agent boundaries
+├── escalation-criteria.md        # When to switch agents
+├── prompts/                      # 4 core AI agents
+│   ├── documentation.md          # All documentation tasks
+│   ├── planning.md               # Implementation planning  
+│   ├── review.md                 # Code quality analysis
+│   └── development.md            # Feature implementation & fixes
+└── templates/                    # Document templates
+    ├── feature.md                # Feature specifications
+    ├── plan.md                   # Implementation plans
+    ├── review.md                 # Code review reports
+    └── prompt.md                 # AI agent prompts
 ```
 
-## Agent Roles
+## 4-Agent System
 
-### AI Documentation Agent (`prompts/ai.md`)
-- **Scope**: Documentation within `docs/ai/` directory
-- **Responsibilities**: Create and refine prompts, templates, AI-specific documentation
-- **Boundaries**: Cannot modify code or non-AI documentation
+| Agent | Focus | Plan Mode (Opus) | Edit Mode (Sonnet) |
+|-------|-------|------------------|-------------------|
+| **[Documentation](prompts/documentation.md)** | All docs & specs | Design content strategy | Write/update docs |
+| **[Planning](prompts/planning.md)** | Task breakdown | Analyze & strategize | Create implementation plans |  
+| **[Review](prompts/review.md)** | Code quality | Plan review approach | Execute code analysis |
+| **[Development](prompts/development.md)** | Implementation | Design approach | Write/fix code |
 
-### Feature Agent (`prompts/feature.md`)
-- **Scope**: Feature specifications and requirements
-- **Responsibilities**: Create user stories, acceptance criteria, technical requirements
-- **Boundaries**: Planning only, no implementation
+## Plan/Edit Mode Workflow
 
-### Planning Agent (`prompts/plan.md`)
-- **Scope**: Implementation planning and task breakdown
-- **Responsibilities**: Convert features to actionable development plans
-- **Boundaries**: Planning only, no code implementation
+### Optimal Usage Pattern
+```
+1. Agent (Plan Mode with Opus) → Comprehensive analysis & strategy
+2. User Review & Approval → Validate approach
+3. Same Agent (Edit Mode with Sonnet) → Focused execution
+```
 
-### Review Agent (`prompts/review.md`)
-- **Scope**: Code quality and architectural review
-- **Responsibilities**: Ensure code standards, patterns, and best practices
-- **Boundaries**: Review only, no implementation changes
+### Mode Selection
+- **Plan Mode**: Complex tasks, unfamiliar territory, high-risk changes
+- **Edit Mode**: Clear tasks, following plans, quick fixes
 
-### Implementation Agent (`prompts/implement.md`)
-- **Scope**: Three-phase implementation with user approval between phases
-- **Responsibilities**: Interface design, test creation, and code implementation
-- **Boundaries**: Must execute all three phases in order, requires user approval between phases
+## Quick Agent Selection
 
-## Using AI Agents
-
-### Getting Started
-
-1. **Choose the right agent** based on the task type
-2. **Reference the agent's prompt** to understand scope and capabilities
-3. **Provide context** using the reference files in `docs/development/`
-4. **Use templates** from `templates/` for consistent outputs
-
-### Best Practices
-
-- **Stay in scope**: Each agent has defined boundaries
-- **Use references**: Point to specific file paths and documentation
-- **Follow templates**: Use provided templates for consistency
-- **Document decisions**: Update documentation when making changes
+```
+📝 Need documentation? → Documentation Agent
+📋 Need planning? → Planning Agent
+🔍 Need code review? → Review Agent  
+💻 Need code changes? → Development Agent
+```
 
 ## Common Workflows
 
-#### Adding an API Endpoint
-1. Update `api/openapi.yml`
-2. Run `make generate`
-3. Implement controller in `internal/controller/`
-4. Write tests
-5. Update documentation
-
-#### Creating a Service
-1. Define interface in `internal/<domain>/interfaces.go`
-2. Implement directly in `internal/<domain>/` (single impl) or `internal/<domain>/<provider>/` (multiple impls)
-3. Write unit tests
-4. Wire up in `internal/app/app.go`
-
-## Template Usage
-
-### Creating New Documents
-
-#### For Features
-```bash
-cp templates/feature.md ../../features/YYYY-MM-DD-feature-name.md
+### 🚀 Full Feature Development
+```
+1. Documentation Agent (plan) → Feature specification
+2. Planning Agent (plan) → Implementation breakdown  
+3. Development Agent (plan) → Technical approach
+4. Development Agent (edit) → Code implementation
+5. Review Agent (edit) → Quality validation
 ```
 
-#### For Plans
-```bash
-cp templates/plan.md ../../plans/YYYY-MM-DD-plan-name.md
+### ⚡ Quick Bug Fix
+```
+1. Review Agent (plan) → Analyze issue
+2. Development Agent (edit) → Implement fix
 ```
 
-#### For AI Agents
-```bash
-cp templates/prompt.md prompts/new-agent.md
-```
+## Key Benefits
 
-### Template Guidelines
+### Simplified Structure
+- **4 focused agents** instead of 7 overlapping ones
+- **Clear boundaries** between documentation, planning, review, and development
+- **Reduced complexity** in agent selection
 
-1. **Replace all placeholders** marked with `[BRACKETS]`
-2. **Remove template comments** after completion
-3. **Follow validation checklists** included in templates
-4. **Update cross-references** to ensure links work
+### Plan/Edit Mode Optimization
+- **Plan Mode (Opus)**: Deep analysis, strategic thinking, comprehensive planning
+- **Edit Mode (Sonnet)**: Efficient execution, focused implementation
+- **User approval gates** between planning and execution
 
-## Integration with Development
+### Better Workflow Support
+- **Natural handoff points** between agents
+- **Package-stage implementation** with commit boundaries
+- **Workflow shortcuts** for common patterns
 
-### With Standard Go Project Layout
-- All agent prompts reference the Standard Go Project Layout
-- Templates follow project conventions and patterns
-- Documentation stays synchronized with code structure
+## Getting Help
 
-### With Interface Pattern
-Follow the standard interface-implementation pattern:
-- Interfaces in `internal/<domain>/interfaces.go`
-- Single implementations directly in `internal/<domain>/`
-- Multiple implementations in named subdirectories
+- **Agent Selection**: Use the [Agent Selection Guide](agent-selection-guide.md)
+- **Common Tasks**: Check [Workflow Shortcuts](workflow-shortcuts.md)  
+- **Handoffs**: Reference [Escalation Criteria](escalation-criteria.md)
+- **Detailed Boundaries**: See [Agent Responsibility Matrix](agent-responsibility-matrix.md)
 
-### With OpenAPI Workflow
-- API changes start with OpenAPI specification
-- Code generation follows spec updates
-- Controllers implement generated interfaces
+## Templates
 
-## Quality Standards
-
-### Documentation Quality
-- **Clear scope definitions** for each agent
-- **Specific boundaries** and limitations
-- **Actionable templates** with validation checklists
-- **Consistent formatting** and structure
-
-### Technical Accuracy
-- **Up-to-date references** to current codebase structure
-- **Correct Go patterns** and conventions
-- **Valid file paths** and cross-references
-- **Working examples** and code snippets
-
-### Maintainability
-- **Version controlled** templates and prompts
-- **Automated validation** where possible
-- **Clear change processes** for updates
-- **Regular review** for accuracy and relevance
-
-## Error Handling
-
-### Common Issues
-- **Scope violations**: Agents working outside defined boundaries
-- **Outdated references**: File paths or patterns that have changed
-- **Template inconsistencies**: Variations from standard formats
-- **Missing context**: Insufficient project context for decisions
-
-### Resolution Process
-1. **Check agent scope** in the relevant prompt file
-2. **Verify file paths** and references are current
-3. **Use escalation criteria** for complex decisions
-4. **Update templates** if patterns have changed
-
-## Maintenance
-
-### Regular Updates
-- **Review agent boundaries** quarterly for relevance
-- **Update file references** when project structure changes
-- **Validate templates** against current project standards
-- **Test workflows** with sample tasks
-
-### Version Management
-- **Track changes** to prompts and templates
-- **Document reasoning** for major updates
-- **Maintain backwards compatibility** where possible
-- **Coordinate with project changes**
+Available in the `templates/` directory:
+- **Feature specifications** - User stories and acceptance criteria
+- **Implementation plans** - Task breakdown with package stages
+- **Review reports** - Code quality analysis and recommendations
+- **AI prompts** - Template for creating new agents
 
 ---
 
-*This AI documentation system enables consistent, high-quality interactions between AI agents and the Go Starter codebase while maintaining clear boundaries and responsibilities.*
+*Simplified AI agent system optimized for manual triggering with Opus planning and Sonnet execution.*
