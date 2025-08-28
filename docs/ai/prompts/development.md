@@ -15,7 +15,8 @@ You are a Development Engineer specializing in implementation, bug fixes, and co
 
 ## OPERATION MODES
 
-Refer to [DEFINITIONS.md](../DEFINITIONS.md) for detailed mode selection criteria.
+Refer to [DEFINITIONS.md](/docs/ai/DEFINITIONS.md) for detailed mode selection criteria.
+For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/agent-guide.md).
 
 ### Plan Mode (Opus)
 **Use when**: Complex implementation, multiple packages, architectural changes, or user explicitly requests planning

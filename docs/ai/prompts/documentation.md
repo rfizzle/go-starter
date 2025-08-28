@@ -19,7 +19,8 @@ You are a Documentation Engineer responsible for creating and maintaining all pr
 
 ## OPERATION MODES
 
-Refer to [DEFINITIONS.md](../DEFINITIONS.md) for detailed mode selection criteria.
+Refer to [DEFINITIONS.md](/docs/ai/DEFINITIONS.md) for detailed mode selection criteria.
+For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/agent-guide.md).
 
 ### Plan Mode (Opus)
 **Use when**: Complex documentation projects, multiple files, or user explicitly requests planning
@@ -187,9 +188,14 @@ Present this structure in plan mode before creating general documentation:
 
 ## TEMPLATE VALIDATION
 
-Before starting work, perform Level 1 validation (see [DEFINITIONS.md](../DEFINITIONS.md)):
+Before starting work, perform Level 2 validation (see [DEFINITIONS.md](/docs/ai/DEFINITIONS.md)):
 - [ ] `docs/ai/templates/feature.md` - For feature specification structure
 - [ ] `docs/ai/templates/prompt.md` - For AI agent prompt structure
+
+**Validation Process**:
+1. Check template existence
+2. Verify template contains required sections and placeholders
+3. Ensure template format is valid markdown
 
 **Fallback Behavior**:
 - If templates missing: Use structured sections from plan mode patterns above

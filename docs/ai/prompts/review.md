@@ -16,7 +16,8 @@ You are a Code Review Engineer who analyzes code quality, security, and standard
 
 ## OPERATION MODES
 
-Refer to [DEFINITIONS.md](../DEFINITIONS.md) for detailed mode selection criteria and package stage definitions.
+Refer to [DEFINITIONS.md](/docs/ai/DEFINITIONS.md) for detailed mode selection criteria and package stage definitions.
+For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/agent-guide.md).
 
 ### 1. Package Review Mode
 **Use when**: User specifies a package path or reviewing package stage completion
@@ -203,7 +204,7 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 
 ## TEMPLATE VALIDATION
 
-Before starting work, perform Level 2 validation (see [DEFINITIONS.md](../DEFINITIONS.md)):
+Before starting work, perform Level 2 validation (see [DEFINITIONS.md](/docs/ai/DEFINITIONS.md)):
 - [ ] `docs/ai/templates/review.md` - Verify exists and contains required sections
 
 **Validation Process**:

@@ -1,19 +1,28 @@
-# AI Agent Responsibility Matrix
+# AI Agent Guide
 
-This matrix defines clear boundaries and responsibilities for AI agents working with the Go Starter project, ensuring effective coordination and preventing overlapping work.
+Comprehensive guide for selecting and working with AI agents in Go development projects.
 
-## Agent Overview
+## Quick Selection
 
-| Agent                     | Primary Focus              | Tools             | Can Write Code | Can Plan | Modes |
-|---------------------------|----------------------------|-------------------|----------------|----------|--------|
-| **Documentation**         | All documentation types    | Read, Write, Bash | No             | Yes      | Plan/Edit |
-| **Planning**              | Implementation planning    | Read, Write, Bash | No             | Yes      | Plan/Edit |
-| **Review**                | Code quality analysis      | Read, Write, Bash | No             | Yes      | Plan/Edit |
-| **Development**           | Code implementation        | Read, Write, Bash | Yes            | Yes      | Plan/Edit |
+```
+📝 Need documentation? → Documentation Agent
+📋 Need planning? → Planning Agent
+🔍 Need code review? → Review Agent  
+💻 Need code changes? → Development Agent
+```
 
-## Detailed Responsibilities
+## 4-Agent System Overview
 
-### Documentation Agent (`docs/ai/prompts/documentation.md`)
+| Agent | Focus | Best For | Plan Mode | Edit Mode |
+|-------|--------|----------|-----------|-----------|
+| **[Documentation](prompts/documentation.md)** | All docs | Specs, READMEs, prompts | ✓ | ✓ |
+| **[Planning](prompts/planning.md)** | Implementation plans | Task breakdown, risks | ✓ | ✓ |  
+| **[Review](prompts/review.md)** | Code quality | Analysis, standards | ✓ | ✓ |
+| **[Development](prompts/development.md)** | Code changes | Implementation, fixes | ✓ | ✓ |
+
+## Agent Responsibilities
+
+### Documentation Agent (`prompts/documentation.md`)
 
 #### ✅ Primary Responsibilities
 - **Scope**: All documentation across the project
@@ -34,7 +43,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **To Development Agent**: When documentation needs code examples or implementation
 - **To Review Agent**: When documentation quality needs assessment
 
-### Planning Agent (`docs/ai/prompts/planning.md`)
+### Planning Agent (`prompts/planning.md`)
 
 #### ✅ Primary Responsibilities
 - **Scope**: Implementation planning in `docs/plans/` directory
@@ -55,7 +64,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **To Documentation Agent**: When requirements are incomplete or need clarification
 - **To Review Agent**: When existing code analysis is needed for planning
 
-### Review Agent (`docs/ai/prompts/review.md`)
+### Review Agent (`prompts/review.md`)
 
 #### ✅ Primary Responsibilities
 - **Scope**: Code analysis and review document creation in `docs/reviews/`
@@ -76,7 +85,7 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **To Planning Agent**: When architectural changes require planning
 - **To Documentation Agent**: When documentation updates are needed
 
-### Development Agent (`docs/ai/prompts/development.md`)
+### Development Agent (`prompts/development.md`)
 
 #### ✅ Primary Responsibilities
 - **Scope**: All code implementation and modifications
@@ -95,8 +104,6 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **From Planning Agent**: When implementation plan is ready for execution
 - **From Review Agent**: When review contains specific issues to fix
 - **To Review Agent**: When implementation is complete and ready for review
-
----
 
 ## Task Type Mapping
 
@@ -132,7 +139,70 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **Review-based fixes** → Development Agent
 - **Refactoring tasks** → Development Agent
 
-## Collaboration Patterns
+## Mode Selection
+
+### 🎯 **Default: Always Start with Plan Mode**
+Plan Mode should be your default approach for any non-trivial task.
+
+### Why Plan Mode First?
+- **See before you leap**: Understand what will be done before execution
+- **Feedback opportunity**: Refine approach based on your input
+- **Prevent rework**: Avoid misunderstood requirements
+- **Strategic thinking**: Leverage Opus for comprehensive analysis
+- **Quality assurance**: Better outcomes through deliberate planning
+
+### When to Use Plan Mode (Opus)
+- **Default choice** for most tasks (when in doubt, use plan mode)
+- **All new features** (every step: docs → planning → implementation)
+- **Complex modifications** (refactoring, architecture changes)
+- **Unfamiliar territory** (new patterns, domains, technologies)  
+- **High-risk changes** (security, performance, breaking changes)
+- **Multi-step processes** (anything requiring multiple actions)
+
+### When Edit Mode is Appropriate (Sonnet)
+- **Following approved plans** (after plan mode was used)
+- **Trivial mechanical changes** (typo fixes, version bumps)
+- **User explicitly requests edit mode** ("just fix this quickly")
+- **Emergency hot fixes** (but plan mode still preferred)
+
+## Agent Selection Decision Tree
+
+```
+What type of work needs to be done?
+
+📝 Writing/updating documentation?
+   → Documentation Agent
+
+📋 Planning implementation tasks?
+   → Planning Agent  
+
+🔍 Reviewing/analyzing code?
+   → Review Agent
+
+💻 Writing/fixing code?
+   → Development Agent
+```
+
+### Mode Selection Decision Tree
+
+```
+Do you want to see the approach first?
+   → Use Plan Mode (Opus)
+   
+Ready to execute immediately?
+   → Use Edit Mode (Sonnet)
+   
+Unsure of the complexity?
+   → Start with Plan Mode
+```
+
+### Common Scenarios
+- **"Create a new feature"** → Documentation Agent (spec) → Planning Agent (tasks) → Development Agent (code)
+- **"Fix this bug"** → Review Agent (analyze) → Development Agent (fix)
+- **"Improve documentation"** → Documentation Agent (plan/edit)
+- **"Review my changes"** → Review Agent (analyze/document)
+
+## Workflow Patterns
 
 ### Sequential Workflows
 
@@ -168,45 +238,66 @@ This workflow maximizes the strengths of each model:
 - **Opus**: Deep analysis, comprehensive planning, risk assessment
 - **Sonnet**: Efficient execution, focused implementation
 
-## Agent Selection Decision Tree
+## Escalation and Handoffs
 
-### Simple Decision Process:
-
-```
-What type of work needs to be done?
-
-📝 Writing/updating documentation?
-   → Documentation Agent
-
-📋 Planning implementation tasks?
-   → Planning Agent  
-
-🔍 Reviewing/analyzing code?
-   → Review Agent
-
-💻 Writing/fixing code?
-   → Development Agent
-```
-
-### Mode Selection:
+### Simple Escalation Rules
 
 ```
-Do you want to see the approach first?
-   → Use Plan Mode (Opus)
-   
-Ready to execute immediately?
-   → Use Edit Mode (Sonnet)
-   
-Unsure of the complexity?
-   → Start with Plan Mode
+Task Request
+     ↓
+Is this my primary focus area?
+     ↓ YES                    ↓ NO
+Do I have the right mode?    Recommend appropriate agent
+     ↓ YES        ↓ NO       and explain why
+Proceed      Ask for plan
+             or edit mode
 ```
 
-### Common Scenarios:
+### Agent-Specific Handoffs
 
-- **"Create a new feature"** → Documentation Agent (spec) → Planning Agent (tasks) → Development Agent (code)
-- **"Fix this bug"** → Review Agent (analyze) → Development Agent (fix)
-- **"Improve documentation"** → Documentation Agent (plan/edit)
-- **"Review my changes"** → Review Agent (analyze/document)
+#### Documentation Agent Handoffs
+- **Code implementation needed** → Development Agent
+- **Complex planning required** → Planning Agent  
+- **Code quality assessment** → Review Agent
+
+#### Planning Agent Handoffs
+- **Feature requirements unclear** → Documentation Agent
+- **Ready to implement plan** → Development Agent
+- **Code analysis needed** → Review Agent
+
+#### Review Agent Handoffs
+- **Issues need fixing** → Development Agent
+- **Requirements clarification** → Documentation Agent
+- **Planning architectural changes** → Planning Agent
+
+#### Development Agent Handoffs  
+- **Need feature specification** → Documentation Agent
+- **Need implementation plan** → Planning Agent
+- **Ready for code review** → Review Agent
+
+### Standard Handoff Message
+
+```
+"This task requires [specific capability] which is outside my focus area. 
+
+The [appropriate agent] would be better suited because they specialize in [relevant area].
+
+Would you like me to recommend starting with that agent in [plan/edit] mode?"
+```
+
+### Natural Handoff Points
+
+#### Documentation → Planning  
+When feature specifications are complete and ready for technical breakdown.
+
+#### Planning → Development
+When implementation plans are complete and ready for execution.
+
+#### Development → Review
+When implementation is complete and ready for quality assessment.
+
+#### Review → Development  
+When review identifies issues that need fixing.
 
 ## Quality Gates
 
@@ -257,6 +348,24 @@ Unsure of the complexity?
 4. **Quality validation** - Ensure work meets standards before handoff
 5. **Documentation updates** - Keep agent documentation current with role changes
 
+## Quick Reference
+
+| **If you need...** | **Use this agent** | **Typical mode** |
+|---------------------|---------------------|------------------|
+| Feature specifications | Documentation Agent | Plan → Edit |
+| User stories | Documentation Agent | Plan → Edit |
+| README updates | Documentation Agent | Edit (if simple) |
+| AI prompt changes | Documentation Agent | Plan → Edit |
+| Implementation planning | Planning Agent | Plan → Edit |
+| Task breakdown | Planning Agent | Plan → Edit |
+| Risk assessment | Planning Agent | Plan → Edit |
+| Code review | Review Agent | Plan → Edit |
+| Quality analysis | Review Agent | Plan → Edit |
+| Standards compliance | Review Agent | Edit |
+| Feature implementation | Development Agent | Plan → Edit |  
+| Bug fixes | Development Agent | Plan → Edit |
+| Code changes | Development Agent | Edit (if following plan) |
+
 ---
 
-*This matrix ensures clear boundaries and effective collaboration between AI agents while maintaining high quality standards and preventing work overlap.*
+*This guide ensures clear boundaries and effective collaboration between AI agents while maintaining high quality standards and preventing work overlap.*

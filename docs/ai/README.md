@@ -4,19 +4,18 @@ Simplified AI agent system for Go development with plan/edit mode support optimi
 
 ## 🎯 Quick Start
 
-**Need to choose an agent?** → See [Agent Selection Guide](agent-selection-guide.md)  
+**Need to choose an agent?** → See [Agent Guide](agent-guide.md)  
 **Want workflow shortcuts?** → See [Workflow Shortcuts](workflow-shortcuts.md)  
-**Need to hand off tasks?** → See [Escalation Criteria](escalation-criteria.md)
+**Need definitions and standards?** → See [Definitions](DEFINITIONS.md)
 
 ## 📁 Directory Structure
 
 ```
 ai/
 ├── README.md                     # This overview
-├── agent-selection-guide.md      # Quick agent & mode selection  
+├── agent-guide.md                # Agent selection, responsibilities & handoffs  
 ├── workflow-shortcuts.md         # Common task patterns
-├── agent-responsibility-matrix.md # Detailed agent boundaries
-├── escalation-criteria.md        # When to switch agents
+├── DEFINITIONS.md                # Standards, criteria & terminology
 ├── prompts/                      # 4 core AI agents
 │   ├── documentation.md          # All documentation tasks
 │   ├── planning.md               # Implementation planning  
@@ -96,10 +95,10 @@ ai/
 
 ## Getting Help
 
-- **Agent Selection**: Use the [Agent Selection Guide](agent-selection-guide.md)
+- **Agent Selection**: Use the [Agent Guide](agent-guide.md)
 - **Common Tasks**: Check [Workflow Shortcuts](workflow-shortcuts.md)  
-- **Handoffs**: Reference [Escalation Criteria](escalation-criteria.md)
-- **Detailed Boundaries**: See [Agent Responsibility Matrix](agent-responsibility-matrix.md)
+- **Standards & Criteria**: Reference [Definitions](DEFINITIONS.md)
+- **Templates**: Browse the `templates/` directory
 
 ## Templates
 

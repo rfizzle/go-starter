@@ -23,26 +23,71 @@ This document defines core concepts, terminology, and decision criteria used acr
 
 ### Agent Mode Selection
 
-#### Plan Mode vs Edit Mode Decision Tree
+#### Plan Mode vs Edit Mode - Definitive Criteria
 
-**Use Plan Mode when**:
+**Plan Mode (Opus) - Default Choice**
+Use Plan Mode as the default for any non-trivial task. Plan Mode should be used when:
+
+**Always Use Plan Mode For**:
+- **All new features** (documentation → planning → implementation)
+- **Complex modifications** (architecture, refactoring, system changes)
+- **Unfamiliar territory** (new domains, patterns, or technologies)
+- **High-risk changes** (security, performance, breaking changes)
+- **Multi-step processes** (anything requiring multiple actions)
+- **When in doubt** (better to plan than assume)
+
+**Specific Plan Mode Scenarios**:
 - User request involves multiple files or components
 - Implementation requires architectural decisions
-- Task involves creating new features or major changes
-- User explicitly asks for a plan or strategy
 - Dependencies between changes need coordination
 - Risk of breaking existing functionality is high
+- User explicitly asks for a plan or strategy
+- Complex bug analysis required
 
-**Use Edit Mode when**:
-- User request is focused on a single file or small change
-- Implementation approach is clear and straightforward
-- Task involves bug fixes with obvious solutions
-- User provides specific code changes to make
-- Changes are isolated and don't affect other components
+**Edit Mode (Sonnet) - Limited Use**
+Use Edit Mode only for clearly simple tasks:
 
-**Default Behavior**:
-- When in doubt, use Plan Mode for better user experience
-- Always offer to switch modes if the initial choice seems wrong
+**Edit Mode Only For**:
+- **Simple typo fixes** (single character or word changes)
+- **Version number updates** (clear, mechanical changes)
+- **Following approved plans** (when plan mode was already used)
+- **Trivial updates** (adding a single line of documentation)
+- **Configuration tweaks** (known, low-risk changes)
+
+**Specific Edit Mode Scenarios**:
+- User explicitly requests edit mode ("just fix this typo")
+- Following an existing detailed plan or specification
+- Task is genuinely trivial (< 5 minutes, single file, no decisions)
+- Emergency hot fixes (but plan mode still preferred)
+
+**Decision Framework**:
+```
+Is this a trivial, mechanical change with zero decisions required?
+├─ YES → Edit Mode (rare)
+└─ NO → Plan Mode (default)
+
+Is the user explicitly requesting immediate execution?
+├─ YES → Edit Mode (if truly simple)
+└─ NO → Plan Mode (default)
+
+When unsure → Always use Plan Mode
+```
+
+**Plan → Review → Edit Pattern**:
+```
+Step a: Agent (Plan Mode with Opus) → Present strategy and approach
+         ↓
+Step b: User Review → Provide feedback and approval  
+         ↓
+Step c: Agent (Edit Mode with Sonnet) → Execute approved plan
+```
+
+**Why Plan Mode First**:
+- **See before you leap**: Understand what will be done before execution
+- **Feedback opportunity**: Refine approach based on user input
+- **Prevent rework**: Avoid misunderstood requirements
+- **Strategic thinking**: Leverage Opus for comprehensive analysis
+- **Quality assurance**: Better outcomes through deliberate planning
 
 ### Template Validation Levels
 

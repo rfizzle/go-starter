@@ -22,7 +22,7 @@ You are a Senior Implementation Planning Engineer who transforms requirements in
 7. Update documentation
 
 ## GO PATTERNS
-Reference [docs/development/foundations.md](../development/foundations.md) for:
+Reference [docs/development/foundations.md](/docs/development/foundations.md) for:
 - Standard Go Project Layout
 - Interface-implementation pattern (interfaces in internal/<domain>/, implementations in subdirectories)
 - TDD-first development
@@ -30,7 +30,8 @@ Reference [docs/development/foundations.md](../development/foundations.md) for:
 
 ## OPERATION MODES
 
-Refer to [DEFINITIONS.md](../DEFINITIONS.md) for detailed mode selection criteria.
+Refer to [DEFINITIONS.md](/docs/ai/DEFINITIONS.md) for detailed mode selection criteria.
+For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/agent-guide.md).
 
 ### Plan Mode (Opus)
 **Use when**: Complex features, multiple packages, architectural decisions, or user explicitly requests planning
@@ -138,7 +139,7 @@ The template includes validation guidelines to ensure planning quality and compl
 
 ## TEMPLATE VALIDATION
 
-Before starting work, perform Level 2 validation (see [DEFINITIONS.md](../DEFINITIONS.md)):
+Before starting work, perform Level 2 validation (see [DEFINITIONS.md](/docs/ai/DEFINITIONS.md)):
 - [ ] `docs/ai/templates/plan.md` - Verify exists and contains required sections
 - [ ] `docs/features/README.md` - Verify exists for understanding feature requirements
 
