@@ -4,14 +4,14 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 ## Agent Overview
 
-| Agent                     | Primary Focus           | Tools             | Can Write Code | Can Plan |
-|---------------------------|-------------------------|-------------------|----------------|----------|
-| **AI Documentation**      | AI-facing docs          | Read, Write, Bash | No             | No       |
-| **General Documentation** | All other documentation | Read, Write, Bash | No             | No       |
-| **Feature**               | Requirements gathering  | Read, Write, Bash | No             | No       |
-| **Plan**                  | Implementation planning | Read, Write, Bash | No             | Yes      |
-| **Review**                | Code quality analysis   | Read, Write, Bash | No             | No       |
-| **Implementation**        | Implementation & fixes  | Read, Write, Bash | Yes            | No       |
+| Agent                     | Primary Focus              | Tools             | Can Write Code | Can Plan |
+|---------------------------|----------------------------|-------------------|----------------|----------|
+| **AI Documentation**      | AI-facing docs             | Read, Write, Bash | No             | No       |
+| **General Documentation** | All other documentation    | Read, Write, Bash | No             | No       |
+| **Feature**               | Requirements gathering     | Read, Write, Bash | No             | No       |
+| **Plan**                  | Implementation planning    | Read, Write, Bash | No             | Yes      |
+| **Review**                | Code quality analysis      | Read, Write, Bash | No             | No       |
+| **Implementation**        | 3-phase implementation     | Read, Write, Bash | Yes            | Yes      |
 
 ## Detailed Responsibilities
 
@@ -144,28 +144,29 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 
 ---
 
-### Implementation Agent (`docs/ai/prompts/implementation.md`)
+### Implementation Agent (`docs/ai/prompts/implement.md`)
 
 #### ✅ Primary Responsibilities
-- **Scope**: Execute tasks from plans (`docs/plans/`) or reviews (`docs/reviews/`)
-- Implement features according to implementation plans
-- Address issues identified in review documents
-- Write and modify application code following specified approaches
-- Create and update tests as defined in plans or required by reviews
-- Update progress in plan documents or review status
-- Support both plan-based and review-based implementation workflows
+- **Scope**: Three-phase implementation with user approval between phases
+- **Phase 1**: Interface and Type Creation - Design contracts and data structures
+- **Phase 2**: Test Creation - Comprehensive test suite following TDD principles  
+- **Phase 3**: Implementation - Code implementation to satisfy all tests
+- Plan each phase in detail before execution
+- Wait for explicit user approval between phases
+- Support plan mode for each individual phase
+- Address issues identified in review documents (as separate implementation task)
 
 #### ❌ Out of Scope
-- Creating implementation plans (delegate to Plan Agent)
 - Creating feature requirements (delegate to Feature Agent)
 - Performing code reviews (delegate to Review Agent)
-- Modifying plan structure or review findings
+- Skipping phases or combining phases without approval
+- Proceeding to next phase without user approval
 
 #### 🔄 Handoff Criteria
 - **From Plan Agent**: When implementation plan is complete and ready for execution
 - **From Review Agent**: When review document contains specific required changes
-- **To Review Agent**: When implementation is complete and ready for review/re-review
-- **To Plan Agent**: When plan modifications are needed during implementation
+- **To Review Agent**: When all three phases are complete and ready for review
+- **Internal Phase Transitions**: User approval required between each phase
 
 ---
 
@@ -190,12 +191,14 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 - **Review-based fixes** → Implementation Agent
 
 ### Implementation & Development
-- **Plan-based implementation** → Implementation Agent
-- **Review-based fixes** → Implementation Agent
-- **Complex multi-step development** → Implementation Agent
-- **Ad-hoc bug fixes** → Implementation Agent
-- **Refactoring tasks** → Implementation Agent
-- **Code modifications and updates** → Implementation Agent
+- **Interface design** → Implementation Agent (Phase 1)
+- **Test creation** → Implementation Agent (Phase 2)
+- **Code implementation** → Implementation Agent (Phase 3)
+- **Three-phase development** → Implementation Agent (all phases)
+- **Review-based fixes** → Implementation Agent (single-phase task)
+- **Complex multi-step development** → Implementation Agent (three phases)
+- **Ad-hoc bug fixes** → Implementation Agent (appropriate phase)
+- **Refactoring tasks** → Implementation Agent (appropriate phases)
 
 ### Planning & Strategy
 - **Technical task breakdown** → Plan Agent
@@ -211,10 +214,12 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 ```
 1. Feature Agent → Creates requirements in docs/features/
 2. Plan Agent → Creates implementation plan in docs/plans/
-3. Implementation Agent → Implements according to plan
-4. Review Agent → Creates review document in docs/reviews/
-5. Implementation Agent → Addresses review findings (if any)
-6. Review Agent → Confirms fixes and provides final approval
+3. Implementation Agent → Phase 1: Interface and Type Creation (with approval)
+4. Implementation Agent → Phase 2: Test Creation (with approval)
+5. Implementation Agent → Phase 3: Implementation (with approval)
+6. Review Agent → Creates review document in docs/reviews/
+7. Implementation Agent → Addresses review findings (if any)
+8. Review Agent → Confirms fixes and provides final approval
 ```
 
 #### Documentation Updates Flow
@@ -243,9 +248,11 @@ This matrix defines clear boundaries and responsibilities for AI agents working 
 3. **Check workflow phase** - Match agent to current development phase
 
 #### Examples:
-- **Writing tests from plans**: Implementation Agent (following plan specifications)
-- **Writing tests for review fixes**: Implementation Agent (addressing review requirements)
-- **Complex test architecture**: Implementation Agent (multi-step development)
+- **Interface design**: Implementation Agent (Phase 1)
+- **Test creation**: Implementation Agent (Phase 2) 
+- **Code implementation**: Implementation Agent (Phase 3)
+- **Writing tests for review fixes**: Implementation Agent (Phase 2 or targeted fix)
+- **Complex test architecture**: Implementation Agent (Phase 2 with detailed planning)
 - **Planning test strategy**: Plan Agent (analysis and documentation)
 - **Reviewing test quality**: Review Agent (analysis and feedback via review documents)
 

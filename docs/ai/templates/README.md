@@ -40,14 +40,6 @@ Simple templates for creating consistent AI documentation in Go projects followi
 - Actionable recommendations and next steps
 - Review quality validation guidelines
 
-### 5. Test Template (`test.md`)
-**Use for:** Test creation and TDD workflow documentation (if template exists).
-
-**Key features:**
-- Test strategy and coverage planning
-- Go testing patterns and conventions
-- TDD workflow integration
-- Test validation and quality standards
 
 ## How to Use
 
@@ -129,7 +121,7 @@ Each template includes a comprehensive validation checklist covering:
 2. Use scope enforcement consistently
 3. Provide relevant context from development documentation
 4. Keep documents current with project evolution
-5. Follow TDD workflow: feature → plan → test → implement → review → fix
+5. Follow TDD workflow: feature → plan → implement (3 phases) → review → fix
 6. Use template validation checks in agent prompts
 
 ## Examples

@@ -18,7 +18,7 @@ ai/
 │   ├── feature.md              # Product owner agent
 │   ├── plan.md                 # Implementation planning agent
 │   ├── review.md               # Code review agent
-│   └── implementation.md       # Development implementation agent
+│   └── implement.md            # Three-phase implementation agent
 └── templates/                   # Reusable document templates
     ├── README.md               # Template usage guide
     ├── feature.md              # Feature specification template
@@ -48,10 +48,10 @@ ai/
 - **Responsibilities**: Ensure code standards, patterns, and best practices
 - **Boundaries**: Review only, no implementation changes
 
-### Implementation Agent (`prompts/implementation.md`)
-- **Scope**: Code implementation and development
-- **Responsibilities**: Write code following plans and specifications
-- **Boundaries**: Implementation only, no planning or requirements changes
+### Implementation Agent (`prompts/implement.md`)
+- **Scope**: Three-phase implementation with user approval between phases
+- **Responsibilities**: Interface design, test creation, and code implementation
+- **Boundaries**: Must execute all three phases in order, requires user approval between phases
 
 ## Using AI Agents
 

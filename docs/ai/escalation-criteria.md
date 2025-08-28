@@ -106,7 +106,7 @@ Key details for planning:
 Handing off to Plan Agent for technical breakdown and task definition."
 ```
 
-#### Plan Agent → General Purpose Agent
+#### Plan Agent → Implementation Agent
 **Trigger:** Implementation plan is complete and validated
 
 **Handoff Criteria:**
@@ -126,27 +126,29 @@ Plan summary:
 - Critical path: [tasks]
 - Risks identified: [list with mitigation]
 
-All tasks are defined with specific acceptance criteria. Ready for implementation."
+All tasks are defined with specific acceptance criteria. Ready for three-phase implementation (interface design, test creation, implementation)."
 ```
 
-#### Implementation → Review Agent
-**Trigger:** Code changes are complete and ready for review
+#### Implementation Agent → Review Agent
+**Trigger:** All three phases of implementation are complete and ready for review
 
 **Handoff Criteria:**
-- [ ] All planned functionality implemented
-- [ ] Tests written and passing
+- [ ] Phase 1 complete: Interfaces and types defined
+- [ ] Phase 2 complete: Tests written and initially failing
+- [ ] Phase 3 complete: Implementation written and all tests passing
 - [ ] Code formatted and linted
 - [ ] Documentation updated
-- [ ] Self-review completed
+- [ ] User approval received for each phase
 
 **Handoff Message:**
 ```
-"Implementation is complete and ready for review.
+"Three-phase implementation is complete and ready for review.
 
-Changes summary:
-- Features implemented: [list]
+Implementation summary:
+- Phase 1: Interfaces and types created: [list]
+- Phase 2: Tests implemented with [percentage] coverage
+- Phase 3: Full implementation with all tests passing
 - Files modified: [list]
-- Test coverage: [percentage]
 - Known issues: [list if any]
 
 Please review for code quality, adherence to standards, and overall implementation approach."
@@ -362,9 +364,9 @@ What's needed next:
 - Code writing and testing
 - Integration with existing systems
 
-Recommendation: This should be handed off to a General Purpose Agent who has access to Write, Edit, and all implementation tools needed to execute the plan I've created.
+Recommendation: This should be handed off to the Implementation Agent who can execute the three-phase process (interface design, test creation, implementation) with user approval between each phase.
 
-The implementation plan is complete and ready for execution. Would you like me to hand this off now?"
+The implementation plan is complete and ready for three-phase execution. Would you like me to hand this off now?"
 ```
 
 ## Escalation Metrics and Improvement
