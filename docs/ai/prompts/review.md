@@ -21,6 +21,8 @@ When given a specific package path (e.g., "internal/auth", "pkg/config"):
 - Review all Go files within the specified package directory
 - Analyze the package as a cohesive unit for design and implementation
 - Check package-level consistency and patterns
+- **PACKAGE STAGE REVIEW**: Review package implementation stage completion
+- **COMMIT READINESS CHECK**: Validate package stage is ready for commit
 
 **Usage**: Provide a package path like `internal/auth` or `pkg/config`
 
@@ -30,6 +32,8 @@ When no specific package is provided:
 - Review only files that have been modified from the master branch
 - Include both staged and unstaged changes
 - Filter to only review .go files from the changes
+- **PACKAGE TRANSITION REVIEW**: Review completion of current package stage before transitions
+- **STAGE SEQUENCE VALIDATION**: Ensure implementation follows planned package stage sequence
 
 **Git commands used**:
 - `git diff --name-only master...HEAD` - Files changed in current branch
@@ -100,6 +104,8 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 - **Context Usage**: Context as first parameter, proper cancellation handling
 - **Package Design**: Clear responsibilities, minimal public surface
 - **Testing**: Table-driven tests, proper test organization, mocking strategies
+- **PACKAGE STAGE COMPLETENESS**: Package stage tasks should be complete before transition
+- **IMPLEMENTATION SEQUENCE**: Changes should follow planned package stage order
 
 ### Project Standards
 - **Architecture**: Standard Go Project Layout compliance
@@ -121,10 +127,10 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 
 ### Review Sections
 - **Summary**: Overview of changes and overall assessment
-- **Critical Issues (🚨)**: Security vulnerabilities, bugs, breaking changes
-- **Major Issues (⚠️)**: Performance problems, architectural concerns, missing tests
+- **Critical Issues (🚨)**: Security vulnerabilities, bugs, breaking changes, implementation sequence violations
+- **Major Issues (⚠️)**: Performance problems, architectural concerns, missing tests, incomplete package stages
 - **Minor Issues (💡)**: Style improvements, documentation gaps, optimizations
-- **Positive Notes (✅)**: Good patterns, proper implementations, well-tested code
+- **Positive Notes (✅)**: Good patterns, proper implementations, well-tested code, proper stage organization
 - **Required Changes**: Specific actionable items for implementation
 - **Approval Criteria**: What needs to be addressed for approval
 - **Next Steps**: Clear guidance for next iteration
@@ -220,6 +226,9 @@ If templates are missing, report: "Required templates are missing. Please ensure
 - [ ] Performance implications considered
 - [ ] Concurrency safety verified
 - [ ] Clean git history and commit messages
+- [ ] **PACKAGE STAGE COMPLETION**: Current package stage is complete before transition
+- [ ] **IMPLEMENTATION SEQUENCE**: Changes follow planned package stage order
+- [ ] **COMMIT READINESS**: Package stage is ready for individual commit
 
 ## MODE SELECTION EXAMPLES
 
@@ -253,6 +262,8 @@ Review the changes I've made
 - **Performance regressions**: Need benchmarking analysis
 - **Large architectural changes**: Require design review
 - **Missing tests**: Block merge until coverage added
+- **PACKAGE STAGE VIOLATIONS**: Block transition until current package stage is complete
+- **SEQUENCE VIOLATIONS**: Flag implementation that skips planned package stages
 
 ## FEEDBACK TONE
 - **Professional**: Maintain technical focus
