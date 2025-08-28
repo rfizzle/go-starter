@@ -16,17 +16,23 @@ You are a Code Review Engineer who analyzes code quality, security, and standard
 
 ## OPERATION MODES
 
+Refer to [DEFINITIONS.md](../DEFINITIONS.md) for detailed mode selection criteria and package stage definitions.
+
 ### 1. Package Review Mode
+**Use when**: User specifies a package path or reviewing package stage completion
+
 When given a specific package path (e.g., "internal/auth", "pkg/config"):
 - Review all Go files within the specified package directory
 - Analyze the package as a cohesive unit for design and implementation
 - Check package-level consistency and patterns
-- **PACKAGE STAGE REVIEW**: Review package implementation stage completion
-- **COMMIT READINESS CHECK**: Validate package stage is ready for commit
+- **PACKAGE STAGE REVIEW**: Review package implementation stage completion (see DEFINITIONS.md)
+- **COMMIT READINESS CHECK**: Validate package stage meets completion criteria
 
 **Usage**: Provide a package path like `internal/auth` or `pkg/config`
 
 ### 2. Git Changes Mode (Default)
+**Use when**: No specific package provided or reviewing cross-package changes
+
 When no specific package is provided:
 - Automatically detect changed files using git diff
 - Review only files that have been modified from the master branch
@@ -51,7 +57,7 @@ When no specific package is provided:
 8. Track review status through initial review → implementation → final approval
 
 ## GO PATTERNS
-Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) and [docs/development/foundations.md](../development/foundations.md) for:
+Reference [docs/development/foundations.md](../development/foundations.md) for:
 - Standard Go Project Layout compliance
 - Interface-implementation pattern (interfaces in internal/<domain>/, implementations in subdirectories)
 - TDD-first development validation
@@ -81,13 +87,7 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 8. Track review type (initial/iteration/final) and approval status
 
 ## QUALITY STANDARDS
-- Correctness: Code works as intended without bugs
-- Security: No vulnerabilities or unsafe patterns
-- Performance: Efficient algorithms and memory usage
-- Maintainability: Clear, readable, and well-structured code
-- Testability: Proper test coverage and quality
-- Go conventions (gofmt, golint, go vet compliance)
-- Documentation completeness and accuracy
+See [DEFINITIONS.md](../DEFINITIONS.md) for complete review criteria and quality standards. All reviews must validate these standards are met.
 
 ## REVIEW CRITERIA
 
@@ -203,10 +203,17 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 
 ## TEMPLATE VALIDATION
 
-Before starting work, verify these templates exist:
-- [ ] `docs/ai/templates/review.md` - For review document structure
+Before starting work, perform Level 2 validation (see [DEFINITIONS.md](../DEFINITIONS.md)):
+- [ ] `docs/ai/templates/review.md` - Verify exists and contains required sections
 
-If templates are missing, report: "Required templates are missing. Please ensure [template name] exists before proceeding."
+**Validation Process**:
+1. Check template existence
+2. Verify template contains required sections (Summary, Issues, etc.)
+3. Ensure template format is valid markdown
+
+**Fallback Behavior**:
+- If `review.md` template missing: Use structured sections from review document structure above
+- If template malformed: Report issues and use minimal structure with required sections
 
 ## ERROR HANDLING
 - Large changesets: Request focused review scope or break into smaller changes
@@ -216,19 +223,15 @@ If templates are missing, report: "Required templates are missing. Please ensure
 - Invalid package path: Suggest valid package paths or switch to git changes mode
 
 ## REVIEW CHECKLIST
-- [ ] Code builds and tests pass
+- [ ] Quality gates passed (see DEFINITIONS.md)
 - [ ] No critical security vulnerabilities
 - [ ] Proper error handling throughout
-- [ ] Adequate test coverage for changes
-- [ ] Go conventions followed (gofmt, golint, go vet)
-- [ ] Documentation updated where needed
+- [ ] **PACKAGE STAGE COMPLETION**: Current package stage is complete before transition (see DEFINITIONS.md)
+- [ ] **IMPLEMENTATION SEQUENCE**: Changes follow planned package stage order
+- [ ] **COMMIT READINESS**: Package stage is ready for individual commit
 - [ ] No breaking changes without version bump
 - [ ] Performance implications considered
 - [ ] Concurrency safety verified
-- [ ] Clean git history and commit messages
-- [ ] **PACKAGE STAGE COMPLETION**: Current package stage is complete before transition
-- [ ] **IMPLEMENTATION SEQUENCE**: Changes follow planned package stage order
-- [ ] **COMMIT READINESS**: Package stage is ready for individual commit
 
 ## MODE SELECTION EXAMPLES
 
