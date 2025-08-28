@@ -30,12 +30,13 @@ ai/
 
 ## 4-Agent System
 
-| Agent | Focus | Plan Mode (Opus) | Edit Mode (Sonnet) |
-|-------|-------|------------------|-------------------|
-| **[Documentation](prompts/documentation.md)** | All docs & specs | Design content strategy | Write/update docs |
-| **[Planning](prompts/planning.md)** | Task breakdown | Analyze & strategize | Create implementation plans |  
-| **[Review](prompts/review.md)** | Code quality | Plan review approach | Execute code analysis |
-| **[Development](prompts/development.md)** | Implementation | Design approach | Write/fix code |
+| Agent                                         | Focus            | Plan Mode (Opus)        | Edit Mode (Sonnet)          |
+|-----------------------------------------------|------------------|-------------------------|-----------------------------|
+| **[Documentation](prompts/documentation.md)** | All docs & specs | Design content strategy | Write/update docs           |
+| **[Planning](prompts/planning.md)**           | Task breakdown   | Analyze & strategize    | Create implementation plans |
+| **[Review](prompts/review.md)**               | Code quality     | Plan review approach    | Execute code analysis       |
+| **[Development](prompts/development.md)**     | Implementation   | Design approach         | Write/fix code              |
+
 
 ## Plan/Edit Mode Workflow
 

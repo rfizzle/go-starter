@@ -13,12 +13,13 @@ Comprehensive guide for selecting and working with AI agents in Go development p
 
 ## 4-Agent System Overview
 
-| Agent | Focus | Best For | Plan Mode | Edit Mode |
-|-------|--------|----------|-----------|-----------|
-| **[Documentation](prompts/documentation.md)** | All docs | Specs, READMEs, prompts | ✓ | ✓ |
-| **[Planning](prompts/planning.md)** | Implementation plans | Task breakdown, risks | ✓ | ✓ |  
-| **[Review](prompts/review.md)** | Code quality | Analysis, standards | ✓ | ✓ |
-| **[Development](prompts/development.md)** | Code changes | Implementation, fixes | ✓ | ✓ |
+| Agent                                         | Focus                | Best For                | Plan Mode | Edit Mode |
+|-----------------------------------------------|----------------------|-------------------------|-----------|-----------|
+| **[Documentation](prompts/documentation.md)** | All docs             | Specs, READMEs, prompts | ✓         | ✓         |
+| **[Planning](prompts/planning.md)**           | Implementation plans | Task breakdown, risks   | ✓         | ✓         |
+| **[Review](prompts/review.md)**               | Code quality         | Analysis, standards     | ✓         | ✓         |
+| **[Development](prompts/development.md)**     | Code changes         | Implementation, fixes   | ✓         | ✓         |
+
 
 ## Agent Responsibilities
 
@@ -350,21 +351,22 @@ When review identifies issues that need fixing.
 
 ## Quick Reference
 
-| **If you need...** | **Use this agent** | **Typical mode** |
-|---------------------|---------------------|------------------|
-| Feature specifications | Documentation Agent | Plan → Edit |
-| User stories | Documentation Agent | Plan → Edit |
-| README updates | Documentation Agent | Edit (if simple) |
-| AI prompt changes | Documentation Agent | Plan → Edit |
-| Implementation planning | Planning Agent | Plan → Edit |
-| Task breakdown | Planning Agent | Plan → Edit |
-| Risk assessment | Planning Agent | Plan → Edit |
-| Code review | Review Agent | Plan → Edit |
-| Quality analysis | Review Agent | Plan → Edit |
-| Standards compliance | Review Agent | Edit |
-| Feature implementation | Development Agent | Plan → Edit |  
-| Bug fixes | Development Agent | Plan → Edit |
-| Code changes | Development Agent | Edit (if following plan) |
+| **If you need...**      | **Use this agent**  | **Typical mode**         |
+|-------------------------|---------------------|--------------------------|
+| Feature specifications  | Documentation Agent | Plan → Edit              |
+| User stories            | Documentation Agent | Plan → Edit              |
+| README updates          | Documentation Agent | Edit (if simple)         |
+| AI prompt changes       | Documentation Agent | Plan → Edit              |
+| Implementation planning | Planning Agent      | Plan → Edit              |
+| Task breakdown          | Planning Agent      | Plan → Edit              |
+| Risk assessment         | Planning Agent      | Plan → Edit              |
+| Code review             | Review Agent        | Plan → Edit              |
+| Quality analysis        | Review Agent        | Plan → Edit              |
+| Standards compliance    | Review Agent        | Edit                     |
+| Feature implementation  | Development Agent   | Plan → Edit              |
+| Bug fixes               | Development Agent   | Plan → Edit              |
+| Code changes            | Development Agent   | Edit (if following plan) |
+
 
 ---
 
