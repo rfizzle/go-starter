@@ -12,10 +12,3 @@ func SafeStringIncludes(s string, arr []string) bool {
 	}
 	return false
 }
-
-func PrependFunc(x []func(), y func()) []func() {
-	x = append(x, nil)
-	copy(x[1:], x)
-	x[0] = y
-	return x
-}

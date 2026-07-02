@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -52,15 +53,20 @@ func TestWebserverStartAndStop(t *testing.T) {
 
 	ws, err := New(handler, WithHost(host), WithPort(port))
 	assert.NoError(t, err)
+
+	// Run drives both startup and graceful shutdown off the context: cancelling
+	// ctx triggers the shutdown path, and runErr carries any run error back.
+	ctx, cancel := context.WithCancel(context.Background())
+	runErr := make(chan error, 1)
 	go func() {
-		if err := ws.Start(); err != nil {
-			t.Errorf("Failed to start webserver: %v", err)
-		}
+		runErr <- ws.Run(ctx)
 	}()
 
-	// Ensure the server is stopped even if an assertion below fails.
+	// Ensure the server is stopped even if an assertion below fails, then verify
+	// a context-driven shutdown returns nil.
 	defer func() {
-		if err := ws.Stop(); err != nil {
+		cancel()
+		if err := <-runErr; err != nil {
 			t.Errorf("Failed to stop webserver: %v", err)
 		}
 	}()

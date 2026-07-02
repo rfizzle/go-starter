@@ -5,6 +5,11 @@ type Application struct {
 	Build     Build     `json:"build"`
 	Webserver Webserver `json:"webserver"`
 	Database  Database  `json:"database"`
+	// ShutdownDelay is the delay, in seconds, between receiving a shutdown
+	// signal and beginning graceful shutdown. It gives orchestrators such as
+	// Kubernetes time to propagate the not-ready state and stop routing traffic
+	// before in-flight components are torn down. Default 0 (no delay).
+	ShutdownDelay int `json:"shutdown-delay"`
 }
 
 type Build struct {

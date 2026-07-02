@@ -1,9 +1,7 @@
 package cli
 
 import (
-	"os"
-	"os/signal"
-	"syscall"
+	"context"
 	"time"
 
 	"go.uber.org/zap"
@@ -11,26 +9,41 @@ import (
 	"github.com/rfizzle/go-starter/internal/app"
 )
 
-// GracefulExit creates a 'listener' on a new goroutine which will notify the
-// program if it receives an interrupt from the OS.
-func GracefulExit(app *app.App) {
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+// WithGracefulShutdown derives an application context from parent (typically a
+// signal.NotifyContext). When parent is cancelled — e.g. on SIGINT/SIGTERM — it
+// marks the app not-ready and, after the configured drain delay, cancels the
+// returned context so the app's components begin graceful shutdown.
+//
+// The drain delay gives orchestrators such as Kubernetes time to observe the
+// failing readiness probe and stop routing traffic before components tear down.
+// A delay of zero skips the wait. Invoking the returned CancelFunc also releases
+// the goroutine, so the helper does not leak when the app exits on its own
+// (e.g. a component fails before any signal arrives). The CancelFunc must be
+// called to release resources.
+func WithGracefulShutdown(parent context.Context, application *app.App, delay time.Duration) (context.Context, context.CancelFunc) {
+	ctx, cancel := context.WithCancel(context.Background())
+
 	go func() {
-		<-c
-		app.Logger().Info("gracefully shutting down...")
-
-		// PreStopHook will set app readiness to false (for kubernetes)
-		app.SetReady(false)
-
-		// Sleep to let kubernetes state get synced
-		app.Logger().Debug("20 second sleep for kubernetes state sync...")
-		time.Sleep(time.Second * 20)
-
-		// Execute safe stop function
-		err := app.Stop()
-		if err != nil {
-			app.Logger().Error("error stopping application", zap.Error(err))
+		select {
+		case <-parent.Done():
+			// Signal-driven shutdown: fall through to the drain sequence below.
+		case <-ctx.Done():
+			// The app already stopped and the caller cancelled us; nothing to drain.
+			return
 		}
+
+		application.Logger().Info("gracefully shutting down...")
+
+		// Fail readiness probes before draining so traffic is routed away first.
+		application.SetReady(false)
+
+		if delay > 0 {
+			application.Logger().Info("waiting out shutdown delay before draining", zap.Duration("delay", delay))
+			time.Sleep(delay)
+		}
+
+		cancel()
 	}()
+
+	return ctx, cancel
 }

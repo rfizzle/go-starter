@@ -8,22 +8,21 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/controller"
 	"github.com/rfizzle/go-starter/internal/storage/postgres"
-	"github.com/rfizzle/go-starter/internal/utils"
 	"github.com/rfizzle/go-starter/internal/web"
 	"github.com/rfizzle/go-starter/pkg/config"
 	staticweb "github.com/rfizzle/go-starter/web"
 )
 
 type App struct {
-	cfg         *config.Application
-	state       *state
-	stopProcess []func()
-	ready       *atomic.Bool
-	logger      *zap.Logger
+	cfg    *config.Application
+	state  *state
+	ready  *atomic.Bool
+	logger *zap.Logger
 }
 
 func New(cfg *config.Application) (*App, error) {
@@ -42,15 +41,17 @@ func New(cfg *config.Application) (*App, error) {
 	}, nil
 }
 
-func (application *App) Start() error {
-	var wg sync.WaitGroup
-
+// Run starts the application and blocks until ctx is cancelled (e.g. an OS
+// signal) or a long-lived component fails. All components derive from ctx, so
+// the first failure cancels the group and drives a coordinated graceful
+// shutdown.
+func (application *App) Run(ctx context.Context) error {
 	// Connect to the database and verify the connection is alive. Open does not
 	// verify connectivity (pgxpool connects lazily), so the explicit Ping below
 	// is what makes an unreachable database fail startup.
 	store, err := postgres.Open(
-		context.Background(),
-		postgres.WithURI(context.Background(), application.cfg.Database.URI),
+		ctx,
+		postgres.WithURI(ctx, application.cfg.Database.URI),
 		postgres.WithPingTimeout(application.cfg.Database.PingTimeout),
 		postgres.WithLogger(application.logger),
 	)
@@ -58,7 +59,7 @@ func (application *App) Start() error {
 		return fmt.Errorf("postgres.Open(): %w", err)
 	}
 
-	if err := store.Ping(context.Background()); err != nil {
+	if err := store.Ping(ctx); err != nil {
 		// The pool is already open at this point; close it so a failed startup
 		// does not leak connections or background health-check goroutines.
 		if closeErr := store.Close(); closeErr != nil {
@@ -66,6 +67,15 @@ func (application *App) Start() error {
 		}
 		return fmt.Errorf("store.Ping(): %w", err)
 	}
+
+	// The pool outlives the component group: it is closed only after every
+	// component has returned, so in-flight requests can still reach the
+	// database while the webserver drains.
+	defer func() {
+		if err := store.Close(); err != nil {
+			application.logger.Error("error closing database connection", zap.Error(err))
+		}
+	}()
 
 	// Configure the controllers
 	controllerOpts := controller.Options{
@@ -101,41 +111,29 @@ func (application *App) Start() error {
 		return fmt.Errorf("server.New(): %w", err)
 	}
 
-	// Go ahead and create the stop process before starting the server
-	application.stopProcess = utils.PrependFunc(application.stopProcess, func() {
-		err := webServer.Stop()
-		if err != nil {
-			application.logger.Error("error stopping webserver", zap.Error(err))
-		}
-	})
+	// Run every long-lived component under a shared context. errgroup cancels
+	// the derived context as soon as any component returns an error, so a
+	// failing webserver (or, later, a worker) triggers shutdown of the rest
+	// instead of leaving the process half-dead.
+	group, groupCtx := errgroup.WithContext(ctx)
 
-	// Close the database connection during shutdown. Registered after the
-	// webserver stop func so that Stop() (which runs stop funcs in reverse
-	// registration order) drains the webserver first, then closes the pool.
-	application.stopProcess = utils.PrependFunc(application.stopProcess, func() {
-		if err := store.Close(); err != nil {
-			application.logger.Error("error closing database connection", zap.Error(err))
-		}
+	group.Go(func() error {
+		return webServer.Run(groupCtx)
 	})
-
-	// Run our server in a goroutine so that it doesn't block.
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		err := webServer.Start()
-		if err != nil {
-			application.logger.Error("error starting webserver", zap.Error(err))
-		}
-	}()
 
 	// Set the ready flag to true
 	application.ready.Store(true)
 
 	// Log that we are serving the application
 	application.logger.Info(fmt.Sprintf("application started on %s:%d", application.cfg.Webserver.Address, application.cfg.Webserver.Port))
-	wg.Wait()
 
-	return nil
+	// Block until the group's context is cancelled (signal) or a component
+	// fails. Mark the app not-ready as soon as we begin unwinding.
+	err = group.Wait()
+	application.ready.Store(false)
+	application.logger.Info("application stopped")
+
+	return err
 }
 
 func (application *App) Ready() bool {
@@ -152,14 +150,4 @@ func (application *App) Logger() *zap.Logger {
 
 func (application *App) SetLogger(logger *zap.Logger) {
 	application.logger = logger
-}
-
-func (application *App) Stop() error {
-	application.logger.Info("stopping app")
-	application.ready.Store(false)
-	for i := len(application.stopProcess) - 1; i >= 0; i-- {
-		application.stopProcess[i]()
-	}
-
-	return nil
 }

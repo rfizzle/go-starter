@@ -89,29 +89,42 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	return newApp, nil
 }
 
-func (application *Webserver) Start() error {
-	if err := application.server.ListenAndServe(); err != nil {
-		if errors.Is(err, http.ErrServerClosed) {
-			return nil
+// shutdownTimeout bounds how long a graceful shutdown waits for in-flight
+// requests to drain before the server is forced closed.
+const shutdownTimeout = 15 * time.Second
+
+// Run starts the HTTP server and blocks until ctx is cancelled or the server
+// fails. On cancellation it performs a graceful shutdown, bounded by
+// shutdownTimeout. It returns nil on a clean shutdown so it composes with an
+// errgroup without treating an intentional stop as an error.
+func (application *Webserver) Run(ctx context.Context) error {
+	// ListenAndServe blocks, so run it in a goroutine and surface any startup
+	// error through a buffered channel (buffered so the goroutine never leaks
+	// if we return via ctx.Done() first).
+	serveErr := make(chan error, 1)
+	go func() {
+		if err := application.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- errors.Wrap(err, "issue serving webserver")
+			return
 		}
-		return errors.Wrap(err, "issue serving webserver")
+		serveErr <- nil
+	}()
+
+	select {
+	case err := <-serveErr:
+		return err
+	case <-ctx.Done():
+		// Use a fresh context: the one we were handed is already cancelled, so
+		// deriving the shutdown deadline from it would abort immediately.
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		defer cancel()
+
+		if err := application.server.Shutdown(shutdownCtx); err != nil {
+			return errors.Wrap(err, "issue stopping webserver")
+		}
+
+		return nil
 	}
-
-	return nil
-}
-
-func (application *Webserver) Stop() error {
-	// Setup context with timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
-	defer cancel()
-
-	// Shutdown server
-	err := application.server.Shutdown(ctx)
-	if err != nil {
-		return errors.Wrap(err, "issue stopping webserver")
-	}
-
-	return nil
 }
 
 func WithHost(host string) func(*Webserver) {
