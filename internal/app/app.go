@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"sync/atomic"
@@ -10,6 +11,7 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/controller"
+	"github.com/rfizzle/go-starter/internal/storage/postgres"
 	"github.com/rfizzle/go-starter/internal/utils"
 	"github.com/rfizzle/go-starter/internal/web"
 	"github.com/rfizzle/go-starter/pkg/config"
@@ -43,9 +45,32 @@ func New(cfg *config.Application) (*App, error) {
 func (application *App) Start() error {
 	var wg sync.WaitGroup
 
+	// Connect to the database and verify the connection is alive. Open does not
+	// verify connectivity (pgxpool connects lazily), so the explicit Ping below
+	// is what makes an unreachable database fail startup.
+	store, err := postgres.Open(
+		context.Background(),
+		postgres.WithURI(context.Background(), application.cfg.Database.URI),
+		postgres.WithPingTimeout(application.cfg.Database.PingTimeout),
+		postgres.WithLogger(application.logger),
+	)
+	if err != nil {
+		return fmt.Errorf("postgres.Open(): %w", err)
+	}
+
+	if err := store.Ping(context.Background()); err != nil {
+		// The pool is already open at this point; close it so a failed startup
+		// does not leak connections or background health-check goroutines.
+		if closeErr := store.Close(); closeErr != nil {
+			application.logger.Error("error closing database connection after failed ping", zap.Error(closeErr))
+		}
+		return fmt.Errorf("store.Ping(): %w", err)
+	}
+
 	// Configure the controllers
 	controllerOpts := controller.Options{
 		ReadyState: application.ready,
+		Store:      store,
 	}
 	appController, err := controller.NewController(&controllerOpts)
 	if err != nil {
@@ -81,6 +106,15 @@ func (application *App) Start() error {
 		err := webServer.Stop()
 		if err != nil {
 			application.logger.Error("error stopping webserver", zap.Error(err))
+		}
+	})
+
+	// Close the database connection during shutdown. Registered after the
+	// webserver stop func so that Stop() (which runs stop funcs in reverse
+	// registration order) drains the webserver first, then closes the pool.
+	application.stopProcess = utils.PrependFunc(application.stopProcess, func() {
+		if err := store.Close(); err != nil {
+			application.logger.Error("error closing database connection", zap.Error(err))
 		}
 	})
 

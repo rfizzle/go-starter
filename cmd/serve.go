@@ -26,6 +26,10 @@ go-starter serve --config /etc/crypt/config.json`,
 		cobra.CheckErr(viper.BindPFlag("webserver.read-timeout", cmd.Flags().Lookup("webserver-read-timeout")))
 		cobra.CheckErr(viper.BindPFlag("webserver.write-timeout", cmd.Flags().Lookup("webserver-write-timeout")))
 		cobra.CheckErr(viper.BindPFlag("webserver.idle-timeout", cmd.Flags().Lookup("webserver-idle-timeout")))
+
+		// Database options
+		cobra.CheckErr(viper.BindPFlag("database.uri", cmd.Flags().Lookup("database-uri")))
+		cobra.CheckErr(viper.BindPFlag("database.ping-timeout", cmd.Flags().Lookup("database-ping-timeout")))
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// Setup config with CLI/ENV variables
@@ -43,6 +47,10 @@ go-starter serve --config /etc/crypt/config.json`,
 				ReadTimeout:  viper.GetInt("webserver.read-timeout"),
 				WriteTimeout: viper.GetInt("webserver.write-timeout"),
 				IdleTimeout:  viper.GetInt("webserver.idle-timeout"),
+			},
+			Database: config.Database{
+				URI:         viper.GetString("database.uri"),
+				PingTimeout: viper.GetInt("database.ping-timeout"),
 			},
 		}
 
@@ -75,4 +83,8 @@ func init() {
 	serveCmd.Flags().Int("webserver-read-timeout", 60, "timeout for webserver read requests")
 	serveCmd.Flags().Int("webserver-write-timeout", 60, "timeout for webserver write requests")
 	serveCmd.Flags().Int("webserver-idle-timeout", 60, "timeout for webserver idle requests")
+
+	// Database options
+	serveCmd.Flags().String("database-uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
+	serveCmd.Flags().Int("database-ping-timeout", 15, "timeout in seconds for database ping operations")
 }
