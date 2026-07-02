@@ -1,6 +1,8 @@
 package web
 
 import (
+	"fmt"
+	"net"
 	"net/http"
 	"testing"
 	"time"
@@ -9,6 +11,21 @@ import (
 
 	"github.com/go-chi/chi/v5"
 )
+
+// freePort asks the OS for an available TCP port on the loopback interface and
+// returns it. Binding tests to an ephemeral port keeps them from colliding with
+// the production default (8080) or with each other. The listener is closed
+// before the port is reused, leaving a brief reuse window; acceptable here since
+// these tests don't run in parallel and the loopback ephemeral range is large.
+func freePort(t *testing.T) int {
+	t.Helper()
+	l, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Failed to reserve a free port: %v", err)
+	}
+	defer func() { _ = l.Close() }()
+	return l.Addr().(*net.TCPAddr).Port
+}
 
 func TestNewWebserver(t *testing.T) {
 	handler := http.NewServeMux()
@@ -30,7 +47,10 @@ func TestWebserverStartAndStop(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	ws, err := New(handler)
+	host := "127.0.0.1"
+	port := freePort(t)
+
+	ws, err := New(handler, WithHost(host), WithPort(port))
 	assert.NoError(t, err)
 	go func() {
 		if err := ws.Start(); err != nil {
@@ -38,19 +58,33 @@ func TestWebserverStartAndStop(t *testing.T) {
 		}
 	}()
 
-	// Allow some time for the server to start
-	time.Sleep(5 * time.Second)
+	// Ensure the server is stopped even if an assertion below fails.
+	defer func() {
+		if err := ws.Stop(); err != nil {
+			t.Errorf("Failed to stop webserver: %v", err)
+		}
+	}()
 
-	resp, err := http.Get("http://localhost:8080/api/v1/test")
-	if err != nil {
-		t.Fatalf("Failed to make GET request: %v", err)
+	url := fmt.Sprintf("http://%s:%d/api/v1/test", host, port)
+
+	// Poll until the server accepts connections rather than sleeping a fixed
+	// duration, so the test is neither flaky nor unnecessarily slow.
+	var resp *http.Response
+	deadline := time.Now().Add(5 * time.Second)
+	for {
+		resp, err = http.Get(url)
+		if err == nil {
+			break
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("Server did not become ready in time: %v", err)
+		}
+		time.Sleep(25 * time.Millisecond)
 	}
+	defer func() { _ = resp.Body.Close() }()
+
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status OK, got %v", resp.Status)
-	}
-
-	if err := ws.Stop(); err != nil {
-		t.Fatalf("Failed to stop webserver: %v", err)
 	}
 }
 
