@@ -59,7 +59,7 @@ func (s *service) validate() error {
 	return nil
 }
 
-func (s *service) Logger() interface{} {
+func (s *service) Logger() *zap.Logger {
 	return s.logger
 }
 

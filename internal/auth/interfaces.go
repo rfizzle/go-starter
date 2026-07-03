@@ -2,6 +2,8 @@ package auth
 
 import (
 	"net/http"
+
+	"go.uber.org/zap"
 )
 
 // Generator interface for token and cookie generation
@@ -38,7 +40,7 @@ type Service interface {
 	AuditMiddleware(auditor AuditLogger) func(next http.Handler) http.Handler
 
 	// Logger returns the service's logger
-	Logger() interface{}
+	Logger() *zap.Logger
 }
 
 // Provider interface for authentication providers (for backward compatibility)
