@@ -3,195 +3,130 @@ package postgres
 import (
 	"context"
 	"embed"
+	"fmt"
 	"io/fs"
-	"path/filepath"
-	"time"
+
+	"github.com/jackc/pgx/v5/stdlib"
+	"github.com/pressly/goose/v3"
+	"go.uber.org/zap"
 
 	"github.com/rfizzle/go-starter/internal/storage"
 )
 
-type migration struct {
-	MigrationID string    `json:"migration_id" db:"id"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+// migrationsDir is the sub-directory inside the embedded filesystem that holds
+// the goose SQL migrations. The embed.FS carries the "migrations/" prefix (see
+// embed.go), so goose is pointed at that sub-tree rather than the FS root.
+const migrationsDir = "migrations"
+
+// gooseDialect is the goose dialect used for the migration store. It selects
+// the PostgreSQL versioning table implementation.
+const gooseDialect = goose.DialectPostgres
+
+// newGooseProvider builds a goose provider over the connection pool. goose
+// speaks database/sql, so the pgx pool is wrapped with stdlib.OpenDBFromPool;
+// closing that *sql.DB does not close the underlying pgxpool.Pool (it releases
+// pooled connections back), so the caller-owned pool is left intact.
+//
+// It returns the provider, a cleanup func that must be called to release the
+// wrapping *sql.DB, and any construction error.
+func (provider *Provider) newGooseProvider(migrationFs embed.FS) (*goose.Provider, func(), error) {
+	if provider.pool == nil {
+		return nil, nil, fmt.Errorf("migrations require a pool-backed provider (use WithPool or WithURI)")
+	}
+
+	// goose globs "*.sql" at the FS root, so hand it the migrations sub-tree
+	// rather than the whole embed.FS (which nests files under "migrations/").
+	sub, err := fs.Sub(migrationFs, migrationsDir)
+	if err != nil {
+		return nil, nil, fmt.Errorf("fs.Sub(%q): %w", migrationsDir, err)
+	}
+
+	db := stdlib.OpenDBFromPool(provider.pool)
+
+	// goose only emits progress output when verbose, which is left off: the
+	// applied-migration loop in Migrate logs results through zap instead, so no
+	// goose.WithLogger adapter is needed. Concurrency note: no SessionLocker is
+	// configured, so simultaneous startup of multiple instances against a
+	// pristine database can race on object creation. Each migration runs in its
+	// own transaction and the loser fails startup safely (no corruption); wire
+	// goose.WithSessionLocker (a Postgres advisory lock) if concurrent
+	// multi-instance migration is a requirement.
+	gp, err := goose.NewProvider(gooseDialect, db, sub)
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, fmt.Errorf("goose.NewProvider(): %w", err)
+	}
+
+	return gp, func() { _ = db.Close() }, nil
 }
 
-// Migrate executes pending database migrations from the provided embedded filesystem.
-// It reads .sql files from migrationFs, compares them with executed migrations,
-// and runs any new migrations atomically within a transaction.
-// Returns an error if any migration fails.
+// Migrate applies all pending, forward-only migrations from the embedded
+// filesystem. goose tracks applied migrations by numeric version in its own
+// table and runs each inside its own transaction. It is safe to call on every
+// startup: already-applied versions are skipped and a fully-migrated database
+// is a no-op.
+//
+// goose keys purely on the version number and does not checksum migration
+// bodies, so editing an already-applied file is silently ignored — change the
+// schema by adding a new versioned migration, never by editing an applied one.
 func (provider *Provider) Migrate(migrationFs embed.FS) error {
-	// Setup context
+	// Migrate historically took no context; derive a background one so the
+	// public signature stays stable while goose gets a real context.
 	ctx := context.Background()
 
-	// Add migration table if not exists
-	err := provider._addMigrationTable(ctx)
+	gp, cleanup, err := provider.newGooseProvider(migrationFs)
 	if err != nil {
-		provider.logger.Error("issue adding migration table")
+		provider.logger.Error("issue constructing migration provider")
 		return err
 	}
+	defer cleanup()
 
-	// Get migration current state
-	dbMigrations, err := provider._getDbMigrations(ctx)
+	results, err := gp.Up(ctx)
 	if err != nil {
-		provider.logger.Error("issue getting database migrations")
-		return err
+		provider.logger.Error("issue running migrations")
+		return fmt.Errorf("goose up: %w", err)
 	}
 
-	fileMigrations, err := provider._getMigrationsFromFs(ctx, migrationFs)
-	if err != nil {
-		provider.logger.Error("issue getting migrations from virtual filesystem")
-		return err
-	}
-
-	// Find the new migrations
-	newMigrations := filterExecutedMigrations(fileMigrations, dbMigrations)
-
-	// Return if there are no new migrations
-	if len(newMigrations) == 0 {
-		return nil
-	}
-
-	// Execute migrations inside a transaction
-	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
-		for _, v := range newMigrations {
-			// Read sql file
-			data, err := fs.ReadFile(migrationFs, v)
-			if err != nil {
-				provider.logger.Error("issue reading migration file from virtual filesystem")
-				return err
-			}
-
-			// Execute sql file
-			err = tx.Execute(ctx, string(data))
-			if err != nil {
-				provider.logger.Error("issue running migration")
-				return err
-			}
-
-			// Add the new migration to the database
-			err = tx.Execute(ctx, `INSERT into migrations(id) VALUES ($1::text);`, v)
-			if err != nil {
-				provider.logger.Error("issue adding executed migration to row")
-				return err
-			}
-		}
-
-		return nil
-	})
-	if err != nil {
-		return err
+	for _, r := range results {
+		provider.logger.Info("applied migration", zap.String("migration", r.String()))
 	}
 
 	return nil
 }
 
-// MigrationStatus returns the current status of database migrations.
-// It compares migration files in migrationFs with executed migrations in the database
-// to determine if all migrations are applied, partially applied, or none are applied.
+// MigrationStatus reports whether all, some, or none of the embedded
+// migrations have been applied. It derives the coarse storage.MigrationStatus
+// from goose's per-migration status list.
+//
+// It is not strictly read-only: querying status ensures goose's version table
+// exists, so calling it against a pristine database creates that table (with no
+// migration rows). Keep this in mind before wiring it into a readiness probe.
 func (provider *Provider) MigrationStatus(ctx context.Context, migrationFs embed.FS) (storage.MigrationStatus, error) {
-	err := provider._addMigrationTable(ctx)
+	gp, cleanup, err := provider.newGooseProvider(migrationFs)
 	if err != nil {
 		return storage.StatusNone, err
 	}
+	defer cleanup()
 
-	fileMigrations, err := provider._getMigrationsFromFs(ctx, migrationFs)
+	statuses, err := gp.Status(ctx)
 	if err != nil {
-		return storage.StatusNone, err
+		return storage.StatusNone, fmt.Errorf("goose status: %w", err)
 	}
 
-	dbMigrations, err := provider._getDbMigrations(ctx)
-	if err != nil {
-		return storage.StatusNone, err
+	total := len(statuses)
+	applied := 0
+	for _, s := range statuses {
+		if s.State == goose.StateApplied {
+			applied++
+		}
 	}
 
-	if len(dbMigrations) == len(fileMigrations) {
-		return storage.StatusComplete, nil
-	} else if len(dbMigrations) == 0 {
+	switch {
+	case applied == 0:
 		return storage.StatusNone, nil
+	case applied == total:
+		return storage.StatusComplete, nil
+	default:
+		return storage.StatusPartial, nil
 	}
-	return storage.StatusPartial, nil
-}
-
-func (provider *Provider) _addMigrationTable(ctx context.Context) error {
-	err := provider.WithTx(ctx, func(tx storage.Transaction) error {
-		// Setup UUID extension
-		err := tx.Execute(ctx,
-			`CREATE EXTENSION IF NOT EXISTS "uuid-ossp";`,
-		)
-		if err != nil {
-			provider.logger.Error("issue creating uuid-ossp extension")
-			return err
-		}
-
-		// Setup migrations table
-		err = tx.Execute(ctx,
-			`CREATE TABLE IF NOT EXISTS migrations (id text NOT NULL, created_at TIMESTAMPTZ NOT NULL DEFAULT now(), PRIMARY KEY (id));`,
-		)
-		if err != nil {
-			provider.logger.Error("issue creating migrations table")
-			return err
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (provider *Provider) _getMigrationsFromFs(ctx context.Context, migrationFs embed.FS) ([]string, error) {
-	migrationNames := make([]string, 0)
-
-	// Read all migration files
-	err := fs.WalkDir(migrationFs, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
-		if filepath.Ext(d.Name()) == ".sql" {
-			migrationNames = append(migrationNames, path)
-		}
-		return nil
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return migrationNames, nil
-}
-
-// _getDbMigrations returns the successfully executed migrations
-func (provider *Provider) _getDbMigrations(ctx context.Context) ([]*migration, error) {
-	var migrations []*migration
-	values, err := provider.Query(ctx, `SELECT id, created_at FROM migrations`)
-	if err != nil {
-		return nil, err
-	}
-
-	err = values.ScanAll(&migrations)
-	if err != nil {
-		return nil, err
-	}
-
-	return migrations, nil
-}
-
-// filterExecutedMigrations takes the migrations from the files and the database and returns just the unexecuted ones
-func filterExecutedMigrations(fileMigrations []string, dbMigrations []*migration) []string {
-	m := make([]string, 0)
-
-	for _, v := range fileMigrations {
-		found := false
-		for _, v2 := range dbMigrations {
-			if v == v2.MigrationID {
-				found = true
-			}
-		}
-
-		if !found {
-			m = append(m, v)
-		}
-	}
-
-	return m
 }

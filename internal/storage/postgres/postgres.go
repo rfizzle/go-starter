@@ -10,6 +10,7 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 
 	"go.uber.org/zap"
 )
@@ -35,8 +36,13 @@ type dbconn interface {
 // It manages database connections, transactions, and provides logging capabilities.
 // Use Open() to create and initialize a new Provider instance.
 type Provider struct {
-	logger      *zap.Logger
-	db          dbconn
+	logger *zap.Logger
+	db     dbconn
+	// pool is the underlying pgx connection pool when the provider was built
+	// with WithPool or WithURI. It is nil for connection- or mock-backed
+	// providers. Migrate needs a real pool because goose runs through a
+	// database/sql handle wrapped over it (see migration.go).
+	pool        *pgxpool.Pool
 	closeFunc   func(ctx context.Context) error
 	pingTimeout time.Duration
 }

@@ -35,7 +35,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc
+.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc migration
 
 all: help
 
@@ -118,6 +118,15 @@ sqlc: ## Generate typed SQL access code from sqlc.yaml
 	@echo "${MAGENTA}Running sqlc generate...${RESET}"
 	@command -v $(SQLC) >/dev/null 2>&1 || { echo "${RED}sqlc not found. Install: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest${RESET}"; exit 1; }
 	@$(SQLC) generate
+
+migration: ## Scaffold a sequential goose SQL migration (usage: make migration name=add_widgets)
+	@test -n "$(name)" || { echo "${RED}name is required. Usage: make migration name=add_widgets${RESET}"; exit 1; }
+	@command -v goose >/dev/null 2>&1 || { echo "${RED}goose not found. Install: go install github.com/pressly/goose/v3/cmd/goose@latest${RESET}"; exit 1; }
+	@echo "${MAGENTA}Creating migration $(name)...${RESET}"
+	@# -s keeps the 00001/00002 sequential scheme. Always use this target rather
+	@# than bare `goose create`: a timestamped file would sort after the padded
+	@# sequential ones and break the ordering.
+	@goose -s -dir internal/storage/postgres/migrations create $(name) sql
 
 ## Docker:
 docker: ## Use the dockerfile to build the container

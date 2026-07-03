@@ -27,6 +27,7 @@ func WithURI(ctx context.Context, uri string) Option {
 		}
 
 		p.db = conn
+		p.pool = conn
 		p.closeFunc = func(ctx context.Context) error {
 			conn.Close()
 			return nil
@@ -54,6 +55,7 @@ func WithConnection(conn *pgx.Conn) Option {
 func WithPool(pool *pgxpool.Pool) Option {
 	return func(p *Provider) error {
 		p.db = pool
+		p.pool = pool
 		p.closeFunc = func(ctx context.Context) error {
 			pool.Close()
 			return nil
