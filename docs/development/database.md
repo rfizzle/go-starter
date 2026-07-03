@@ -23,8 +23,8 @@ lifecycle. It contains no domain models and no domain queries.
   `RowScanner`, shared error values, and migration-status types.
 - **PostgreSQL implementation** (`internal/storage/postgres/`) — a `Provider`
   built on pgx/v5, created via `Open` with functional options.
-- **Domain models** — plain structs (e.g. `internal/models/user.go`) with `db`
-  tags, scanned by the storage layer.
+- **Domain models** — plain structs with `db` tags (see the illustrative `User`
+  below), scanned by the storage layer.
 
 There is currently **no domain repository/service layer** and no `internal/user`
 or `internal/order` package. Callers use the generic `Client` directly.
@@ -146,7 +146,7 @@ scanner, err := store.Query(ctx,
 if err != nil {
     return nil, fmt.Errorf("query user: %w", err)
 }
-var u models.User
+var u User
 if err := scanner.ScanOne(&u); err != nil {
     return nil, fmt.Errorf("scan user: %w", err)
 }
@@ -157,7 +157,7 @@ scanner, err = store.Query(ctx,
 if err != nil {
     return nil, err
 }
-var users []*models.User
+var users []*User
 if err := scanner.ScanAll(&users); err != nil {
     return nil, err
 }
@@ -182,17 +182,16 @@ which prevents SQL injection. Never interpolate user input into the SQL string.
 
 ### Domain models
 
-Models are plain structs with `db` tags, defined outside the storage layer. The
-only one that ships today:
+Models scanned through this generic layer are plain structs whose fields carry
+`db` tags, defined in a domain package outside the storage layer. For example:
 
 ```go
-// internal/models/user.go
 type User struct {
-    ID           string `json:"-" db:"id"`
-    Email        string `json:"-" db:"email"`
-    PasswordHash string `json:"-" db:"password_hash"`
-    FirstName    string `json:"-" db:"first_name"`
-    LastName     string `json:"-" db:"last_name"`
+    ID           string `db:"id"`
+    Email        string `db:"email"`
+    PasswordHash string `db:"password_hash"`
+    FirstName    string `db:"first_name"`
+    LastName     string `db:"last_name"`
 }
 ```
 
@@ -215,7 +214,7 @@ err := store.WithTx(ctx, func(tx storage.Transaction) error {
     if err != nil {
         return err
     }
-    var created models.User
+    var created User
     return scanner.ScanOne(&created)
 })
 if err != nil {

@@ -70,9 +70,8 @@ Overview of the current implementation status, components, and technical state o
 ### ❌ Missing/Planned Components
 
 #### User Management
-- **User Models** (`internal/models/user.go`) - Basic user model exists but needs expansion
-- **User Repository** - Database operations for user management
-- **User Controllers** - HTTP endpoints for user operations
+- **User Domain** (`internal/user`) - `User` model plus a sqlc/squirrel-backed repository
+- **User Controllers** - HTTP endpoints for user operations beyond the current-user lookup
 
 #### Advanced Features
 - **Event System** - Domain events and handlers
@@ -167,15 +166,9 @@ web/
 
 ### ⚠️ Needs Attention
 
-#### `internal/models/`
-- Currently minimal with only `user.go`
-- Should expand or be integrated into domain packages
-- Consider moving to respective domain packages
-
-#### `internal/entity/`
-- Single `entity.go` file of unclear purpose
-- May be redundant with models package
-- Needs clarification or removal
+#### `internal/user/`
+- Example domain slice wired end to end (sqlc + squirrel); copy it as the
+  template for new domains
 
 ## Code Quality Status
 
