@@ -8,6 +8,7 @@ GOGENERATE=$(GOCMD) generate
 GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
+SQLC=sqlc
 PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 PROJECT_PACKAGES=$(shell go list ./...)
 ROOT=$(shell pwd)
@@ -34,7 +35,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test env
+.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc
 
 all: help
 
@@ -109,9 +110,14 @@ ci: ## Run tests and lint in CI
 	@echo "${MAGENTA}Running golangci-lint...${RESET}"
 	@$(GOLANGCI_LINT) run
 
-generate: ## Run go generate
+generate: sqlc ## Run go generate (ogen) and sqlc
 	@echo "${MAGENTA}Running golang generations...${RESET}"
 	@$(GOGENERATE)
+
+sqlc: ## Generate typed SQL access code from sqlc.yaml
+	@echo "${MAGENTA}Running sqlc generate...${RESET}"
+	@command -v $(SQLC) >/dev/null 2>&1 || { echo "${RED}sqlc not found. Install: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest${RESET}"; exit 1; }
+	@$(SQLC) generate
 
 ## Docker:
 docker: ## Use the dockerfile to build the container

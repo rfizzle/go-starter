@@ -29,7 +29,10 @@ func (s *BearerAuth) SetRoles(val []string) {
 
 // Ref: #/components/schemas/currentUserResponse
 type CurrentUserResponse struct {
-	Subject string `json:"subject"`
+	Subject   string    `json:"subject"`
+	Email     OptString `json:"email"`
+	FirstName OptString `json:"firstName"`
+	LastName  OptString `json:"lastName"`
 }
 
 // GetSubject returns the value of Subject.
@@ -37,9 +40,39 @@ func (s *CurrentUserResponse) GetSubject() string {
 	return s.Subject
 }
 
+// GetEmail returns the value of Email.
+func (s *CurrentUserResponse) GetEmail() OptString {
+	return s.Email
+}
+
+// GetFirstName returns the value of FirstName.
+func (s *CurrentUserResponse) GetFirstName() OptString {
+	return s.FirstName
+}
+
+// GetLastName returns the value of LastName.
+func (s *CurrentUserResponse) GetLastName() OptString {
+	return s.LastName
+}
+
 // SetSubject sets the value of Subject.
 func (s *CurrentUserResponse) SetSubject(val string) {
 	s.Subject = val
+}
+
+// SetEmail sets the value of Email.
+func (s *CurrentUserResponse) SetEmail(val OptString) {
+	s.Email = val
+}
+
+// SetFirstName sets the value of FirstName.
+func (s *CurrentUserResponse) SetFirstName(val OptString) {
+	s.FirstName = val
+}
+
+// SetLastName sets the value of LastName.
+func (s *CurrentUserResponse) SetLastName(val OptString) {
+	s.LastName = val
 }
 
 func (*CurrentUserResponse) getCurrentUserRes() {}
@@ -61,3 +94,49 @@ func (*HealthReadinessOK) healthReadinessRes() {}
 type HealthReadinessServiceUnavailable struct{}
 
 func (*HealthReadinessServiceUnavailable) healthReadinessRes() {}
+
+// NewOptString returns new OptString with value set to v.
+func NewOptString(v string) OptString {
+	return OptString{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptString is optional string.
+type OptString struct {
+	Value string
+	Set   bool
+}
+
+// IsSet returns true if OptString was set.
+func (o OptString) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptString) Reset() {
+	var v string
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptString) SetTo(v string) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptString) Get() (v string, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptString) Or(d string) string {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}

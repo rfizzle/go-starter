@@ -67,6 +67,16 @@ components:
       properties:
         subject:
           type: string
+        # The fields below are populated when the subject resolves to a user
+        # record in the database (the internal/user domain slice). They are
+        # absent when no matching user exists, so the endpoint still works
+        # before any users are seeded.
+        email:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
     genericResponse:
       type: object
       properties:

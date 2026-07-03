@@ -7,6 +7,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
@@ -14,6 +15,7 @@ import (
 	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/rfizzle/go-starter/internal/controller"
 	"github.com/rfizzle/go-starter/internal/storage/postgres"
+	"github.com/rfizzle/go-starter/internal/user"
 	"github.com/rfizzle/go-starter/internal/web"
 	"github.com/rfizzle/go-starter/pkg/config"
 	staticweb "github.com/rfizzle/go-starter/web"
@@ -47,12 +49,23 @@ func New(cfg *config.Application) (*App, error) {
 // the first failure cancels the group and drives a coordinated graceful
 // shutdown.
 func (application *App) Run(ctx context.Context) error {
-	// Connect to the database and verify the connection is alive. Open does not
-	// verify connectivity (pgxpool connects lazily), so the explicit Ping below
-	// is what makes an unreachable database fail startup.
+	// Create the connection pool explicitly so the application owns it and can
+	// share the exact same pool between the storage.Client (postgres.Provider)
+	// and the user domain repository. pgxpool connects lazily, so the explicit
+	// Ping below is what makes an unreachable database fail startup.
+	pool, err := pgxpool.New(ctx, application.cfg.Database.URI)
+	if err != nil {
+		return fmt.Errorf("pgxpool.New(): %w", err)
+	}
+
+	// The pool outlives the component group: it is closed only after every
+	// component has returned, so in-flight requests can still reach the database
+	// while the webserver drains.
+	defer pool.Close()
+
 	store, err := postgres.Open(
 		ctx,
-		postgres.WithURI(ctx, application.cfg.Database.URI),
+		postgres.WithPool(pool),
 		postgres.WithPingTimeout(application.cfg.Database.PingTimeout),
 		postgres.WithLogger(application.logger),
 	)
@@ -61,22 +74,18 @@ func (application *App) Run(ctx context.Context) error {
 	}
 
 	if err := store.Ping(ctx); err != nil {
-		// The pool is already open at this point; close it so a failed startup
-		// does not leak connections or background health-check goroutines.
-		if closeErr := store.Close(); closeErr != nil {
-			application.logger.Error("error closing database connection after failed ping", zap.Error(closeErr))
-		}
 		return fmt.Errorf("store.Ping(): %w", err)
 	}
 
-	// The pool outlives the component group: it is closed only after every
-	// component has returned, so in-flight requests can still reach the
-	// database while the webserver drains.
-	defer func() {
-		if err := store.Close(); err != nil {
-			application.logger.Error("error closing database connection", zap.Error(err))
-		}
-	}()
+	// Apply embedded, forward-only migrations before serving traffic so the
+	// schema the user repository (and sqlc-generated queries) expect is present.
+	if err := store.Migrate(postgres.Migrations); err != nil {
+		return fmt.Errorf("store.Migrate(): %w", err)
+	}
+
+	// The user domain shares the same pool: sqlc-generated queries and squirrel
+	// both execute against it, and WithinTx swaps in a pgx.Tx for atomic work.
+	userRepo := user.NewRepository(pool)
 
 	// Build the JWT validator that authenticates protected operations. When no
 	// secret is configured the validator is nil, and the SecurityHandler fails
@@ -107,6 +116,7 @@ func (application *App) Run(ctx context.Context) error {
 	controllerOpts := controller.Options{
 		ReadyState: application.ready,
 		Store:      store,
+		Users:      userRepo,
 		Validator:  validator,
 	}
 	appController, err := controller.NewController(&controllerOpts)
