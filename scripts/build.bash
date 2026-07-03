@@ -8,6 +8,7 @@ BUILD_PATH="$(realpath "$0")"
 DIR_PATH="$(dirname "$BUILD_PATH")"
 PROJECT_PATH=$(realpath "$DIR_PATH/../")
 source "${PROJECT_PATH}/scripts/colors.bash"
+source "${PROJECT_PATH}/scripts/version.bash"
 
 # Command line variable for bash script
 for arg in "$@"; do
@@ -47,7 +48,7 @@ MODULE_PATH=$(sed -n -e 's/^.*\(module \)/\1/p' "$PROJECT_PATH/go.mod" | cut -f2
 GIT_COMMIT=$(git rev-list -1 HEAD)
 GIT_BRANCH=$(git rev-parse --abbrev-ref HEAD)
 BUILD_EPOCH=$(date +'%s')
-VERSION=$(tr -d '[:space:]' < "$PROJECT_PATH/.version")
+VERSION=$(read_version "$PROJECT_PATH")
 
 # Cleanup previous files and folders
 if [ -n "$CLEAN" ]; then

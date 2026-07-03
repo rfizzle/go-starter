@@ -8,14 +8,13 @@ BUILD_PATH="$(realpath "$0")"
 DIR_PATH="$(dirname "$BUILD_PATH")"
 PROJECT_PATH=$(realpath "$DIR_PATH/../")
 source "${PROJECT_PATH}/scripts/colors.bash"
+source "${PROJECT_PATH}/scripts/version.bash"
 
-# Setup application variables
+# Setup application variables. `.version` is the single source of truth for the
+# release version; everything else (package.json, openapi.yml) is derived from it
+# via scripts/sync-version.bash.
 GIT_COMMIT=$(git rev-list -1 HEAD)
-VERSION=$(grep version < "${PROJECT_PATH}/package.json" \
-  | head -1 \
-  | awk -F: '{ print $2 }' \
-  | sed 's/[",]//g' \
-  | tr -d '[:space:]')
+VERSION=$(read_version "$PROJECT_PATH")
 
 # Derive the Go version from go.mod so the image compiles against the same
 # toolchain the module requires (e.g. "go 1.25.7" -> "1.25.7").

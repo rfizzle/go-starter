@@ -35,7 +35,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc migration
+.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc migration sync-version docker
 
 all: help
 
@@ -129,6 +129,11 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 	@# than bare `goose create`: a timestamped file would sort after the padded
 	@# sequential ones and break the ordering.
 	@goose -s -dir internal/storage/postgres/migrations create $(name) sql
+
+## Release:
+sync-version: ## Propagate .version (single source of truth) into package.json and api/openapi.yml
+	@echo "${MAGENTA}Syncing version from .version...${RESET}"
+	@./scripts/sync-version.bash
 
 ## Docker:
 docker: ## Use the dockerfile to build the container

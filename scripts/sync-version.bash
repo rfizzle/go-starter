@@ -5,18 +5,25 @@ BUILD_PATH="$(realpath "$0")"
 DIR_PATH="$(dirname "$BUILD_PATH")"
 PROJECT_PATH=$(realpath "$DIR_PATH/../")
 source "${PROJECT_PATH}/scripts/colors.bash"
+source "${PROJECT_PATH}/scripts/version.bash"
 
-# Get the version from .version
-VERSION=$(tr -d '[:space:],v' < "${PROJECT_PATH}/.version")
+# `.version` is the single source of truth for the release version. This script
+# propagates it into every file that must agree with it. The build ldflags
+# (scripts/build.bash) and the Docker image tags (scripts/docker-build.bash) also
+# read `.version` directly (via read_version), so this only needs to touch files
+# that embed a literal.
+VERSION=$(read_version "$PROJECT_PATH")
 echo -e "${MAGENTA}Updating files to use version: ${VERSION}...${RESET}"
 
-# Now do the replacement in-place (MacOS/Unix compatible)
-REPLACE=' version: .*$'
-WITH=" version: \"${VERSION}\""
-sed -i.tmp "s#${REPLACE}#${WITH}#g" "${PROJECT_PATH}/api/openapi.yml"
+# OpenAPI spec `info.version` (the API version surfaced to clients). Anchored to
+# the two-space `info:` indentation so nested `version:` scalars elsewhere in the
+# spec are never touched, and the value is quoted so bare numerics like 1.0 stay
+# strings rather than being parsed as YAML floats.
+sed -i.tmp "s#^\(  version: \).*\$#\1\"${VERSION}\"#" "${PROJECT_PATH}/api/openapi.yml"
 rm -f "${PROJECT_PATH}/api/openapi.yml.tmp"
 
-REPLACE=' "version": ".*"'
-WITH=" \"version\": \"${VERSION}\""
-sed -i.tmp "s#${REPLACE}#${WITH}#g" "${PROJECT_PATH}/internal/api/embedded_spec.go"
-rm -f "${PROJECT_PATH}/internal/api/embedded_spec.go.tmp"
+# package.json — kept only so npm tooling reports the right version; it is no
+# longer read by the release path. Anchored to the two-space top-level indentation
+# so a dependency named "version" would not be rewritten.
+sed -i.tmp "s#^\(  \"version\": \"\)[^\"]*\(\"\)#\1${VERSION}\2#" "${PROJECT_PATH}/package.json"
+rm -f "${PROJECT_PATH}/package.json.tmp"
