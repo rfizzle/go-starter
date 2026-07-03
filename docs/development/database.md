@@ -1,1012 +1,387 @@
 # Database Patterns Guide
 
-Comprehensive guide for database development, migration strategies, and repository patterns in the Go Starter project.
+Guide to the database layer as it exists in the Go Starter today: a generic,
+business-agnostic storage abstraction over PostgreSQL (pgx/v5 + scany), wired
+into the application lifecycle in `internal/app/app.go`.
+
+> **Scope note.** This document describes the code that ships in the repository
+> right now. The SQL strategy (raw SQL through a generic wrapper), the
+> forward-only embedded migrations, and the absence of a seeding mechanism have
+> known limitations that are tracked as open items (M-5, M-7, M-8) in
+> `docs/reviews/2026-07-02-architecture-review.md`. Where this guide notes a
+> "known limitation," see that review for the intended direction. Do not treat
+> the review's target state (sqlc, squirrel, goose) as implemented — it is not.
 
 ## Overview
 
-This project uses PostgreSQL with a **generic storage abstraction layer**. The storage layer remains business-agnostic, while domain-specific structs and repository logic are implemented within their respective domain packages (e.g., `internal/user/`, `internal/order/`).
+The project uses PostgreSQL with a **generic storage abstraction layer**. The
+storage layer is intentionally business-agnostic: it executes SQL, scans rows
+into caller-supplied structs, and manages transactions and connection
+lifecycle. It contains no domain models and no domain queries.
+
+- **Storage interfaces** (`internal/storage/`) — `Client`, `Transaction`,
+  `RowScanner`, shared error values, and migration-status types.
+- **PostgreSQL implementation** (`internal/storage/postgres/`) — a `Provider`
+  built on pgx/v5, created via `Open` with functional options.
+- **Domain models** — plain structs (e.g. `internal/models/user.go`) with `db`
+  tags, scanned by the storage layer.
+
+There is currently **no domain repository/service layer** and no `internal/user`
+or `internal/order` package. Callers use the generic `Client` directly.
 
 ## Architecture
 
-### Layered Architecture
-
 ```
 ┌─────────────────────────────────┐
-│     Controllers (HTTP)          │
+│  Controllers (ogen handlers)    │  ← internal/controller
 ├─────────────────────────────────┤
-│     Services (Business Logic)   │
+│  storage.Client interface       │  ← internal/storage/interfaces.go
 ├─────────────────────────────────┤
-│     Domain Repositories         │  ← internal/user/repository.go
+│  postgres.Provider (pgx/v5)     │  ← internal/storage/postgres
 ├─────────────────────────────────┤
-│     Generic Storage Driver      │  ← internal/storage
-├─────────────────────────────────┤
-│     PostgreSQL Implementation   │  ← internal/storage/postgres
-├─────────────────────────────────┤
-│     Database (PostgreSQL)       │
+│  Database (PostgreSQL)          │
 └─────────────────────────────────┘
 ```
 
-### Key Components
+The `storage.Client` is created in `App.Run` and passed into the controller via
+`controller.Options.Store`. See "Application Wiring" below.
 
-- **Generic Storage Driver** (`internal/storage/`) - Database abstraction without business logic
-- **PostgreSQL Implementation** (`internal/storage/postgres/`) - Concrete database implementation
-- **Domain Repositories** (`internal/<domain>/repository.go`) - Business-specific data operations
-- **Domain Models** (`internal/<domain>/types.go`) - Business entities and structs
-- **Migrations** (`migrations/`) - Schema version control
-- **Connection Management** - Connection pooling and lifecycle
+## Storage Interfaces
 
-## Generic Storage Driver Pattern
-
-### Interface Definition
+Defined in `internal/storage/interfaces.go`. Every method that talks to the
+database takes a `context.Context` as its first argument.
 
 ```go
-// internal/storage/storage.go
-package storage
-
-import "context"
-
-// Scanner interface for query results
-type Scanner interface {
-    ScanOne(dst interface{}) error
-    ScanAll(dst interface{}) error
+// RowScanner reads query results into Go types.
+type RowScanner interface {
+    ScanOne(dst interface{}) error // first row into dst
+    ScanAll(dst interface{}) error // all rows into *[]T
 }
 
-// Client interface for database operations
+// Client is the core database interface.
 type Client interface {
-    Query(sql string, args ...interface{}) (Scanner, error)
-    Execute(sql string, args ...interface{}) error
-    
-    // Transaction support
+    Query(ctx context.Context, sql string, args ...interface{}) (RowScanner, error)
+    Execute(ctx context.Context, sql string, args ...interface{}) error
+
     BeginTx(ctx context.Context) (Transaction, error)
-    
-    // Health check
+    WithTx(ctx context.Context, fn func(tx Transaction) error) error
+
     Ping(ctx context.Context) error
-    
-    // Cleanup
     Close() error
+
+    Name() string
+    Logger() *zap.Logger
 }
 
-// Transaction interface
+// Transaction is a Client-scoped unit of work.
 type Transaction interface {
-    Query(sql string, args ...interface{}) (Scanner, error)
-    Execute(sql string, args ...interface{}) error
+    Query(ctx context.Context, sql string, args ...interface{}) (RowScanner, error)
+    Execute(ctx context.Context, sql string, args ...interface{}) error
+    InsertMany(ctx context.Context, queries map[string][]interface{}) error
     Commit() error
     Rollback() error
 }
 ```
 
-### No Domain Models in Storage Layer
+> `storage.Provider` exists but is **deprecated** — it is an alias for `Client`.
+> Use `Client` in new code. (Note the naming overlap with the concrete
+> `postgres.Provider` struct, tracked as m-13 in the review.)
 
-The storage layer **does not contain business domain models**. Instead, it provides generic interfaces for:
-- Executing SQL queries
-- Scanning results into any struct
-- Transaction management
-- Connection lifecycle
+### Shared errors
 
-**Domain-specific structs and queries belong in domain packages.**
+`internal/storage/errors.go` exposes sentinel errors for consistent handling
+across backends: `ErrNotFound`, `ErrDuplicate`, `ErrConnection`,
+`ErrTransaction`, `ErrInvalidQuery`, `ErrTimeout`. Compare with `errors.Is`.
 
-### PostgreSQL Implementation
+## PostgreSQL Implementation
+
+`internal/storage/postgres` implements the interfaces with pgx/v5. The concrete
+type is `Provider`, constructed with `Open`:
 
 ```go
-// internal/storage/postgres/postgres.go
-package postgres
-
-import (
-    "context"
-    "fmt"
-    "time"
-    
-    "github.com/jackc/pgx/v5/pgxpool"
-    "github.com/rfizzle/go-starter/internal/storage"
+// func Open(ctx context.Context, options ...Option) (*Provider, error)
+store, err := postgres.Open(
+    ctx,
+    postgres.WithURI(ctx, "postgres://user:pass@localhost:5432/dbname"),
+    postgres.WithPingTimeout(15),        // seconds
+    postgres.WithLogger(logger),         // *zap.Logger
 )
+if err != nil {
+    return fmt.Errorf("postgres.Open(): %w", err)
+}
+```
 
-type Client struct {
-    pool *pgxpool.Pool
+`Open` does **not** verify connectivity — pgxpool connects lazily. Call
+`store.Ping(ctx)` to fail fast on an unreachable database (this is what
+`App.Run` does at startup).
+
+### Connection options
+
+Configure the connection with exactly one of these options:
+
+| Option | Use |
+| --- | --- |
+| `WithURI(ctx, uri)` | Recommended. Opens a `pgxpool.Pool` from a connection string. |
+| `WithPool(pool)` | Use an existing `*pgxpool.Pool`. |
+| `WithConnection(conn)` | Use a single `*pgx.Conn` (no pooling). |
+| `WithMockPool(mock)` | Testing only — a `pgxmock` pool. |
+
+Additional options: `WithPingTimeout(seconds int)` (pass `0` to disable the
+timeout), `WithLogger(*zap.Logger)`.
+
+> **Known limitation (m-8).** `WithMockPool` lives in production
+> `options.go`, which pulls `pgxmock` into `go.mod` as a direct dependency. The
+> review suggests moving mock wiring into a `_test.go` / `storagetest` package.
+
+### Executing queries
+
+`Query` returns a `RowScanner`; scan into a struct (or slice of structs) whose
+fields carry `db` tags. Scanning is handled by
+[scany](https://github.com/georgysavva/scany).
+
+```go
+// Single row
+scanner, err := store.Query(ctx,
+    `SELECT id, email, first_name, last_name FROM users WHERE id = $1`, id)
+if err != nil {
+    return nil, fmt.Errorf("query user: %w", err)
+}
+var u models.User
+if err := scanner.ScanOne(&u); err != nil {
+    return nil, fmt.Errorf("scan user: %w", err)
 }
 
-func New(ctx context.Context, dsn string) (storage.Client, error) {
-    config, err := pgxpool.ParseConfig(dsn)
-    if err != nil {
-        return nil, fmt.Errorf("parse config: %w", err)
-    }
-    
-    // Configure connection pool
-    config.MaxConns = 25
-    config.MinConns = 5
-    config.MaxConnLifetime = time.Hour
-    config.MaxConnIdleTime = time.Minute * 30
-    
-    pool, err := pgxpool.NewWithConfig(ctx, config)
-    if err != nil {
-        return nil, fmt.Errorf("create pool: %w", err)
-    }
-    
-    return &Client{pool: pool}, nil
+// Many rows
+scanner, err = store.Query(ctx,
+    `SELECT id, email, first_name, last_name FROM users ORDER BY email`)
+if err != nil {
+    return nil, err
+}
+var users []*models.User
+if err := scanner.ScanAll(&users); err != nil {
+    return nil, err
 }
 
-// Generic query execution - no business logic
-func (c *Client) Query(sql string, args ...interface{}) (storage.Scanner, error) {
-    rows, err := c.pool.Query(context.Background(), sql, args...)
-    if err != nil {
-        return nil, fmt.Errorf("query failed: %w", err)
-    }
-    
-    return &scanner{rows: rows}, nil
+// Writes
+if err := store.Execute(ctx,
+    `INSERT INTO users (email, first_name, last_name) VALUES ($1, $2, $3)`,
+    email, first, last); err != nil {
+    return fmt.Errorf("insert user: %w", err)
 }
+```
 
-func (c *Client) Execute(sql string, args ...interface{}) error {
-    _, err := c.pool.Exec(context.Background(), sql, args...)
+Always use positional placeholders (`$1`, `$2`, …) — pgx parameterizes them,
+which prevents SQL injection. Never interpolate user input into the SQL string.
+
+> **Known limitation (M-5).** All access goes through this generic
+> string-based `Query`/`Execute` API. There is no compile-time query safety and
+> no query builder in the repo (neither `sqlc` nor `squirrel` is present). The
+> review's target is sqlc-typed queries owning the pool for most access, with
+> squirrel for dynamic queries. Until that lands, hand-written SQL is the
+> pattern.
+
+### Domain models
+
+Models are plain structs with `db` tags, defined outside the storage layer. The
+only one that ships today:
+
+```go
+// internal/models/user.go
+type User struct {
+    ID           string `json:"-" db:"id"`
+    Email        string `json:"-" db:"email"`
+    PasswordHash string `json:"-" db:"password_hash"`
+    FirstName    string `json:"-" db:"first_name"`
+    LastName     string `json:"-" db:"last_name"`
+}
+```
+
+## Transactions
+
+Prefer `WithTx`, which begins a transaction, runs your function, and commits —
+rolling back automatically on error. A rollback failure is wrapped around the
+original error so both are visible.
+
+```go
+err := store.WithTx(ctx, func(tx storage.Transaction) error {
+    if err := tx.Execute(ctx,
+        `INSERT INTO users (email, first_name) VALUES ($1, $2)`,
+        email, first); err != nil {
+        return err // triggers rollback
+    }
+
+    scanner, err := tx.Query(ctx,
+        `SELECT id FROM users WHERE email = $1`, email)
+    if err != nil {
+        return err
+    }
+    var created models.User
+    return scanner.ScanOne(&created)
+})
+if err != nil {
+    return fmt.Errorf("create user tx: %w", err)
+}
+```
+
+Both `WithTx` and `BeginTx` derive the transaction context with the provider's
+ping timeout, so that value doubles as the overall transaction deadline — a
+long-running transaction is cancelled once it elapses.
+
+For lower-level control use `BeginTx`, but you then own `Commit`/`Rollback`:
+
+```go
+tx, err := store.BeginTx(ctx)
+if err != nil {
     return err
 }
+defer func() { _ = tx.Rollback() }() // no-op after a successful Commit
+
+if err := tx.Execute(ctx, `...`, args...); err != nil {
+    return err
+}
+return tx.Commit()
 ```
 
-## Domain Repository Pattern
+`Transaction.InsertMany(ctx, map[string][]interface{})` batches multiple
+statements over a single `pgx.Batch` within the transaction.
 
-### User Domain Example
+## Migrations
+
+Migrations are **embedded SQL, forward-only**, run through the provider — there
+is no `migrate` CLI, no `migrations/` directory convention, and no `make
+migrate-*` targets. You embed `.sql` files with `//go:embed` and hand the
+`embed.FS` to `Provider.Migrate`:
 
 ```go
-// internal/user/types.go
-package user
+import "embed"
 
-import "time"
+//go:embed migrations/*.sql
+var migrationsFS embed.FS
 
-// User represents the business entity
-type User struct {
-    ID        string    `json:"id" db:"id"`
-    Email     string    `json:"email" db:"email"`
-    Name      string    `json:"name" db:"name"`
-    Role      Role      `json:"role" db:"role"`
-    Active    bool      `json:"active" db:"active"`
-    CreatedAt time.Time `json:"created_at" db:"created_at"`
-    UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+// On startup, after Open + Ping:
+if err := store.Migrate(migrationsFS); err != nil {
+    return fmt.Errorf("migrate: %w", err)
 }
+```
 
-type Role string
+`Migrate` walks the FS for `.sql` files, compares them against a `migrations`
+table (keyed by file path), and executes any that have not run — all inside one
+transaction. `MigrationStatus(ctx, fs)` reports `StatusNone` / `StatusPartial`
+/ `StatusComplete`.
 
-const (
-    RoleUser  Role = "user"
-    RoleAdmin Role = "admin"
+> **Not yet wired.** `App.Run` opens and pings the database but does **not**
+> call `Migrate` today, and the repo ships no `migrations/` directory. Wiring
+> auto-migration (or a `migrate` subcommand) is open item M-7.
+>
+> **Known limitations (M-7).** The current migrator has no down migrations, no
+> checksums (editing an already-applied file is silently skipped), uses the
+> full file path as the migration ID (renaming re-runs it), and hardcodes
+> `context.Background()`. The review recommends adopting goose or
+> golang-migrate, which support `embed.FS`, versioning, checksums, and down
+> migrations.
+
+### Seeding
+
+There is **no seeding mechanism** in the repo (open item M-8). The review
+suggests a `seed` subcommand or a dev-only `--seed` flag running idempotent
+seed SQL/Go.
+
+## Application Wiring
+
+The storage client is created once in `App.Run` (`internal/app/app.go`) and
+shared for the process lifetime:
+
+```go
+store, err := postgres.Open(
+    ctx,
+    postgres.WithURI(ctx, application.cfg.Database.URI),
+    postgres.WithPingTimeout(application.cfg.Database.PingTimeout),
+    postgres.WithLogger(application.logger),
 )
+if err != nil {
+    return fmt.Errorf("postgres.Open(): %w", err)
+}
+if err := store.Ping(ctx); err != nil {
+    _ = store.Close()
+    return fmt.Errorf("store.Ping(): %w", err)
+}
+defer store.Close() // closed only after all components have drained
 
-type Filter struct {
-    Email  *string
-    Role   *Role
-    Active *bool
-    Limit  int
-    Offset int
+controllerOpts := controller.Options{
+    ReadyState: application.ready,
+    Store:      store, // storage.Client
+    Validator:  validator,
 }
 ```
 
-### Repository Implementation
+The pool intentionally outlives the component errgroup so in-flight requests can
+still reach the database while the webserver drains on shutdown.
 
-```go
-// internal/user/repository.go
-package user
+### Configuration
 
-import (
-    "context"
-    "fmt"
-    
-    "github.com/rfizzle/go-starter/internal/storage"
-)
+Database settings live under `Database` in `pkg/config/config.go` and are bound
+via Viper in `cmd/serve.go`:
 
-type Repository struct {
-    db storage.Client
-}
+| Field | Flag | Env-friendly key | Default |
+| --- | --- | --- | --- |
+| `URI` | `--database-uri` | `database.uri` | `""` |
+| `PingTimeout` | `--database-ping-timeout` | `database.ping-timeout` | `15` |
 
-func NewRepository(db storage.Client) *Repository {
-    return &Repository{db: db}
-}
-
-func (r *Repository) Create(ctx context.Context, user *User) error {
-    query := `
-        INSERT INTO users (email, name, role, active)
-        VALUES ($1, $2, $3, $4)
-        RETURNING id, created_at, updated_at
-    `
-    
-    scanner, err := r.db.Query(query, user.Email, user.Name, user.Role, user.Active)
-    if err != nil {
-        return fmt.Errorf("create user: %w", err)
-    }
-    
-    return scanner.ScanOne(&struct {
-        ID        *string    `db:"id"`
-        CreatedAt *time.Time `db:"created_at"`
-        UpdatedAt *time.Time `db:"updated_at"`
-    }{
-        ID:        &user.ID,
-        CreatedAt: &user.CreatedAt,
-        UpdatedAt: &user.UpdatedAt,
-    })
-}
-
-func (r *Repository) GetByID(ctx context.Context, id string) (*User, error) {
-    query := `
-        SELECT id, email, name, role, active, created_at, updated_at
-        FROM users
-        WHERE id = $1
-    `
-    
-    scanner, err := r.db.Query(query, id)
-    if err != nil {
-        return nil, fmt.Errorf("get user: %w", err)
-    }
-    
-    var user User
-    if err := scanner.ScanOne(&user); err != nil {
-        return nil, fmt.Errorf("scan user: %w", err)
-    }
-    
-    return &user, nil
-}
-
-func (r *Repository) List(ctx context.Context, filter Filter) ([]*User, error) {
-    query := r.buildListQuery(filter)
-    args := r.buildListArgs(filter)
-    
-    scanner, err := r.db.Query(query, args...)
-    if err != nil {
-        return nil, fmt.Errorf("list users: %w", err)
-    }
-    
-    var users []*User
-    if err := scanner.ScanAll(&users); err != nil {
-        return nil, fmt.Errorf("scan users: %w", err)
-    }
-    
-    return users, nil
-}
-
-func (r *Repository) buildListQuery(filter Filter) string {
-    query := "SELECT id, email, name, role, active, created_at, updated_at FROM users WHERE 1=1"
-    
-    if filter.Email != nil {
-        query += " AND email = $?"
-    }
-    if filter.Role != nil {
-        query += " AND role = $?"
-    }
-    if filter.Active != nil {
-        query += " AND active = $?"
-    }
-    
-    query += " ORDER BY created_at DESC"
-    
-    if filter.Limit > 0 {
-        query += fmt.Sprintf(" LIMIT %d", filter.Limit)
-    }
-    if filter.Offset > 0 {
-        query += fmt.Sprintf(" OFFSET %d", filter.Offset)
-    }
-    
-    return query
-}
-```
-
-### Service Integration
-
-```go
-// internal/user/service.go
-package user
-
-import (
-    "context"
-    "fmt"
-)
-
-type Service struct {
-    repo *Repository
-}
-
-func NewService(repo *Repository) *Service {
-    return &Service{repo: repo}
-}
-
-func (s *Service) CreateUser(ctx context.Context, email, name string) (*User, error) {
-    // Business logic validation
-    if email == "" {
-        return nil, fmt.Errorf("email is required")
-    }
-    
-    user := &User{
-        Email:  email,
-        Name:   name,
-        Role:   RoleUser,
-        Active: true,
-    }
-    
-    if err := s.repo.Create(ctx, user); err != nil {
-        return nil, fmt.Errorf("create user: %w", err)
-    }
-    
-    return user, nil
-}
-```
-
-## Migration Management
-
-### Migration Files
-
-Migrations are stored in `migrations/` with numbered prefixes:
-
-```
-migrations/
-├── 001_initial_schema.up.sql
-├── 001_initial_schema.down.sql
-├── 002_add_users_table.up.sql
-├── 002_add_users_table.down.sql
-├── 003_add_indexes.up.sql
-└── 003_add_indexes.down.sql
-```
-
-### Migration Example
-
-```sql
--- migrations/002_add_users_table.up.sql
-CREATE TABLE IF NOT EXISTS users (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255) NOT NULL,
-    password_hash VARCHAR(255) NOT NULL,
-    role VARCHAR(50) NOT NULL DEFAULT 'user',
-    active BOOLEAN NOT NULL DEFAULT true,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create indexes
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_role ON users(role) WHERE active = true;
-CREATE INDEX idx_users_created_at ON users(created_at DESC);
-
--- Add updated_at trigger
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-    NEW.updated_at = CURRENT_TIMESTAMP;
-    RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_users_updated_at 
-    BEFORE UPDATE ON users 
-    FOR EACH ROW 
-    EXECUTE FUNCTION update_updated_at_column();
-```
-
-```sql
--- migrations/002_add_users_table.down.sql
-DROP TRIGGER IF EXISTS update_users_updated_at ON users;
-DROP FUNCTION IF EXISTS update_updated_at_column();
-DROP TABLE IF EXISTS users;
-```
-
-### Running Migrations
-
-```bash
-# Using migrate CLI
-migrate -path migrations -database "postgresql://user:pass@localhost/dbname?sslmode=disable" up
-
-# Or using make command
-make migrate-up
-
-# Rollback
-make migrate-down
-
-# Create new migration
-make migrate-create name=add_products_table
-```
-
-## Domain-Specific Query Patterns
-
-### Query Builder in Domain Layer
-
-```go
-// internal/user/query_builder.go
-package user
-
-import (
-    "fmt"
-    "strings"
-)
-
-// UserQueryBuilder builds user-specific queries
-type QueryBuilder struct {
-    conditions []string
-    args       []interface{}
-    orderBy    string
-    limit      int
-    offset     int
-}
-
-func NewQueryBuilder() *QueryBuilder {
-    return &QueryBuilder{}
-}
-
-func (qb *QueryBuilder) WhereEmail(email string) *QueryBuilder {
-    qb.conditions = append(qb.conditions, "email = $?")
-    qb.args = append(qb.args, email)
-    return qb
-}
-
-func (qb *QueryBuilder) WhereRole(role Role) *QueryBuilder {
-    qb.conditions = append(qb.conditions, "role = $?")
-    qb.args = append(qb.args, role)
-    return qb
-}
-
-func (qb *QueryBuilder) WhereActive(active bool) *QueryBuilder {
-    qb.conditions = append(qb.conditions, "active = $?")
-    qb.args = append(qb.args, active)
-    return qb
-}
-
-func (qb *QueryBuilder) OrderByCreated(desc bool) *QueryBuilder {
-    if desc {
-        qb.orderBy = "created_at DESC"
-    } else {
-        qb.orderBy = "created_at ASC"
-    }
-    return qb
-}
-
-func (qb *QueryBuilder) Limit(limit int) *QueryBuilder {
-    qb.limit = limit
-    return qb
-}
-
-func (qb *QueryBuilder) Build() (string, []interface{}) {
-    query := "SELECT id, email, name, role, active, created_at, updated_at FROM users"
-    
-    if len(qb.conditions) > 0 {
-        query += " WHERE " + strings.Join(qb.conditions, " AND ")
-    }
-    
-    if qb.orderBy != "" {
-        query += " ORDER BY " + qb.orderBy
-    }
-    
-    if qb.limit > 0 {
-        query += fmt.Sprintf(" LIMIT %d", qb.limit)
-    }
-    
-    if qb.offset > 0 {
-        query += fmt.Sprintf(" OFFSET %d", qb.offset)
-    }
-    
-    return query, qb.args
-}
-```
-
-### Batch Operations in Repository
-
-```go
-// internal/user/repository.go - batch operations
-func (r *Repository) CreateBatch(ctx context.Context, users []*User) error {
-    if len(users) == 0 {
-        return nil
-    }
-    
-    // Build batch insert query
-    query := "INSERT INTO users (email, name, role, active) VALUES "
-    var values []string
-    var args []interface{}
-    
-    for i, user := range users {
-        values = append(values, fmt.Sprintf("($%d, $%d, $%d, $%d)", 
-            i*4+1, i*4+2, i*4+3, i*4+4))
-        args = append(args, user.Email, user.Name, user.Role, user.Active)
-    }
-    
-    query += strings.Join(values, ", ")
-    query += " RETURNING id, created_at, updated_at"
-    
-    scanner, err := r.db.Query(query, args...)
-    if err != nil {
-        return fmt.Errorf("batch create users: %w", err)
-    }
-    
-    // Scan results back into user structs
-    var results []struct {
-        ID        string    `db:"id"`
-        CreatedAt time.Time `db:"created_at"`
-        UpdatedAt time.Time `db:"updated_at"`
-    }
-    
-    if err := scanner.ScanAll(&results); err != nil {
-        return fmt.Errorf("scan batch results: %w", err)
-    }
-    
-    // Update original user structs with generated IDs and timestamps
-    for i, result := range results {
-        users[i].ID = result.ID
-        users[i].CreatedAt = result.CreatedAt
-        users[i].UpdatedAt = result.UpdatedAt
-    }
-    
-    return nil
-}
-```
-
-## Transaction Management
-
-### Repository Transaction Support
-
-```go
-// internal/user/repository.go - transaction support
-func (r *Repository) WithTransaction(ctx context.Context, fn func(*Repository) error) error {
-    tx, err := r.db.BeginTx(ctx)
-    if err != nil {
-        return fmt.Errorf("begin transaction: %w", err)
-    }
-    
-    defer func() {
-        if p := recover(); p != nil {
-            _ = tx.Rollback()
-            panic(p)
-        }
-    }()
-    
-    // Create repository with transaction client
-    txRepo := &Repository{db: tx}
-    
-    if err := fn(txRepo); err != nil {
-        if rbErr := tx.Rollback(); rbErr != nil {
-            return fmt.Errorf("rollback failed: %v, original error: %w", rbErr, err)
-        }
-        return err
-    }
-    
-    return tx.Commit()
-}
-```
-
-### Cross-Domain Transaction Example
-
-```go
-// internal/order/service.go - using multiple repositories in transaction
-func (s *OrderService) CreateOrderWithInventoryCheck(ctx context.Context, userID string, items []OrderItem) (*Order, error) {
-    var order *Order
-    
-    // Use user repository transaction to coordinate across domains
-    err := s.userRepo.WithTransaction(ctx, func(txUserRepo *user.Repository) error {
-        // Verify user exists
-        user, err := txUserRepo.GetByID(ctx, userID)
-        if err != nil {
-            return fmt.Errorf("get user: %w", err)
-        }
-        
-        if !user.Active {
-            return fmt.Errorf("user is not active")
-        }
-        
-        // Create order (this would use the same transaction)
-        order = &Order{
-            UserID: userID,
-            Items:  items,
-            Status: OrderStatusPending,
-        }
-        
-        if err := s.orderRepo.Create(ctx, order); err != nil {
-            return fmt.Errorf("create order: %w", err)
-        }
-        
-        // Update inventory (this would also use the same transaction)
-        for _, item := range items {
-            if err := s.inventoryRepo.ReserveItem(ctx, item.ProductID, item.Quantity); err != nil {
-                return fmt.Errorf("reserve inventory: %w", err)
-            }
-        }
-        
-        return nil
-    })
-    
-    if err != nil {
-        return nil, fmt.Errorf("create order transaction: %w", err)
-    }
-    
-    return order, nil
-}
-```
-
-### Alternative: Service-Level Transaction
-
-```go
-// internal/app/transaction.go - application-level transaction management
-type TransactionManager struct {
-    db storage.Client
-}
-
-func (tm *TransactionManager) WithTransaction(ctx context.Context, fn func(storage.Transaction) error) error {
-    tx, err := tm.db.BeginTx(ctx)
-    if err != nil {
-        return err
-    }
-    
-    defer func() {
-        if p := recover(); p != nil {
-            _ = tx.Rollback()
-            panic(p)
-        }
-    }()
-    
-    if err := fn(tx); err != nil {
-        if rbErr := tx.Rollback(); rbErr != nil {
-            return fmt.Errorf("rollback failed: %v, original error: %w", rbErr, err)
-        }
-        return err
-    }
-    
-    return tx.Commit()
-}
-```
+Example: `--database-uri "postgres://user:pass@localhost:5432/dbname"`.
 
 ## Testing Database Code
 
-### Mock Storage Client
+The storage package is tested with [pgxmock](https://github.com/pashagolub/pgxmock)
+via the `WithMockPool` option — **not** a hand-rolled testify mock. Pattern (see
+`internal/storage/postgres/postgres_test.go` for the real tests):
 
 ```go
-// internal/storage/mock/mock.go
-package mock
+mock, err := pgxmock.NewPool()
+require.NoError(t, err)
+defer mock.Close()
 
-import (
-    "github.com/stretchr/testify/mock"
-    "github.com/rfizzle/go-starter/internal/storage"
+store, err := postgres.Open(ctx,
+    postgres.WithMockPool(mock),
+    postgres.WithLogger(zaptest.NewLogger(t)),
 )
+require.NoError(t, err)
 
-type MockClient struct {
-    mock.Mock
-}
-
-func (m *MockClient) Query(sql string, args ...interface{}) (storage.Scanner, error) {
-    mockArgs := m.Called(sql, args)
-    if mockArgs.Get(0) == nil {
-        return nil, mockArgs.Error(1)
-    }
-    return mockArgs.Get(0).(storage.Scanner), mockArgs.Error(1)
-}
-
-func (m *MockClient) Execute(sql string, args ...interface{}) error {
-    mockArgs := m.Called(sql, args)
-    return mockArgs.Error(0)
-}
-
-type MockScanner struct {
-    mock.Mock
-}
-
-func (m *MockScanner) ScanOne(dst interface{}) error {
-    args := m.Called(dst)
-    return args.Error(0)
-}
-
-func (m *MockScanner) ScanAll(dst interface{}) error {
-    args := m.Called(dst)
-    return args.Error(0)
-}
+mock.ExpectPing()
+require.NoError(t, store.Ping(ctx))
+require.NoError(t, mock.ExpectationsWereMet())
 ```
 
-### Repository Testing
-
-```go
-// internal/user/repository_test.go
-package user_test
-
-import (
-    "context"
-    "testing"
-    
-    "github.com/stretchr/testify/assert"
-    "github.com/stretchr/testify/mock"
-    "github.com/rfizzle/go-starter/internal/storage/mock"
-    "github.com/rfizzle/go-starter/internal/user"
-)
-
-func TestRepository_Create(t *testing.T) {
-    mockClient := &mock.MockClient{}
-    mockScanner := &mock.MockScanner{}
-    repo := user.NewRepository(mockClient)
-    
-    testUser := &user.User{
-        Email:  "test@example.com",
-        Name:   "Test User",
-        Role:   user.RoleUser,
-        Active: true,
-    }
-    
-    expectedSQL := `INSERT INTO users (email, name, role, active) VALUES ($1, $2, $3, $4) RETURNING id, created_at, updated_at`
-    
-    // Mock the query call
-    mockClient.On("Query", expectedSQL, testUser.Email, testUser.Name, testUser.Role, testUser.Active).Return(mockScanner, nil)
-    
-    // Mock the scan call
-    mockScanner.On("ScanOne", mock.AnythingOfType("*struct { ID *string; CreatedAt *time.Time; UpdatedAt *time.Time }")).Return(nil).Run(func(args mock.Arguments) {
-        // Simulate database returning values
-        result := args.Get(0).(*struct {
-            ID        *string
-            CreatedAt *time.Time
-            UpdatedAt *time.Time
-        })
-        id := "123e4567-e89b-12d3-a456-426614174000"
-        *result.ID = id
-    })
-    
-    err := repo.Create(context.Background(), testUser)
-    
-    assert.NoError(t, err)
-    assert.Equal(t, "123e4567-e89b-12d3-a456-426614174000", testUser.ID)
-    mockClient.AssertExpectations(t)
-    mockScanner.AssertExpectations(t)
-}
-```
-
-### Integration Testing
-
-```go
-// internal/user/repository_integration_test.go
-package user_test
-
-import (
-    "context"
-    "testing"
-    
-    "github.com/stretchr/testify/assert"
-    "github.com/stretchr/testify/require"
-    "github.com/testcontainers/testcontainers-go"
-    "github.com/testcontainers/testcontainers-go/modules/postgres"
-    "github.com/rfizzle/go-starter/internal/storage/postgres"
-    "github.com/rfizzle/go-starter/internal/user"
-)
-
-func setupTestDB(t *testing.T) *user.Repository {
-    ctx := context.Background()
-    
-    // Start PostgreSQL container
-    container, err := postgres.RunContainer(ctx,
-        testcontainers.WithImage("postgres:15-alpine"),
-        postgres.WithDatabase("testdb"),
-        postgres.WithUsername("test"),
-        postgres.WithPassword("test"),
-    )
-    require.NoError(t, err)
-    
-    t.Cleanup(func() {
-        container.Terminate(ctx)
-    })
-    
-    // Get connection string
-    dsn, err := container.ConnectionString(ctx)
-    require.NoError(t, err)
-    
-    // Create storage client
-    client, err := postgres.New(ctx, dsn)
-    require.NoError(t, err)
-    
-    // Run migrations
-    runMigrations(t, dsn)
-    
-    return user.NewRepository(client)
-}
-
-func TestUserRepository_Integration(t *testing.T) {
-    repo := setupTestDB(t)
-    ctx := context.Background()
-    
-    // Create user
-    user := &user.User{
-        Email:  "test@example.com",
-        Name:   "Test User",
-        Role:   user.RoleUser,
-        Active: true,
-    }
-    
-    err := repo.Create(ctx, user)
-    require.NoError(t, err)
-    assert.NotEmpty(t, user.ID)
-    assert.False(t, user.CreatedAt.IsZero())
-    
-    // Get user by ID
-    fetched, err := repo.GetByID(ctx, user.ID)
-    require.NoError(t, err)
-    assert.Equal(t, user.Email, fetched.Email)
-    assert.Equal(t, user.Name, fetched.Name)
-    assert.Equal(t, user.Role, fetched.Role)
-    
-    // List users
-    users, err := repo.List(ctx, user.Filter{
-        Active: &[]bool{true}[0],
-        Limit:  10,
-    })
-    require.NoError(t, err)
-    assert.Len(t, users, 1)
-    assert.Equal(t, user.ID, users[0].ID)
-}
-```
-
-## Performance Optimization
-
-### Connection Pooling
-
-```go
-// Configure pool for optimal performance
-config := &pgxpool.Config{
-    MaxConns:        25,              // Maximum connections
-    MinConns:        5,               // Minimum idle connections
-    MaxConnLifetime: time.Hour,      // Connection lifetime
-    MaxConnIdleTime: 30 * time.Minute, // Idle timeout
-    HealthCheckPeriod: time.Minute,  // Health check interval
-}
-```
-
-### Query Optimization
-
-```go
-// Use prepared statements for repeated queries
-func (db *DB) PrepareGetUser(ctx context.Context) error {
-    _, err := db.pool.Prepare(ctx, "get_user", `
-        SELECT id, email, name, role, created_at
-        FROM users
-        WHERE id = $1
-    `)
-    return err
-}
-
-func (db *DB) GetUserPrepared(ctx context.Context, id string) (*User, error) {
-    var user User
-    err := db.pool.QueryRow(ctx, "get_user", id).Scan(
-        &user.ID, &user.Email, &user.Name, &user.Role, &user.CreatedAt,
-    )
-    return &user, err
-}
-```
-
-### Indexing Strategy
-
-```sql
--- Indexes for common queries
-CREATE INDEX idx_users_email ON users(email);
-CREATE INDEX idx_users_active_role ON users(role) WHERE active = true;
-CREATE INDEX idx_orders_user_created ON orders(user_id, created_at DESC);
-
--- Composite indexes for complex queries
-CREATE INDEX idx_users_search ON users(email, name) 
-    WHERE active = true;
-
--- Partial indexes for filtered queries
-CREATE INDEX idx_orders_pending ON orders(status) 
-    WHERE status = 'pending';
-```
+For higher-level tests you can also implement the `storage.Client` interface
+directly with an in-memory fake.
 
 ## Best Practices
 
-### 1. Use Context Everywhere
-```go
-func (db *DB) GetUser(ctx context.Context, id string) (*User, error) {
-    // Context enables cancellation and timeout
-    ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-    defer cancel()
-    
-    return db.queryUser(ctx, id)
-}
-```
+1. **Always pass context.** Every `Client`/`Transaction` method takes `ctx`;
+   propagate the request context so cancellation and timeouts work.
+2. **Parameterize queries.** Use `$1`, `$2`, … placeholders. Never build SQL by
+   concatenating user input.
+3. **Map driver errors to sentinels.** Translate `pgx.ErrNoRows` to
+   `storage.ErrNotFound` and unique-violation (`23505`) to
+   `storage.ErrDuplicate` so callers can `errors.Is` regardless of backend:
 
-### 2. Handle Errors Properly
-```go
-if err != nil {
-    if errors.Is(err, pgx.ErrNoRows) {
-        return nil, storage.ErrNotFound
-    }
-    if pgErr, ok := err.(*pgconn.PgError); ok {
-        if pgErr.Code == "23505" { // Unique violation
-            return nil, storage.ErrDuplicate
-        }
-    }
-    return nil, fmt.Errorf("query failed: %w", err)
-}
-```
-
-### 3. Use Domain-Specific Queries
-```go
-// Keep queries in domain repositories where they belong
-func (r *Repository) ListActiveUsers(ctx context.Context, limit int) ([]*User, error) {
-    query := `
-        SELECT id, email, name, role, active, created_at, updated_at
-        FROM users
-        WHERE active = true
-        ORDER BY created_at DESC
-        LIMIT $1
-    `
-    
-    scanner, err := r.db.Query(query, limit)
-    if err != nil {
-        return nil, fmt.Errorf("query active users: %w", err)
-    }
-    
-    var users []*User
-    if err := scanner.ScanAll(&users); err != nil {
-        return nil, fmt.Errorf("scan users: %w", err)
-    }
-    
-    return users, nil
-}
-```
-
-### 4. Implement Retries in Repositories
-```go
-// internal/user/repository.go
-func (r *Repository) CreateWithRetry(ctx context.Context, user *User) error {
-    var err error
-    for i := 0; i < 3; i++ {
-        if err = r.Create(ctx, user); err == nil {
-            return nil
-        }
-        
-        if !r.isRetryableError(err) {
-            return err
-        }
-        
-        time.Sleep(time.Duration(i+1) * 100 * time.Millisecond)
-    }
-    return fmt.Errorf("failed after 3 retries: %w", err)
-}
-
-func (r *Repository) isRetryableError(err error) bool {
-    // Check for connection errors, deadlocks, etc.
-    // Domain-specific retry logic
-    return strings.Contains(err.Error(), "connection") ||
-           strings.Contains(err.Error(), "deadlock")
-}
-```
-
-## Monitoring and Debugging
-
-### Query Logging
-
-```go
-// Enable query logging in development
-config.ConnConfig.Tracer = &pgx.QueryTracer{
-    Log: func(ctx context.Context, conn *pgx.Conn, data pgx.QueryTracerLogData) {
-        log.Printf("SQL: %s, Args: %v, Time: %s",
-            data.SQL, data.Args, data.Time)
-    },
-}
-```
-
-### Health Checks
-
-```go
-// internal/storage/postgres/health.go
-func (c *Client) HealthCheck(ctx context.Context) error {
-    ctx, cancel := context.WithTimeout(ctx, 1*time.Second)
-    defer cancel()
-    
-    scanner, err := c.Query("SELECT 1")
-    if err != nil {
-        return fmt.Errorf("health check query failed: %w", err)
-    }
-    
-    var result int
-    if err := scanner.ScanOne(&result); err != nil {
-        return fmt.Errorf("health check scan failed: %w", err)
-    }
-    
-    if result != 1 {
-        return fmt.Errorf("unexpected health check result: %d", result)
-    }
-    
-    return nil
-}
-```
+   ```go
+   if errors.Is(err, pgx.ErrNoRows) {
+       return nil, storage.ErrNotFound
+   }
+   var pgErr *pgconn.PgError
+   if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+       return nil, storage.ErrDuplicate
+   }
+   ```
+4. **Prefer `WithTx`** for multi-statement units of work — it handles
+   commit/rollback and wraps rollback failures around the original error.
 
 ## Related Documentation
 
-- [project-context.md](project-context.md) - Project overview
-- [interface-pattern.md](../guidelines/interface-pattern.md) - Interface patterns
-- [testing-strategy.md](../guidelines/testing-strategy.md) - Testing approaches
-- [pgx Documentation](https://github.com/jackc/pgx)
-- [PostgreSQL Best Practices](https://wiki.postgresql.org/wiki/Main_Page)
-
----
-
-*This guide provides comprehensive patterns for database development, ensuring consistent, performant, and testable data layer implementation.*
+- [project-context.md](project-context.md) — project overview
+- [foundations.md](foundations.md) — architectural foundations
+- [../guidelines/interface-pattern.md](../guidelines/interface-pattern.md) — interface patterns
+- [../guidelines/testing-strategy.md](../guidelines/testing-strategy.md) — testing approaches
+- [../reviews/2026-07-02-architecture-review.md](../reviews/2026-07-02-architecture-review.md) — open items referenced above
+- [pgx documentation](https://github.com/jackc/pgx)
+- [scany documentation](https://github.com/georgysavva/scany)
