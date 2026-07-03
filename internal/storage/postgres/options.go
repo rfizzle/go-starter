@@ -9,7 +9,6 @@ import (
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/pashagolub/pgxmock/v4"
 )
 
 // Option configures a Provider instance during initialization.
@@ -58,19 +57,6 @@ func WithPool(pool *pgxpool.Pool) Option {
 		p.pool = pool
 		p.closeFunc = func(ctx context.Context) error {
 			pool.Close()
-			return nil
-		}
-
-		return nil
-	}
-}
-
-// WithMockPool configures the provider to use a mock PostgreSQL pool for testing.
-// This option should only be used in tests to simulate database behavior.
-func WithMockPool(pool pgxmock.PgxPoolIface) Option {
-	return func(p *Provider) error {
-		p.db = pool
-		p.closeFunc = func(ctx context.Context) error {
 			return nil
 		}
 
