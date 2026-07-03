@@ -35,25 +35,9 @@ go-starter serve --config /etc/crypt/config.json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Resolve config from all viper layers (flag > env > file > default) into
 		// the struct in one pass instead of field-by-field GetString/GetInt.
-		cfg := &config.Application{}
-		if err := viper.Unmarshal(cfg); err != nil {
+		cfg, err := resolveConfig()
+		if err != nil {
 			logger.Fatal("error unmarshaling config", zap.Error(err))
-		}
-
-		// Build-time metadata is stamped via ldflags, not config layers, so set
-		// it directly after unmarshaling.
-		cfg.Build = config.Build{
-			Branch:   BuildBranch,
-			Date:     BuildDate,
-			Env:      BuildEnv,
-			Revision: BuildRevision,
-			Version:  BuildVersion,
-		}
-
-		// The --verbose flag is a shortcut for debug logging and outranks the
-		// configured level.
-		if verbose {
-			cfg.Logging.Level = "debug"
 		}
 
 		// Replace the bootstrap logger with one driven by config (level, format,

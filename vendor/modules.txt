@@ -287,6 +287,10 @@ go.uber.org/zap/internal/stacktrace
 go.uber.org/zap/internal/ztest
 go.uber.org/zap/zapcore
 go.uber.org/zap/zaptest
+# golang.org/x/crypto v0.52.0
+## explicit; go 1.25.0
+golang.org/x/crypto/bcrypt
+golang.org/x/crypto/blowfish
 # golang.org/x/exp v0.0.0-20260410095643-746e56fc9e2f
 ## explicit; go 1.25.0
 golang.org/x/exp/constraints
