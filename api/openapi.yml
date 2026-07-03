@@ -15,7 +15,7 @@ paths:
         "200":
           description: success
       security:
-        - { }
+        - {}
       description: Liveness probe
       tags:
         - health
@@ -32,7 +32,7 @@ paths:
         "200":
           description: success
       security:
-        - { }
+        - {}
       description: "Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. \nReturns 503 if the service is not ready to serve requests (starting up or shutting down).\n"
   /me:
     get:

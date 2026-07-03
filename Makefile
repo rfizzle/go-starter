@@ -71,8 +71,10 @@ fmt: ## Run gofmt on all source files
 	@echo "${MAGENTA}Running goimports...${RESET}"
 	@$(GOIMPORTS) -e -format-only -w -d $(PROJECT_GOFILES)
 	@echo "${MAGENTA}Running yamlfmt...${RESET}"
-	@$(YAMLFMT) api/*.yaml
-	@$(YAMLFMT) api/**/*.yaml
+	@# Pass the api/ directory (not a *.yaml glob): yamlfmt walks it and
+	@# matches every .yaml/.yml file by extension, so the api/openapi.yml
+	@# spec is covered. A *.yaml glob silently skipped the .yml spec.
+	@$(YAMLFMT) api
 
 lint: ## Run go vet and golangci-lint
 	@echo "${MAGENTA}Running go vet...${RESET}"

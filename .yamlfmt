@@ -1,5 +1,9 @@
+# Directory entries are walked and matched by .yaml/.yml extension.
+# A glob like api/**/*.{yaml,yml} does NOT match api/openapi.yml (the
+# spec sits directly in api/, and the glob requires a subdirectory),
+# which silently left the spec unformatted.
 include:
-  - api/**/*.{yaml,yml}
+  - api
 formatter:
   type: basic
   indent: 2
