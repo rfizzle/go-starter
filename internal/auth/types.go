@@ -25,5 +25,7 @@ type AuditEvent struct {
 	Metadata  map[string]string `json:"metadata,omitempty"`
 }
 
-// Option function type for configuring authentication services
-type Option func(interface{}) error
+// Option configures the auth service. It operates on the unexported *service so
+// the compiler enforces valid targets, matching the typed options pattern used
+// across the storage and web packages.
+type Option func(*service) error

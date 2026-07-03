@@ -63,27 +63,25 @@ func (s *service) Logger() interface{} {
 	return s.logger
 }
 
-// Option functions for configuring the service
+// ContextKey sets the key under which the authenticated subject is stored in the
+// request context. It must be non-empty.
 func ContextKey(contextKey string) Option {
-	return func(svc interface{}) error {
+	return func(s *service) error {
 		if contextKey == "" {
 			return ErrEmptyContextKey
 		}
-		if s, ok := svc.(*service); ok {
-			s.contextKey = contextKey
-		}
+		s.contextKey = contextKey
 		return nil
 	}
 }
 
+// Logger sets the service's structured logger. It must be non-nil.
 func Logger(logger *zap.Logger) Option {
-	return func(svc interface{}) error {
+	return func(s *service) error {
 		if logger == nil {
 			return fmt.Errorf("logger cannot be nil")
 		}
-		if s, ok := svc.(*service); ok {
-			s.logger = logger
-		}
+		s.logger = logger
 		return nil
 	}
 }
