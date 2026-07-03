@@ -9,8 +9,8 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-func (provider *Provider) Query(ctx context.Context, sql string, args ...interface{}) (storage.RowScanner, error) {
-	rows, err := provider._query(ctx, sql, args...)
+func (client *Client) Query(ctx context.Context, sql string, args ...interface{}) (storage.RowScanner, error) {
+	rows, err := client._query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -18,22 +18,22 @@ func (provider *Provider) Query(ctx context.Context, sql string, args ...interfa
 	return &internalScanner{rows: rows}, nil
 }
 
-func (provider *Provider) Execute(ctx context.Context, sql string, args ...interface{}) error {
-	return provider._exec(ctx, sql, args...)
+func (client *Client) Execute(ctx context.Context, sql string, args ...interface{}) error {
+	return client._exec(ctx, sql, args...)
 }
 
-func (provider *Provider) _query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
-	provider.logger.Debug("database query", zap.String("sql", sql), zap.Any("args", args))
-	rows, err := provider.db.Query(ctx, sql, args...)
+func (client *Client) _query(ctx context.Context, sql string, args ...interface{}) (pgx.Rows, error) {
+	client.logger.Debug("database query", zap.String("sql", sql), zap.Any("args", args))
+	rows, err := client.db.Query(ctx, sql, args...)
 	if err != nil {
 		return nil, err
 	}
 	return rows, nil
 }
 
-func (provider *Provider) _exec(ctx context.Context, sql string, args ...interface{}) error {
-	provider.logger.Debug("database exec", zap.String("sql", sql), zap.Any("args", args))
-	_, err := provider.db.Exec(ctx, sql, args...)
+func (client *Client) _exec(ctx context.Context, sql string, args ...interface{}) error {
+	client.logger.Debug("database exec", zap.String("sql", sql), zap.Any("args", args))
+	_, err := client.db.Exec(ctx, sql, args...)
 	if err != nil {
 		return err
 	}

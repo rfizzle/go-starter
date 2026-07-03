@@ -114,34 +114,34 @@ func TestOpen(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider, err := Open(ctx, tt.options...)
+			client, err := Open(ctx, tt.options...)
 			if tt.wantErr {
 				assert.Error(t, err)
 				if tt.errString != "" {
 					assert.Contains(t, err.Error(), tt.errString)
 				}
-				assert.Nil(t, provider)
+				assert.Nil(t, client)
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, provider)
+				assert.NotNil(t, client)
 			}
 		})
 	}
 }
 
-func TestProvider_Name(t *testing.T) {
+func TestClient_Name(t *testing.T) {
 	ctx := context.Background()
 	mock, err := pgxmock.NewPool()
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider, err := Open(ctx, WithMockPool(mock))
+	client, err := Open(ctx, WithMockPool(mock))
 	assert.NoError(t, err)
 
-	assert.Equal(t, "postgresql", provider.Name())
+	assert.Equal(t, "postgresql", client.Name())
 }
 
-func TestProvider_Ping(t *testing.T) {
+func TestClient_Ping(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
@@ -196,14 +196,14 @@ func TestProvider_Ping(t *testing.T) {
 				timeout = time.Duration(tt.timeout) * time.Second
 			}
 
-			provider := &Provider{
+			client := &Client{
 				logger:      zaptest.NewLogger(t),
 				db:          tt.mockConn,
 				pingTimeout: timeout,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
-			err := provider.Ping(ctx)
+			err := client.Ping(ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -213,7 +213,7 @@ func TestProvider_Ping(t *testing.T) {
 	}
 }
 
-func TestProvider_Close(t *testing.T) {
+func TestClient_Close(t *testing.T) {
 	tests := []struct {
 		name      string
 		closeFunc func(ctx context.Context) error
@@ -237,13 +237,13 @@ func TestProvider_Close(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			provider := &Provider{
+			client := &Client{
 				logger:    zaptest.NewLogger(t),
 				db:        &mockDBConn{},
 				closeFunc: tt.closeFunc,
 			}
 
-			err := provider.Close()
+			err := client.Close()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -253,27 +253,27 @@ func TestProvider_Close(t *testing.T) {
 	}
 }
 
-func TestProvider_Logger(t *testing.T) {
+func TestClient_Logger(t *testing.T) {
 	logger := zaptest.NewLogger(t)
 
-	provider := &Provider{
+	client := &Client{
 		logger: logger,
 	}
 
-	result := provider.Logger()
+	result := client.Logger()
 	assert.Equal(t, logger, result)
 }
 
-func TestProvider_validate(t *testing.T) {
+func TestClient_validate(t *testing.T) {
 	tests := []struct {
 		name      string
-		provider  *Provider
+		client    *Client
 		wantErr   bool
 		errString string
 	}{
 		{
-			name: "valid provider",
-			provider: &Provider{
+			name: "valid client",
+			client: &Client{
 				db:        &mockDBConn{},
 				closeFunc: func(ctx context.Context) error { return nil },
 				logger:    zaptest.NewLogger(nil),
@@ -282,7 +282,7 @@ func TestProvider_validate(t *testing.T) {
 		},
 		{
 			name: "nil db",
-			provider: &Provider{
+			client: &Client{
 				db:        nil,
 				closeFunc: func(ctx context.Context) error { return nil },
 				logger:    zaptest.NewLogger(nil),
@@ -292,7 +292,7 @@ func TestProvider_validate(t *testing.T) {
 		},
 		{
 			name: "nil closeFunc",
-			provider: &Provider{
+			client: &Client{
 				db:        &mockDBConn{},
 				closeFunc: nil,
 				logger:    zaptest.NewLogger(nil),
@@ -302,7 +302,7 @@ func TestProvider_validate(t *testing.T) {
 		},
 		{
 			name: "nil logger",
-			provider: &Provider{
+			client: &Client{
 				db:        &mockDBConn{},
 				closeFunc: func(ctx context.Context) error { return nil },
 				logger:    nil,
@@ -314,7 +314,7 @@ func TestProvider_validate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.provider.validate()
+			err := tt.client.validate()
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errString)
@@ -325,7 +325,7 @@ func TestProvider_validate(t *testing.T) {
 	}
 }
 
-func TestProvider_IntegrationWithPgxMock(t *testing.T) {
+func TestClient_IntegrationWithPgxMock(t *testing.T) {
 	ctx := context.Background()
 
 	// Create pgxmock
@@ -333,17 +333,17 @@ func TestProvider_IntegrationWithPgxMock(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	// Create provider with mock
-	provider, err := Open(ctx, WithMockPool(mock), WithLogger(zaptest.NewLogger(t)))
+	// Create client with mock
+	client, err := Open(ctx, WithMockPool(mock), WithLogger(zaptest.NewLogger(t)))
 	assert.NoError(t, err)
 
 	// Test ping
 	mock.ExpectPing()
-	err = provider.Ping(ctx)
+	err = client.Ping(ctx)
 	assert.NoError(t, err)
 
 	// Test close
-	err = provider.Close()
+	err = client.Close()
 	assert.NoError(t, err)
 
 	// Verify all expectations were met

@@ -13,7 +13,7 @@ import (
 
 func TestWithURI(t *testing.T) {
 	ctx := context.Background()
-	provider := &Provider{}
+	client := &Client{}
 
 	tests := []struct {
 		name    string
@@ -32,13 +32,13 @@ func TestWithURI(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			option := WithURI(ctx, tt.uri)
-			err := option(provider)
+			err := option(client)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
-				assert.NotNil(t, provider.db)
-				assert.NotNil(t, provider.closeFunc)
+				assert.NotNil(t, client.db)
+				assert.NotNil(t, client.closeFunc)
 			}
 		})
 	}
@@ -56,7 +56,7 @@ func TestWithPool(t *testing.T) {
 
 func TestWithMockPool(t *testing.T) {
 	ctx := context.Background()
-	provider := &Provider{}
+	client := &Client{}
 
 	// Create pgxmock
 	mock, err := pgxmock.NewPool()
@@ -64,19 +64,19 @@ func TestWithMockPool(t *testing.T) {
 	defer mock.Close()
 
 	option := WithMockPool(mock)
-	err = option(provider)
+	err = option(client)
 
 	assert.NoError(t, err)
-	assert.Equal(t, mock, provider.db)
-	assert.NotNil(t, provider.closeFunc)
+	assert.Equal(t, mock, client.db)
+	assert.NotNil(t, client.closeFunc)
 
 	// Test the close function doesn't panic
-	err = provider.closeFunc(ctx)
+	err = client.closeFunc(ctx)
 	assert.NoError(t, err)
 }
 
 func TestWithPingTimeout(t *testing.T) {
-	provider := &Provider{}
+	client := &Client{}
 
 	tests := []struct {
 		name            string
@@ -103,16 +103,16 @@ func TestWithPingTimeout(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			option := WithPingTimeout(tt.timeout)
-			err := option(provider)
+			err := option(client)
 
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedTimeout, provider.pingTimeout)
+			assert.Equal(t, tt.expectedTimeout, client.pingTimeout)
 		})
 	}
 }
 
 func TestWithLogger(t *testing.T) {
-	provider := &Provider{}
+	client := &Client{}
 
 	tests := []struct {
 		name    string
@@ -134,14 +134,14 @@ func TestWithLogger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			option := WithLogger(tt.logger)
-			err := option(provider)
+			err := option(client)
 
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Contains(t, err.Error(), "logger cannot be nil")
 			} else {
 				assert.NoError(t, err)
-				assert.Equal(t, tt.logger, provider.logger)
+				assert.Equal(t, tt.logger, client.logger)
 			}
 		})
 	}
@@ -155,15 +155,15 @@ func TestOptionsChaining(t *testing.T) {
 	defer mock.Close()
 
 	// Test that multiple options can be chained together
-	provider, err := Open(ctx,
+	client, err := Open(ctx,
 		WithMockPool(mock),
 		WithLogger(logger),
 		WithPingTimeout(45),
 	)
 
 	assert.NoError(t, err)
-	assert.NotNil(t, provider)
-	assert.Equal(t, mock, provider.db)
-	assert.Equal(t, logger, provider.logger)
-	assert.Equal(t, 45*time.Second, provider.pingTimeout)
+	assert.NotNil(t, client)
+	assert.Equal(t, mock, client.db)
+	assert.Equal(t, logger, client.logger)
+	assert.Equal(t, 45*time.Second, client.pingTimeout)
 }

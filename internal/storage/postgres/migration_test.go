@@ -14,23 +14,23 @@ import (
 	"github.com/rfizzle/go-starter/internal/storage"
 )
 
-// TestMigrateRequiresPool verifies migrations fail fast on a provider that has
+// TestMigrateRequiresPool verifies migrations fail fast on a client that has
 // no underlying pool (e.g. connection- or mock-backed), since goose runs
 // through a database/sql handle wrapped over the pgx pool.
 func TestMigrateRequiresPool(t *testing.T) {
-	provider := &Provider{logger: zaptest.NewLogger(t)}
+	client := &Client{logger: zaptest.NewLogger(t)}
 
-	err := provider.Migrate(Migrations)
+	err := client.Migrate(Migrations)
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "pool-backed provider")
+	assert.Contains(t, err.Error(), "pool-backed client")
 }
 
 // TestMigrationStatusRequiresPool mirrors TestMigrateRequiresPool for the
 // status path and confirms it reports StatusNone alongside the error.
 func TestMigrationStatusRequiresPool(t *testing.T) {
-	provider := &Provider{logger: zaptest.NewLogger(t)}
+	client := &Client{logger: zaptest.NewLogger(t)}
 
-	status, err := provider.MigrationStatus(context.Background(), Migrations)
+	status, err := client.MigrationStatus(context.Background(), Migrations)
 	require.Error(t, err)
 	assert.Equal(t, storage.StatusNone, status)
 }

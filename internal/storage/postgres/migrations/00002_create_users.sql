@@ -1,6 +1,6 @@
 -- 00002_create_users.sql
 -- Creates the users table backing the example user domain (internal/user).
--- Applied forward-only at startup by Provider.Migrate via goose.
+-- Applied forward-only at startup by Client.Migrate via goose.
 
 -- +goose Up
 CREATE TABLE users (

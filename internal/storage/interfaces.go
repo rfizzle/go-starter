@@ -78,11 +78,3 @@ type Transaction interface {
 	// After rollback, the transaction cannot be used for further operations.
 	Rollback() error
 }
-
-// Provider is deprecated - use Client instead.
-// 
-// Deprecated: Provider is an alias for Client and will be removed in a future version.
-// Use Client directly for new code.
-type Provider interface {
-	Client
-}

@@ -43,7 +43,7 @@ func New(cfg *config.Application) (*App, error) {
 // shutdown.
 func (application *App) Run(ctx context.Context) error {
 	// Create the connection pool explicitly so the application owns it and can
-	// share the exact same pool between the storage.Client (postgres.Provider)
+	// share the exact same pool between the storage.Client (postgres.Client)
 	// and the user domain repository. pgxpool connects lazily, so the explicit
 	// Ping below is what makes an unreachable database fail startup.
 	pool, err := pgxpool.New(ctx, application.cfg.Database.URI)

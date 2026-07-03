@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func TestProvider_Query(t *testing.T) {
+func TestClient_Query(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -68,13 +68,13 @@ func TestProvider_Query(t *testing.T) {
 
 			tt.setupMock(mock)
 
-			provider := &Provider{
+			client := &Client{
 				logger:    logger,
 				db:        mock,
 				closeFunc: func(ctx context.Context) error { return nil },
 			}
 
-			scanner, err := provider.Query(ctx, tt.sql, tt.args...)
+			scanner, err := client.Query(ctx, tt.sql, tt.args...)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, scanner)
@@ -90,7 +90,7 @@ func TestProvider_Query(t *testing.T) {
 	}
 }
 
-func TestProvider_Execute(t *testing.T) {
+func TestClient_Execute(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -144,13 +144,13 @@ func TestProvider_Execute(t *testing.T) {
 
 			tt.setupMock(mock)
 
-			provider := &Provider{
+			client := &Client{
 				logger:    logger,
 				db:        mock,
 				closeFunc: func(ctx context.Context) error { return nil },
 			}
 
-			err = provider.Execute(ctx, tt.sql, tt.args...)
+			err = client.Execute(ctx, tt.sql, tt.args...)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -163,7 +163,7 @@ func TestProvider_Execute(t *testing.T) {
 	}
 }
 
-func TestProvider_privateQuery(t *testing.T) {
+func TestClient_privateQuery(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -171,7 +171,7 @@ func TestProvider_privateQuery(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider := &Provider{
+	client := &Client{
 		logger:    logger,
 		db:        mock,
 		closeFunc: func(ctx context.Context) error { return nil },
@@ -182,7 +182,7 @@ func TestProvider_privateQuery(t *testing.T) {
 	mock.ExpectQuery("SELECT COUNT\\(\\*\\) FROM users").
 		WillReturnRows(rows)
 
-	result, err := provider._query(ctx, "SELECT COUNT(*) FROM users")
+	result, err := client._query(ctx, "SELECT COUNT(*) FROM users")
 	assert.NoError(t, err)
 	assert.NotNil(t, result)
 
@@ -190,7 +190,7 @@ func TestProvider_privateQuery(t *testing.T) {
 	mock.ExpectQuery("SELECT \\* FROM invalid").
 		WillReturnError(errors.New("syntax error"))
 
-	result, err = provider._query(ctx, "SELECT * FROM invalid")
+	result, err = client._query(ctx, "SELECT * FROM invalid")
 	assert.Error(t, err)
 	assert.Nil(t, result)
 
@@ -198,7 +198,7 @@ func TestProvider_privateQuery(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestProvider_privateExec(t *testing.T) {
+func TestClient_privateExec(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -206,7 +206,7 @@ func TestProvider_privateExec(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider := &Provider{
+	client := &Client{
 		logger:    logger,
 		db:        mock,
 		closeFunc: func(ctx context.Context) error { return nil },
@@ -217,21 +217,21 @@ func TestProvider_privateExec(t *testing.T) {
 		WithArgs(true).
 		WillReturnResult(pgxmock.NewResult("UPDATE", 3))
 
-	err = provider._exec(ctx, "UPDATE users SET active = $1", true)
+	err = client._exec(ctx, "UPDATE users SET active = $1", true)
 	assert.NoError(t, err)
 
 	// Test _exec error
 	mock.ExpectExec("INSERT INTO users").
 		WillReturnError(errors.New("constraint violation"))
 
-	err = provider._exec(ctx, "INSERT INTO users")
+	err = client._exec(ctx, "INSERT INTO users")
 	assert.Error(t, err)
 
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
 }
 
-func TestProvider_QueryExecuteIntegration(t *testing.T) {
+func TestClient_QueryExecuteIntegration(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -239,7 +239,7 @@ func TestProvider_QueryExecuteIntegration(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider := &Provider{
+	client := &Client{
 		logger:    logger,
 		db:        mock,
 		closeFunc: func(ctx context.Context) error { return nil },
@@ -257,11 +257,11 @@ func TestProvider_QueryExecuteIntegration(t *testing.T) {
 		WillReturnRows(rows)
 
 	// Execute insert
-	err = provider.Execute(ctx, "INSERT INTO users (name) VALUES ($1)", "Alice")
+	err = client.Execute(ctx, "INSERT INTO users (name) VALUES ($1)", "Alice")
 	assert.NoError(t, err)
 
 	// Query the inserted data
-	scanner, err := provider.Query(ctx, "SELECT id, name FROM users WHERE name = $1", "Alice")
+	scanner, err := client.Query(ctx, "SELECT id, name FROM users WHERE name = $1", "Alice")
 	assert.NoError(t, err)
 	assert.NotNil(t, scanner)
 

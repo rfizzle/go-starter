@@ -29,9 +29,9 @@ const gooseDialect = goose.DialectPostgres
 //
 // It returns the provider, a cleanup func that must be called to release the
 // wrapping *sql.DB, and any construction error.
-func (provider *Provider) newGooseProvider(migrationFs embed.FS) (*goose.Provider, func(), error) {
-	if provider.pool == nil {
-		return nil, nil, fmt.Errorf("migrations require a pool-backed provider (use WithPool or WithURI)")
+func (client *Client) newGooseProvider(migrationFs embed.FS) (*goose.Provider, func(), error) {
+	if client.pool == nil {
+		return nil, nil, fmt.Errorf("migrations require a pool-backed client (use WithPool or WithURI)")
 	}
 
 	// goose globs "*.sql" at the FS root, so hand it the migrations sub-tree
@@ -41,7 +41,7 @@ func (provider *Provider) newGooseProvider(migrationFs embed.FS) (*goose.Provide
 		return nil, nil, fmt.Errorf("fs.Sub(%q): %w", migrationsDir, err)
 	}
 
-	db := stdlib.OpenDBFromPool(provider.pool)
+	db := stdlib.OpenDBFromPool(client.pool)
 
 	// goose only emits progress output when verbose, which is left off: the
 	// applied-migration loop in Migrate logs results through zap instead, so no
@@ -69,26 +69,26 @@ func (provider *Provider) newGooseProvider(migrationFs embed.FS) (*goose.Provide
 // goose keys purely on the version number and does not checksum migration
 // bodies, so editing an already-applied file is silently ignored — change the
 // schema by adding a new versioned migration, never by editing an applied one.
-func (provider *Provider) Migrate(migrationFs embed.FS) error {
+func (client *Client) Migrate(migrationFs embed.FS) error {
 	// Migrate historically took no context; derive a background one so the
 	// public signature stays stable while goose gets a real context.
 	ctx := context.Background()
 
-	gp, cleanup, err := provider.newGooseProvider(migrationFs)
+	gp, cleanup, err := client.newGooseProvider(migrationFs)
 	if err != nil {
-		provider.logger.Error("issue constructing migration provider")
+		client.logger.Error("issue constructing migration provider")
 		return err
 	}
 	defer cleanup()
 
 	results, err := gp.Up(ctx)
 	if err != nil {
-		provider.logger.Error("issue running migrations")
+		client.logger.Error("issue running migrations")
 		return fmt.Errorf("goose up: %w", err)
 	}
 
 	for _, r := range results {
-		provider.logger.Info("applied migration", zap.String("migration", r.String()))
+		client.logger.Info("applied migration", zap.String("migration", r.String()))
 	}
 
 	return nil
@@ -101,8 +101,8 @@ func (provider *Provider) Migrate(migrationFs embed.FS) error {
 // It is not strictly read-only: querying status ensures goose's version table
 // exists, so calling it against a pristine database creates that table (with no
 // migration rows). Keep this in mind before wiring it into a readiness probe.
-func (provider *Provider) MigrationStatus(ctx context.Context, migrationFs embed.FS) (storage.MigrationStatus, error) {
-	gp, cleanup, err := provider.newGooseProvider(migrationFs)
+func (client *Client) MigrationStatus(ctx context.Context, migrationFs embed.FS) (storage.MigrationStatus, error) {
+	gp, cleanup, err := client.newGooseProvider(migrationFs)
 	if err != nil {
 		return storage.StatusNone, err
 	}

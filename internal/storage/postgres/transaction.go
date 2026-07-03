@@ -17,10 +17,10 @@ type transaction struct {
 	startTime      time.Time
 }
 
-func (provider *Provider) begin(ctx context.Context) (*transaction, error) {
-	ctx, cancelFunc := context.WithTimeout(ctx, provider.pingTimeout)
+func (client *Client) begin(ctx context.Context) (*transaction, error) {
+	ctx, cancelFunc := context.WithTimeout(ctx, client.pingTimeout)
 
-	tx, err := provider.db.Begin(ctx)
+	tx, err := client.db.Begin(ctx)
 	if err != nil {
 		cancelFunc()
 		return nil, err
@@ -45,14 +45,14 @@ func (tx *transaction) Rollback() error {
 }
 
 // BeginTx starts a new database transaction
-func (provider *Provider) BeginTx(ctx context.Context) (storage.Transaction, error) {
-	return provider.begin(ctx)
+func (client *Client) BeginTx(ctx context.Context) (storage.Transaction, error) {
+	return client.begin(ctx)
 }
 
 // WithTx creates a function with storage.Transaction to be called throughout the app
-func (provider *Provider) WithTx(ctx context.Context, fn func(tx storage.Transaction) error) error {
+func (client *Client) WithTx(ctx context.Context, fn func(tx storage.Transaction) error) error {
 	startTime := time.Now()
-	tx, err := provider.begin(ctx)
+	tx, err := client.begin(ctx)
 	if err != nil {
 		return err
 	}
@@ -66,7 +66,7 @@ func (provider *Provider) WithTx(ctx context.Context, fn func(tx storage.Transac
 	}
 	err = tx.Commit()
 	stopTime := time.Now()
-	provider.logger.Debug(fmt.Sprintf(`transaction completed in %v`, stopTime.Sub(startTime)))
+	client.logger.Debug(fmt.Sprintf(`transaction completed in %v`, stopTime.Sub(startTime)))
 	return err
 }
 

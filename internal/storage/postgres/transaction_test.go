@@ -13,7 +13,7 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func TestProvider_begin(t *testing.T) {
+func TestClient_begin(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -46,14 +46,14 @@ func TestProvider_begin(t *testing.T) {
 
 			tt.setupMock(mock)
 
-			provider := &Provider{
+			client := &Client{
 				logger:      logger,
 				db:          mock,
 				pingTimeout: 15 * time.Second,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
-			tx, err := provider.begin(ctx)
+			tx, err := client.begin(ctx)
 			if tt.wantErr {
 				assert.Error(t, err)
 				assert.Nil(t, tx)
@@ -207,7 +207,7 @@ func TestTransaction_rollback(t *testing.T) {
 	}
 }
 
-func TestProvider_WithTx(t *testing.T) {
+func TestClient_WithTx(t *testing.T) {
 	ctx := context.Background()
 	logger := zaptest.NewLogger(t)
 
@@ -270,14 +270,14 @@ func TestProvider_WithTx(t *testing.T) {
 
 			tt.setupMock(mock)
 
-			provider := &Provider{
+			client := &Client{
 				logger:      logger,
 				db:          mock,
 				pingTimeout: 15 * time.Second,
 				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
-			err = provider.WithTx(ctx, tt.txFunc)
+			err = client.WithTx(ctx, tt.txFunc)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -298,7 +298,7 @@ func TestTransaction_Query(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider := &Provider{
+	client := &Client{
 		logger:      logger,
 		db:          mock,
 		pingTimeout: 15 * time.Second,
@@ -316,7 +316,7 @@ func TestTransaction_Query(t *testing.T) {
 
 	mock.ExpectCommit()
 
-	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
+	err = client.WithTx(ctx, func(tx storage.Transaction) error {
 		scanner, err := tx.Query(ctx, "SELECT id, name FROM users WHERE id = $1", 1)
 		assert.NoError(t, err)
 		assert.NotNil(t, scanner)
@@ -336,7 +336,7 @@ func TestTransaction_Execute(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider := &Provider{
+	client := &Client{
 		logger:      logger,
 		db:          mock,
 		pingTimeout: 15 * time.Second,
@@ -350,7 +350,7 @@ func TestTransaction_Execute(t *testing.T) {
 		WillReturnResult(pgxmock.NewResult("UPDATE", 1))
 	mock.ExpectCommit()
 
-	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
+	err = client.WithTx(ctx, func(tx storage.Transaction) error {
 		return tx.Execute(ctx, "UPDATE users SET name = $1 WHERE id = $2", "Jane", 1)
 	})
 
@@ -367,7 +367,7 @@ func TestTransaction_InsertMany(t *testing.T) {
 	assert.NoError(t, err)
 	defer mock.Close()
 
-	provider := &Provider{
+	client := &Client{
 		logger:      logger,
 		db:          mock,
 		pingTimeout: 15 * time.Second,
@@ -378,7 +378,7 @@ func TestTransaction_InsertMany(t *testing.T) {
 	mock.ExpectBegin()
 	mock.ExpectCommit()
 
-	err = provider.WithTx(ctx, func(tx storage.Transaction) error {
+	err = client.WithTx(ctx, func(tx storage.Transaction) error {
 		// Skip batch operations due to pgxmock limitations
 		// Just test that transaction begins and commits properly
 		return nil
