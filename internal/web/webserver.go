@@ -88,9 +88,9 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	// Create a new HTTP server with the handler
 	srv := &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", newApp.host, newApp.port),
-		WriteTimeout: time.Second * newApp.writeTimeout,
-		ReadTimeout:  time.Second * newApp.readTimeout,
-		IdleTimeout:  time.Second * newApp.idleTimeout,
+		WriteTimeout: newApp.writeTimeout,
+		ReadTimeout:  newApp.readTimeout,
+		IdleTimeout:  newApp.idleTimeout,
 		ErrorLog:     zap.NewStdLog(newApp.logger),
 		Handler:      mux,
 	}
@@ -157,21 +157,21 @@ func WithLogger(logger *zap.Logger) func(*Webserver) {
 	}
 }
 
-func WithReadTimeout(timeout int) func(*Webserver) {
+func WithReadTimeout(timeout time.Duration) func(*Webserver) {
 	return func(w *Webserver) {
-		w.readTimeout = time.Duration(timeout)
+		w.readTimeout = timeout
 	}
 }
 
-func WithWriteTimeout(timeout int) func(*Webserver) {
+func WithWriteTimeout(timeout time.Duration) func(*Webserver) {
 	return func(w *Webserver) {
-		w.writeTimeout = time.Duration(timeout)
+		w.writeTimeout = timeout
 	}
 }
 
-func WithIdleTimeout(timeout int) func(*Webserver) {
+func WithIdleTimeout(timeout time.Duration) func(*Webserver) {
 	return func(w *Webserver) {
-		w.idleTimeout = time.Duration(timeout)
+		w.idleTimeout = timeout
 	}
 }
 
