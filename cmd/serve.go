@@ -85,6 +85,7 @@ func init() {
 	serveCmd.Flags().Int("webserver.read-timeout", 60, "timeout for webserver read requests")
 	serveCmd.Flags().Int("webserver.write-timeout", 60, "timeout for webserver write requests")
 	serveCmd.Flags().Int("webserver.idle-timeout", 60, "timeout for webserver idle requests")
+	serveCmd.Flags().Bool("webserver.pprof-enabled", false, "expose /debug/pprof/* profiling endpoints on the public mux (unauthenticated; enable only in trusted environments)")
 
 	// Database options
 	serveCmd.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")

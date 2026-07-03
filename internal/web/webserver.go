@@ -28,6 +28,7 @@ type Webserver struct {
 	readTimeout  time.Duration
 	writeTimeout time.Duration
 	idleTimeout  time.Duration
+	pprofEnabled bool
 }
 
 func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, error) {
@@ -62,13 +63,20 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		MaxAge:           300, // Maximum value isn't ignored by any of the major browsers
 	}))
 	mux.Handle("/metrics", promhttp.Handler())
-	mux.Route("/debug/pprof", func(mux chi.Router) {
-		mux.HandleFunc("/", pprof.Index)
-		mux.HandleFunc("/cmdline", pprof.Cmdline)
-		mux.HandleFunc("/profile", pprof.Profile)
-		mux.HandleFunc("/symbol", pprof.Symbol)
-		mux.HandleFunc("/trace", pprof.Trace)
-	})
+
+	// pprof exposes process internals (goroutine stacks, heap, CPU profiles) and
+	// is an information-leak and DoS surface, so it stays off the public mux
+	// unless explicitly enabled. Gate behind config rather than mounting it
+	// unconditionally.
+	if newApp.pprofEnabled {
+		mux.Route("/debug/pprof", func(mux chi.Router) {
+			mux.HandleFunc("/", pprof.Index)
+			mux.HandleFunc("/cmdline", pprof.Cmdline)
+			mux.HandleFunc("/profile", pprof.Profile)
+			mux.HandleFunc("/symbol", pprof.Symbol)
+			mux.HandleFunc("/trace", pprof.Trace)
+		})
+	}
 
 	// Mount the API handlers
 	mux.Mount("/api/v1", http.StripPrefix("/api/v1", apiHandlers))
@@ -166,5 +174,15 @@ func WithIdleTimeout(timeout int) func(*Webserver) {
 func WithFileServer(fs http.Handler) func(*Webserver) {
 	return func(w *Webserver) {
 		w.fileserver = fs
+	}
+}
+
+// WithPprof toggles the /debug/pprof/* profiling endpoints. They are disabled by
+// default because they expose process internals and are unauthenticated on the
+// public mux; enable only in trusted environments or behind separate access
+// controls.
+func WithPprof(enabled bool) func(*Webserver) {
+	return func(w *Webserver) {
+		w.pprofEnabled = enabled
 	}
 }

@@ -144,6 +144,7 @@ func (application *App) Run(ctx context.Context) error {
 		web.WithIdleTimeout(application.cfg.Webserver.IdleTimeout),
 		web.WithLogger(application.logger),
 		web.WithFileServer(staticFs),
+		web.WithPprof(application.cfg.Webserver.PprofEnabled),
 	)
 	if err != nil {
 		return fmt.Errorf("server.New(): %w", err)

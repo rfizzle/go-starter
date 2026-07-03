@@ -33,6 +33,11 @@ type Webserver struct {
 	ReadTimeout  int    `mapstructure:"read-timeout"`
 	WriteTimeout int    `mapstructure:"write-timeout"`
 	IdleTimeout  int    `mapstructure:"idle-timeout"`
+	// PprofEnabled mounts the /debug/pprof/* profiling endpoints on the public
+	// mux. Disabled by default: the endpoints are unauthenticated and expose
+	// process internals (an information-leak and DoS surface). Enable only in
+	// trusted environments or behind separate access controls.
+	PprofEnabled bool `mapstructure:"pprof-enabled"`
 }
 
 type Database struct {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 	"time"
 
@@ -91,6 +92,32 @@ func TestWebserverStartAndStop(t *testing.T) {
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status OK, got %v", resp.Status)
+	}
+}
+
+func TestPprofGating(t *testing.T) {
+	// pprof is a security-sensitive surface, so lock in that it stays off the
+	// mux unless explicitly enabled and appears only when WithPprof(true) is set.
+	tests := []struct {
+		name       string
+		enabled    bool
+		wantStatus int
+	}{
+		{name: "disabled by default", enabled: false, wantStatus: http.StatusNotFound},
+		{name: "enabled via option", enabled: true, wantStatus: http.StatusOK},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ws, err := New(http.NewServeMux(), WithPprof(tt.enabled))
+			assert.NoError(t, err)
+
+			req := httptest.NewRequest(http.MethodGet, "/debug/pprof/", nil)
+			rec := httptest.NewRecorder()
+			ws.server.Handler.ServeHTTP(rec, req)
+
+			assert.Equal(t, tt.wantStatus, rec.Code)
+		})
 	}
 }
 
