@@ -14,9 +14,18 @@ import (
 func Logger(logger *zap.Logger, loggingPaths []string) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Only log on defined paths (static requests can be logged via forward web server like nginx)
-			for _, path := range loggingPaths {
-				if !stringGlob(path, r.URL.Path) {
+			// Only log on defined paths (static requests can be logged via forward web server like nginx).
+			// With no patterns configured there is no filter, so every request is logged. Otherwise
+			// log when the request matches ANY configured pattern and skip only when none match.
+			if len(loggingPaths) > 0 {
+				var matched bool
+				for _, path := range loggingPaths {
+					if stringGlob(path, r.URL.Path) {
+						matched = true
+						break
+					}
+				}
+				if !matched {
 					next.ServeHTTP(w, r)
 					return
 				}
