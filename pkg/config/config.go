@@ -5,6 +5,7 @@ type Application struct {
 	Build     Build     `json:"build"`
 	Webserver Webserver `json:"webserver"`
 	Database  Database  `json:"database"`
+	Auth      Auth      `json:"auth"`
 	// ShutdownDelay is the delay, in seconds, between receiving a shutdown
 	// signal and beginning graceful shutdown. It gives orchestrators such as
 	// Kubernetes time to propagate the not-ready state and stop routing traffic
@@ -34,4 +35,16 @@ type Database struct {
 	URI string `json:"uri"`
 	// PingTimeout is the timeout, in seconds, for database ping operations.
 	PingTimeout int `json:"ping-timeout"`
+}
+
+type Auth struct {
+	// JWTSecret is the shared HMAC (HS256) secret used to sign and verify JWT
+	// bearer tokens. When empty, protected endpoints fail closed (unauthorized).
+	JWTSecret string `json:"jwt-secret"`
+	// JWTIssuer, when set, is required on validated tokens ("iss" claim).
+	JWTIssuer string `json:"jwt-issuer"`
+	// JWTAudience, when set, is required on validated tokens ("aud" claim).
+	JWTAudience string `json:"jwt-audience"`
+	// JWTTTL is the lifetime, in seconds, of generated tokens. Default 3600.
+	JWTTTL int `json:"jwt-ttl"`
 }

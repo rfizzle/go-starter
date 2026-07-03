@@ -34,8 +34,39 @@ paths:
       security:
         - { }
       description: "Readiness probe for kubernetes health check. Returns 200 if the service is ready to serve requests. \nReturns 503 if the service is not ready to serve requests (starting up or shutting down).\n"
+  /me:
+    get:
+      tags:
+        - user
+      summary: Return the authenticated subject
+      operationId: GetCurrentUser
+      description: "Example protected endpoint. Requires a valid bearer token and returns the subject encoded in it."
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/currentUserResponse"
+        "401":
+          description: unauthorized
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT bearer token passed in the Authorization header.
   schemas:
+    currentUserResponse:
+      type: object
+      required:
+        - subject
+      properties:
+        subject:
+          type: string
     genericResponse:
       type: object
       properties:

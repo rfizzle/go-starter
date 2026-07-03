@@ -11,6 +11,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
+	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/rfizzle/go-starter/internal/controller"
 	"github.com/rfizzle/go-starter/internal/storage/postgres"
 	"github.com/rfizzle/go-starter/internal/web"
@@ -77,18 +78,45 @@ func (application *App) Run(ctx context.Context) error {
 		}
 	}()
 
+	// Build the JWT validator that authenticates protected operations. When no
+	// secret is configured the validator is nil, and the SecurityHandler fails
+	// protected requests closed rather than accepting forged tokens.
+	var validator auth.TokenValidator
+	if application.cfg.Auth.JWTSecret != "" {
+		jwtOpts := []auth.JWTOption{}
+		if application.cfg.Auth.JWTIssuer != "" {
+			jwtOpts = append(jwtOpts, auth.WithIssuer(application.cfg.Auth.JWTIssuer))
+		}
+		if application.cfg.Auth.JWTAudience != "" {
+			jwtOpts = append(jwtOpts, auth.WithAudience(application.cfg.Auth.JWTAudience))
+		}
+		if application.cfg.Auth.JWTTTL > 0 {
+			jwtOpts = append(jwtOpts, auth.WithTTL(time.Duration(application.cfg.Auth.JWTTTL)*time.Second))
+		}
+
+		jwtValidator, err := auth.NewJWT([]byte(application.cfg.Auth.JWTSecret), jwtOpts...)
+		if err != nil {
+			return fmt.Errorf("auth.NewJWT(): %w", err)
+		}
+		validator = jwtValidator
+	} else {
+		application.logger.Warn("no auth.jwt-secret configured; protected endpoints will reject all requests")
+	}
+
 	// Configure the controllers
 	controllerOpts := controller.Options{
 		ReadyState: application.ready,
 		Store:      store,
+		Validator:  validator,
 	}
 	appController, err := controller.NewController(&controllerOpts)
 	if err != nil {
 		return fmt.Errorf("controller.NewController(): %w", err)
 	}
 
-	// Configure the API server
-	appServer, err := api.NewServer(appController)
+	// Configure the API server. The controller doubles as the ogen
+	// SecurityHandler, authenticating bearer tokens for protected operations.
+	appServer, err := api.NewServer(appController, appController)
 	if err != nil {
 		return fmt.Errorf("api.NewServer(): %w", err)
 	}

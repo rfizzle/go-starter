@@ -13,6 +13,15 @@ type UnimplementedHandler struct{}
 
 var _ Handler = UnimplementedHandler{}
 
+// GetCurrentUser implements GetCurrentUser operation.
+//
+// Example protected endpoint. Requires a valid bearer token and returns the subject encoded in it.
+//
+// GET /me
+func (UnimplementedHandler) GetCurrentUser(ctx context.Context) (r GetCurrentUserRes, _ error) {
+	return r, ht.ErrNotImplemented
+}
+
 // HealthLiveness implements HealthLiveness operation.
 //
 // Liveness probe.

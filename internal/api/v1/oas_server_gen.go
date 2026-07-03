@@ -8,6 +8,12 @@ import (
 
 // Handler handles operations described by OpenAPI v3 specification.
 type Handler interface {
+	// GetCurrentUser implements GetCurrentUser operation.
+	//
+	// Example protected endpoint. Requires a valid bearer token and returns the subject encoded in it.
+	//
+	// GET /me
+	GetCurrentUser(ctx context.Context) (GetCurrentUserRes, error)
 	// HealthLiveness implements HealthLiveness operation.
 	//
 	// Liveness probe.
@@ -26,18 +32,20 @@ type Handler interface {
 // Server implements http server based on OpenAPI v3 specification and
 // calls Handler to handle requests.
 type Server struct {
-	h Handler
+	h   Handler
+	sec SecurityHandler
 	baseServer
 }
 
 // NewServer creates new Server.
-func NewServer(h Handler, opts ...ServerOption) (*Server, error) {
+func NewServer(h Handler, sec SecurityHandler, opts ...ServerOption) (*Server, error) {
 	s, err := newServerConfig(opts...).baseServer()
 	if err != nil {
 		return nil, err
 	}
 	return &Server{
 		h:          h,
+		sec:        sec,
 		baseServer: s,
 	}, nil
 }

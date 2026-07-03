@@ -33,9 +33,16 @@ func newAuthSubjectContext(ctx context.Context, key string, subject string) (con
 		}), nil
 	}
 
-	// If a context does exist, add the new Subject to the map and return
-	existingContext.SubjectMap[key] = subject
-	return context.WithValue(ctx, authSubjectContextKey{}, existingContext), nil
+	// If a context does exist, copy its map before inserting so the derived
+	// context does not mutate a map still visible to the parent context.
+	merged := make(map[string]string, len(existingContext.SubjectMap)+1)
+	for k, v := range existingContext.SubjectMap {
+		merged[k] = v
+	}
+	merged[key] = subject
+	return context.WithValue(ctx, authSubjectContextKey{}, authSubjectContext{
+		SubjectMap: merged,
+	}), nil
 }
 
 // subjectFromContext returns a context with a subject map if present.
@@ -70,4 +77,12 @@ func (s *service) subjectFromContext(ctx context.Context) (string, error) {
 // GetSubjectFromContext is a public function to get subject from context with a specific key
 func GetSubjectFromContext(ctx context.Context, key string) (string, error) {
 	return subjectFromContext(ctx, key)
+}
+
+// WithSubject returns a copy of ctx carrying the authenticated subject under the
+// given key. It is the public counterpart to GetSubjectFromContext, used by
+// transport layers (e.g. ogen's SecurityHandler) that authenticate a request
+// before it reaches a handler.
+func WithSubject(ctx context.Context, key string, subject string) (context.Context, error) {
+	return newAuthSubjectContext(ctx, key, subject)
 }

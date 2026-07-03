@@ -48,9 +48,9 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/healthz/"
+		case '/': // Prefix: "/"
 
-			if l := len("/healthz/"); len(elem) >= l && elem[0:l] == "/healthz/" {
+			if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 				elem = elem[l:]
 			} else {
 				break
@@ -60,29 +60,63 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 			switch elem[0] {
-			case 'l': // Prefix: "liveness"
+			case 'h': // Prefix: "healthz/"
 
-				if l := len("liveness"); len(elem) >= l && elem[0:l] == "liveness" {
+				if l := len("healthz/"); len(elem) >= l && elem[0:l] == "healthz/" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch r.Method {
-					case "GET":
-						s.handleHealthLivenessRequest([0]string{}, elemIsEscaped, w, r)
-					default:
-						s.notAllowed(w, r, "GET")
+					break
+				}
+				switch elem[0] {
+				case 'l': // Prefix: "liveness"
+
+					if l := len("liveness"); len(elem) >= l && elem[0:l] == "liveness" {
+						elem = elem[l:]
+					} else {
+						break
 					}
 
-					return
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleHealthLivenessRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "GET")
+						}
+
+						return
+					}
+
+				case 'r': // Prefix: "readiness"
+
+					if l := len("readiness"); len(elem) >= l && elem[0:l] == "readiness" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch r.Method {
+						case "GET":
+							s.handleHealthReadinessRequest([0]string{}, elemIsEscaped, w, r)
+						default:
+							s.notAllowed(w, r, "GET")
+						}
+
+						return
+					}
+
 				}
 
-			case 'r': // Prefix: "readiness"
+			case 'm': // Prefix: "me"
 
-				if l := len("readiness"); len(elem) >= l && elem[0:l] == "readiness" {
+				if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
 					elem = elem[l:]
 				} else {
 					break
@@ -92,7 +126,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 					// Leaf node.
 					switch r.Method {
 					case "GET":
-						s.handleHealthReadinessRequest([0]string{}, elemIsEscaped, w, r)
+						s.handleGetCurrentUserRequest([0]string{}, elemIsEscaped, w, r)
 					default:
 						s.notAllowed(w, r, "GET")
 					}
@@ -182,9 +216,9 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 			break
 		}
 		switch elem[0] {
-		case '/': // Prefix: "/healthz/"
+		case '/': // Prefix: "/"
 
-			if l := len("/healthz/"); len(elem) >= l && elem[0:l] == "/healthz/" {
+			if l := len("/"); len(elem) >= l && elem[0:l] == "/" {
 				elem = elem[l:]
 			} else {
 				break
@@ -194,33 +228,71 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 				break
 			}
 			switch elem[0] {
-			case 'l': // Prefix: "liveness"
+			case 'h': // Prefix: "healthz/"
 
-				if l := len("liveness"); len(elem) >= l && elem[0:l] == "liveness" {
+				if l := len("healthz/"); len(elem) >= l && elem[0:l] == "healthz/" {
 					elem = elem[l:]
 				} else {
 					break
 				}
 
 				if len(elem) == 0 {
-					// Leaf node.
-					switch method {
-					case "GET":
-						r.name = HealthLivenessOperation
-						r.summary = "Liveness probe for kubernetes health check. Returns 200 if the service is alive."
-						r.operationID = "HealthLiveness"
-						r.pathPattern = "/healthz/liveness"
-						r.args = args
-						r.count = 0
-						return r, true
-					default:
-						return
+					break
+				}
+				switch elem[0] {
+				case 'l': // Prefix: "liveness"
+
+					if l := len("liveness"); len(elem) >= l && elem[0:l] == "liveness" {
+						elem = elem[l:]
+					} else {
+						break
 					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = HealthLivenessOperation
+							r.summary = "Liveness probe for kubernetes health check. Returns 200 if the service is alive."
+							r.operationID = "HealthLiveness"
+							r.pathPattern = "/healthz/liveness"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
+				case 'r': // Prefix: "readiness"
+
+					if l := len("readiness"); len(elem) >= l && elem[0:l] == "readiness" {
+						elem = elem[l:]
+					} else {
+						break
+					}
+
+					if len(elem) == 0 {
+						// Leaf node.
+						switch method {
+						case "GET":
+							r.name = HealthReadinessOperation
+							r.summary = "Readiness probe"
+							r.operationID = "HealthReadiness"
+							r.pathPattern = "/healthz/readiness"
+							r.args = args
+							r.count = 0
+							return r, true
+						default:
+							return
+						}
+					}
+
 				}
 
-			case 'r': // Prefix: "readiness"
+			case 'm': // Prefix: "me"
 
-				if l := len("readiness"); len(elem) >= l && elem[0:l] == "readiness" {
+				if l := len("me"); len(elem) >= l && elem[0:l] == "me" {
 					elem = elem[l:]
 				} else {
 					break
@@ -230,10 +302,10 @@ func (s *Server) FindPath(method string, u *url.URL) (r Route, _ bool) {
 					// Leaf node.
 					switch method {
 					case "GET":
-						r.name = HealthReadinessOperation
-						r.summary = "Readiness probe"
-						r.operationID = "HealthReadiness"
-						r.pathPattern = "/healthz/readiness"
+						r.name = GetCurrentUserOperation
+						r.summary = "Return the authenticated subject"
+						r.operationID = "GetCurrentUser"
+						r.pathPattern = "/me"
 						r.args = args
 						r.count = 0
 						return r, true

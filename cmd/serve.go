@@ -37,6 +37,12 @@ go-starter serve --config /etc/crypt/config.json`,
 		cobra.CheckErr(viper.BindPFlag("database.uri", cmd.Flags().Lookup("database-uri")))
 		cobra.CheckErr(viper.BindPFlag("database.ping-timeout", cmd.Flags().Lookup("database-ping-timeout")))
 
+		// Auth options
+		cobra.CheckErr(viper.BindPFlag("auth.jwt-secret", cmd.Flags().Lookup("auth-jwt-secret")))
+		cobra.CheckErr(viper.BindPFlag("auth.jwt-issuer", cmd.Flags().Lookup("auth-jwt-issuer")))
+		cobra.CheckErr(viper.BindPFlag("auth.jwt-audience", cmd.Flags().Lookup("auth-jwt-audience")))
+		cobra.CheckErr(viper.BindPFlag("auth.jwt-ttl", cmd.Flags().Lookup("auth-jwt-ttl")))
+
 		// Lifecycle options
 		cobra.CheckErr(viper.BindPFlag("shutdown-delay", cmd.Flags().Lookup("shutdown-delay")))
 	},
@@ -60,6 +66,12 @@ go-starter serve --config /etc/crypt/config.json`,
 			Database: config.Database{
 				URI:         viper.GetString("database.uri"),
 				PingTimeout: viper.GetInt("database.ping-timeout"),
+			},
+			Auth: config.Auth{
+				JWTSecret:   viper.GetString("auth.jwt-secret"),
+				JWTIssuer:   viper.GetString("auth.jwt-issuer"),
+				JWTAudience: viper.GetString("auth.jwt-audience"),
+				JWTTTL:      viper.GetInt("auth.jwt-ttl"),
 			},
 			ShutdownDelay: viper.GetInt("shutdown-delay"),
 		}
@@ -102,6 +114,12 @@ func init() {
 	// Database options
 	serveCmd.Flags().String("database-uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
 	serveCmd.Flags().Int("database-ping-timeout", 15, "timeout in seconds for database ping operations")
+
+	// Auth options
+	serveCmd.Flags().String("auth-jwt-secret", "", "shared HMAC secret for signing/verifying JWT bearer tokens (protected endpoints reject all requests when empty)")
+	serveCmd.Flags().String("auth-jwt-issuer", "", "required issuer (iss) claim on validated JWTs; not checked when empty")
+	serveCmd.Flags().String("auth-jwt-audience", "", "required audience (aud) claim on validated JWTs; not checked when empty")
+	serveCmd.Flags().Int("auth-jwt-ttl", 3600, "lifetime in seconds of generated JWTs")
 
 	// Lifecycle options
 	serveCmd.Flags().Int("shutdown-delay", 0, "seconds to wait after a shutdown signal before draining (e.g. for Kubernetes endpoint sync)")
