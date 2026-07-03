@@ -86,6 +86,7 @@ func init() {
 	serveCmd.Flags().Int("webserver.write-timeout", 60, "timeout for webserver write requests")
 	serveCmd.Flags().Int("webserver.idle-timeout", 60, "timeout for webserver idle requests")
 	serveCmd.Flags().Bool("webserver.pprof-enabled", false, "expose /debug/pprof/* profiling endpoints on the public mux (unauthenticated; enable only in trusted environments)")
+	serveCmd.Flags().StringSlice("webserver.cors-allowed-origins", []string{"https://*", "http://*"}, "origins permitted by CORS (supports '*' wildcards); the default allows any origin — restrict to your front-end origins for production")
 
 	// Database options
 	serveCmd.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")

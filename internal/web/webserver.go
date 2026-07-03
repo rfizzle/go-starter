@@ -29,6 +29,7 @@ type Webserver struct {
 	writeTimeout time.Duration
 	idleTimeout  time.Duration
 	pprofEnabled bool
+	corsOrigins  []string
 }
 
 func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, error) {
@@ -37,9 +38,12 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 
 	// Setup a new app with default values
 	newApp := &Webserver{
-		host:   "0.0.0.0",
-		port:   8080,
-		logger: zap.NewNop(),
+		host: "0.0.0.0",
+		port: 8080,
+		// Permissive default: allows any origin. This is a placeholder — restrict
+		// to your front-end origins via WithCORSOrigins before production.
+		corsOrigins: []string{"https://*", "http://*"},
+		logger:      zap.NewNop(),
 	}
 
 	// Apply options
@@ -56,7 +60,7 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	mux.Use(middleware.Logger(newApp.logger, []string{"/api/*"}))
 	mux.Use(middleware.FileServer(newApp.fileserver))
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   []string{"https://*", "http://*"},
+		AllowedOrigins:   newApp.corsOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: false,
@@ -184,5 +188,17 @@ func WithFileServer(fs http.Handler) func(*Webserver) {
 func WithPprof(enabled bool) func(*Webserver) {
 	return func(w *Webserver) {
 		w.pprofEnabled = enabled
+	}
+}
+
+// WithCORSOrigins sets the origins permitted by the CORS middleware. Each entry
+// may contain a "*" wildcard (e.g. "https://*.example.com"). An empty slice is
+// ignored so the permissive default remains in place. Restrict this to your
+// front-end origins before deploying to production.
+func WithCORSOrigins(origins []string) func(*Webserver) {
+	return func(w *Webserver) {
+		if len(origins) > 0 {
+			w.corsOrigins = origins
+		}
 	}
 }

@@ -38,6 +38,12 @@ type Webserver struct {
 	// process internals (an information-leak and DoS surface). Enable only in
 	// trusted environments or behind separate access controls.
 	PprofEnabled bool `mapstructure:"pprof-enabled"`
+	// CORSAllowedOrigins is the list of origins permitted by the CORS
+	// middleware's Access-Control-Allow-Origin handling. Each entry may contain
+	// a "*" wildcard (e.g. "https://*.example.com"). The default of
+	// "https://*"/"http://*" allows any origin and is a permissive placeholder:
+	// restrict it to your front-end origins before deploying to production.
+	CORSAllowedOrigins []string `mapstructure:"cors-allowed-origins"`
 }
 
 type Database struct {

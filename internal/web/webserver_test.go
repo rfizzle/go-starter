@@ -121,6 +121,60 @@ func TestPprofGating(t *testing.T) {
 	}
 }
 
+func TestCORSOrigins(t *testing.T) {
+	// The default is permissive (any origin echoed back); WithCORSOrigins should
+	// restrict allowed origins so a disallowed origin gets no
+	// Access-Control-Allow-Origin header.
+	tests := []struct {
+		name        string
+		options     []func(*Webserver)
+		origin      string
+		wantAllowed bool
+	}{
+		{name: "default allows any origin", origin: "https://evil.example.com", wantAllowed: true},
+		{
+			name:        "restricted allows configured origin",
+			options:     []func(*Webserver){WithCORSOrigins([]string{"https://app.example.com"})},
+			origin:      "https://app.example.com",
+			wantAllowed: true,
+		},
+		{
+			name:        "restricted blocks other origin",
+			options:     []func(*Webserver){WithCORSOrigins([]string{"https://app.example.com"})},
+			origin:      "https://evil.example.com",
+			wantAllowed: false,
+		},
+		{
+			name:        "empty slice keeps permissive default",
+			options:     []func(*Webserver){WithCORSOrigins(nil)},
+			origin:      "https://evil.example.com",
+			wantAllowed: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ws, err := New(http.NewServeMux(), tt.options...)
+			assert.NoError(t, err)
+
+			// A CORS preflight is the reliable way to observe the middleware's
+			// allow/deny decision via the response headers.
+			req := httptest.NewRequest(http.MethodOptions, "/api/v1/test", nil)
+			req.Header.Set("Origin", tt.origin)
+			req.Header.Set("Access-Control-Request-Method", http.MethodGet)
+			rec := httptest.NewRecorder()
+			ws.server.Handler.ServeHTTP(rec, req)
+
+			allowOrigin := rec.Header().Get("Access-Control-Allow-Origin")
+			if tt.wantAllowed {
+				assert.NotEmpty(t, allowOrigin, "expected origin to be allowed")
+			} else {
+				assert.Empty(t, allowOrigin, "expected origin to be blocked")
+			}
+		})
+	}
+}
+
 func TestWithHostAndPortOptions(t *testing.T) {
 	handler := http.NewServeMux()
 	host := "127.0.0.1"
