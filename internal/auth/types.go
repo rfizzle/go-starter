@@ -2,7 +2,6 @@ package auth
 
 import (
 	"context"
-	"net/http"
 )
 
 const (
@@ -28,6 +27,3 @@ type AuditEvent struct {
 
 // Option function type for configuring authentication services
 type Option func(interface{}) error
-
-// Authorization is a function type for authorization middleware
-type Authorization func(ctx context.Context, r *http.Request) (context.Context, error)
