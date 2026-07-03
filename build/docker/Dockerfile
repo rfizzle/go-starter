@@ -1,8 +1,9 @@
 # syntax=docker/dockerfile:1
 
 # Accept the Go version for the image to be set as a build argument.
-# Default to Go 1.19
-ARG GO_VERSION=1.19
+# Default to Go 1.25 to match go.mod. scripts/docker-build.bash overrides this
+# with the exact version read from go.mod.
+ARG GO_VERSION=1.25
 
 # Build stage: Build the binary
 FROM golang:${GO_VERSION}-alpine as golang
