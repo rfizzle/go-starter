@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"sync"
 	"sync/atomic"
 	"time"
 
@@ -23,7 +22,6 @@ import (
 
 type App struct {
 	cfg    *config.Application
-	state  *state
 	ready  *atomic.Bool
 	logger *zap.Logger
 }
@@ -33,12 +31,7 @@ func New(cfg *config.Application) (*App, error) {
 	isReady.Store(false)
 
 	return &App{
-		cfg: cfg,
-		state: &state{
-			mutex:      sync.Mutex{},
-			StartTime:  time.Now(),
-			ErrorCount: 0,
-		},
+		cfg:    cfg,
 		ready:  isReady,
 		logger: zap.NewNop(),
 	}, nil
