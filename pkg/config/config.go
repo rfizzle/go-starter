@@ -39,6 +39,11 @@ type Webserver struct {
 	ReadTimeout       int `mapstructure:"read-timeout"`
 	WriteTimeout      int `mapstructure:"write-timeout"`
 	IdleTimeout       int `mapstructure:"idle-timeout"`
+	// MaxHeaderBytes caps the total size, in bytes, of request headers the
+	// server will read. It bounds the memory a single request can force the
+	// server to buffer, mitigating oversized-header attacks. 0 keeps this
+	// server's safe 1 MiB default.
+	MaxHeaderBytes int `mapstructure:"max-header-bytes"`
 	// PprofEnabled mounts the /debug/pprof/* profiling endpoints on the public
 	// mux. Disabled by default: the endpoints are unauthenticated and expose
 	// process internals (an information-leak and DoS surface). Enable only in

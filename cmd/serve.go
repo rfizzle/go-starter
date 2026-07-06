@@ -86,6 +86,7 @@ func init() {
 	serveCmd.Flags().Int("webserver.read-timeout", 60, "timeout for webserver read requests")
 	serveCmd.Flags().Int("webserver.write-timeout", 60, "timeout for webserver write requests")
 	serveCmd.Flags().Int("webserver.idle-timeout", 60, "timeout for webserver idle requests")
+	serveCmd.Flags().Int("webserver.max-header-bytes", 1<<20, "maximum size in bytes of request headers the server will read (bounds memory per request; 0 keeps this server's safe 1 MiB default)")
 	serveCmd.Flags().Bool("webserver.pprof-enabled", false, "expose /debug/pprof/* profiling endpoints on the public mux (unauthenticated; enable only in trusted environments)")
 	serveCmd.Flags().StringSlice("webserver.cors-allowed-origins", []string{"https://*", "http://*"}, "origins permitted by CORS (supports '*' wildcards); the default allows any origin — restrict to your front-end origins for production")
 

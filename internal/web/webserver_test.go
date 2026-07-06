@@ -197,6 +197,29 @@ func TestReadHeaderTimeout(t *testing.T) {
 	})
 }
 
+func TestMaxHeaderBytes(t *testing.T) {
+	// An explicit MaxHeaderBytes on the http.Server bounds the memory a single
+	// request's headers can force the server to buffer, so verify both the safe
+	// default and the override.
+	t.Run("safe default when unset", func(t *testing.T) {
+		ws, err := New(http.NewServeMux())
+		assert.NoError(t, err)
+		assert.Equal(t, 1<<20, ws.server.MaxHeaderBytes)
+	})
+
+	t.Run("override via option", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithMaxHeaderBytes(2<<20))
+		assert.NoError(t, err)
+		assert.Equal(t, 2<<20, ws.server.MaxHeaderBytes)
+	})
+
+	t.Run("non-positive keeps default", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithMaxHeaderBytes(0))
+		assert.NoError(t, err)
+		assert.Equal(t, 1<<20, ws.server.MaxHeaderBytes)
+	})
+}
+
 func TestWithHostAndPortOptions(t *testing.T) {
 	handler := http.NewServeMux()
 	host := "127.0.0.1"

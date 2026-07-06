@@ -29,6 +29,7 @@ type Webserver struct {
 	readTimeout       time.Duration
 	writeTimeout      time.Duration
 	idleTimeout       time.Duration
+	maxHeaderBytes    int
 	pprofEnabled      bool
 	corsOrigins       []string
 }
@@ -45,6 +46,11 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		// client trickling headers to hold connections open) by default, even
 		// when the operator leaves the other timeouts unset.
 		readHeaderTimeout: 5 * time.Second,
+		// Cap total request header size at 1 MiB (Go's own default) so an
+		// oversized-header request can't force the server to buffer unbounded
+		// memory. Set explicitly rather than relying on the implicit default so
+		// the limit is visible and tunable.
+		maxHeaderBytes: 1 << 20,
 		// Permissive default: allows any origin. This is a placeholder — restrict
 		// to your front-end origins via WithCORSOrigins before production.
 		corsOrigins: []string{"https://*", "http://*"},
@@ -97,6 +103,7 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		WriteTimeout:      newApp.writeTimeout,
 		ReadTimeout:       newApp.readTimeout,
 		IdleTimeout:       newApp.idleTimeout,
+		MaxHeaderBytes:    newApp.maxHeaderBytes,
 		ErrorLog:          zap.NewStdLog(newApp.logger),
 		Handler:           mux,
 	}
@@ -189,6 +196,17 @@ func WithWriteTimeout(timeout time.Duration) func(*Webserver) {
 func WithIdleTimeout(timeout time.Duration) func(*Webserver) {
 	return func(w *Webserver) {
 		w.idleTimeout = timeout
+	}
+}
+
+// WithMaxHeaderBytes caps the total size of request headers the server will
+// read, bounding the memory a single request can force the server to buffer. A
+// non-positive value is ignored so the safe 1 MiB default remains in place.
+func WithMaxHeaderBytes(maxBytes int) func(*Webserver) {
+	return func(w *Webserver) {
+		if maxBytes > 0 {
+			w.maxHeaderBytes = maxBytes
+		}
 	}
 }
 
