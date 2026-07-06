@@ -60,8 +60,15 @@ func (application *App) Run(ctx context.Context) error {
 
 	// The pool outlives the component group: it is closed only after every
 	// component has returned, so in-flight requests can still reach the database
-	// while the webserver drains.
-	defer pool.Close()
+	// while the webserver drains. The close is bounded so a connection wedged
+	// mid-query cannot hang shutdown indefinitely; on timeout the pool is
+	// abandoned (its close still finishes in the background) and we log it.
+	defer func() {
+		closeTimeout := time.Duration(application.cfg.Database.CloseTimeout) * time.Second
+		if err := postgres.ClosePool(pool, closeTimeout); err != nil {
+			application.logger.Warn("database pool close did not complete cleanly", zap.Error(err))
+		}
+	}()
 
 	store, err := postgres.Open(
 		ctx,

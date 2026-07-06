@@ -75,6 +75,36 @@ func NewPool(ctx context.Context, uri string, poolCfg PoolConfig) (*pgxpool.Pool
 	return pool, nil
 }
 
+// ClosePool closes the pool, bounding the wait by timeout. pgxpool.Pool.Close
+// blocks until every connection is returned to the pool and closed, so a
+// connection wedged mid-query (or on a dead socket) can otherwise hang shutdown
+// indefinitely. On timeout ClosePool stops waiting and returns an error; the
+// abandoned Close finishes on its own if it can make progress, and the process
+// is exiting regardless. It returns nil once Close completes within the
+// timeout. A non-positive timeout waits indefinitely (the raw Close behaviour).
+func ClosePool(pool *pgxpool.Pool, timeout time.Duration) error {
+	done := make(chan struct{})
+	go func() {
+		pool.Close()
+		close(done)
+	}()
+
+	if timeout <= 0 {
+		<-done
+		return nil
+	}
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-done:
+		return nil
+	case <-timer.C:
+		return fmt.Errorf("pgxpool.Close() did not complete within %s", timeout)
+	}
+}
+
 // clampInt32 narrows a non-negative int to int32, capping at math.MaxInt32 so
 // an out-of-range config value saturates rather than wrapping to a negative
 // pool size.

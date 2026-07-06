@@ -67,6 +67,11 @@ type Database struct {
 	// HealthCheckPeriod is the interval, in seconds, between pool health checks
 	// of idle connections. 0 uses the pgx default (60).
 	HealthCheckPeriod int `mapstructure:"health-check-period"`
+	// CloseTimeout bounds, in seconds, how long shutdown waits for the pool to
+	// close. pgxpool.Close blocks until every connection is returned and closed,
+	// so a connection wedged mid-query would otherwise hang shutdown
+	// indefinitely. 0 or less waits indefinitely (the raw pgxpool behaviour).
+	CloseTimeout int `mapstructure:"close-timeout"`
 }
 
 type Auth struct {

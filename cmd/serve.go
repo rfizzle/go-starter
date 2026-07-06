@@ -96,6 +96,7 @@ func init() {
 	serveCmd.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
 	serveCmd.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
 	serveCmd.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
+	serveCmd.Flags().Int("database.close-timeout", 10, "seconds to wait for the connection pool to close on shutdown before abandoning it (0 waits indefinitely)")
 
 	// Auth options
 	serveCmd.Flags().String("auth.jwt-secret", "", "shared HMAC secret for signing/verifying JWT bearer tokens (protected endpoints reject all requests when empty)")

@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -64,6 +65,38 @@ func TestNewPool(t *testing.T) {
 		assert.Equal(t, time.Hour, cfg.MaxConnLifetime)
 		assert.Equal(t, 30*time.Minute, cfg.MaxConnIdleTime)
 		assert.Equal(t, time.Minute, cfg.HealthCheckPeriod)
+	})
+}
+
+func TestClosePool(t *testing.T) {
+	ctx := context.Background()
+
+	// A lazily-connected pool to an unreachable host holds no live connections,
+	// so Close returns promptly and ClosePool should not report a timeout.
+	newIdlePool := func(t *testing.T) *pgxpool.Pool {
+		t.Helper()
+		pool, err := NewPool(ctx, "postgres://user:pass@localhost:5432/db", PoolConfig{})
+		require.NoError(t, err)
+		require.NotNil(t, pool)
+		return pool
+	}
+
+	t.Run("returns nil when close completes within the timeout", func(t *testing.T) {
+		pool := newIdlePool(t)
+		assert.NoError(t, ClosePool(pool, 5*time.Second))
+	})
+
+	t.Run("non-positive timeout waits for close and returns nil", func(t *testing.T) {
+		pool := newIdlePool(t)
+		assert.NoError(t, ClosePool(pool, 0))
+	})
+
+	t.Run("double close is safe", func(t *testing.T) {
+		// pgxpool.Close guards with sync.Once, so a second ClosePool after the
+		// pool is already closed must still return promptly without panicking.
+		pool := newIdlePool(t)
+		require.NoError(t, ClosePool(pool, 5*time.Second))
+		assert.NoError(t, ClosePool(pool, 5*time.Second))
 	})
 }
 
