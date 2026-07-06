@@ -52,6 +52,21 @@ type Database struct {
 	URI string `mapstructure:"uri"`
 	// PingTimeout is the timeout, in seconds, for database ping operations.
 	PingTimeout int `mapstructure:"ping-timeout"`
+	// MaxConns caps the connection pool size. 0 uses the pgx default (the
+	// greater of 4 and runtime.NumCPU()).
+	MaxConns int `mapstructure:"max-conns"`
+	// MinConns is the number of idle connections kept warm in the pool. 0 uses
+	// the pgx default (0).
+	MinConns int `mapstructure:"min-conns"`
+	// MaxConnLifetime is the duration, in seconds, after which a connection is
+	// closed and replaced. 0 uses the pgx default (3600).
+	MaxConnLifetime int `mapstructure:"max-conn-lifetime"`
+	// MaxConnIdleTime is the duration, in seconds, after which an idle
+	// connection is closed. 0 uses the pgx default (1800).
+	MaxConnIdleTime int `mapstructure:"max-conn-idle-time"`
+	// HealthCheckPeriod is the interval, in seconds, between pool health checks
+	// of idle connections. 0 uses the pgx default (60).
+	HealthCheckPeriod int `mapstructure:"health-check-period"`
 }
 
 type Auth struct {

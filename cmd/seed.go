@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -62,9 +61,15 @@ go-starter seed --database.uri "$DATABASE_URI"`,
 		// Own the pool locally: unlike serve, seed is a short-lived command that
 		// connects, seeds, and exits, so it opens and closes its own pool rather
 		// than sharing one with long-lived components.
-		pool, err := pgxpool.New(ctx, cfg.Database.URI)
+		pool, err := postgres.NewPool(ctx, cfg.Database.URI, postgres.PoolConfig{
+			MaxConns:                 cfg.Database.MaxConns,
+			MinConns:                 cfg.Database.MinConns,
+			MaxConnLifetimeSeconds:   cfg.Database.MaxConnLifetime,
+			MaxConnIdleTimeSeconds:   cfg.Database.MaxConnIdleTime,
+			HealthCheckPeriodSeconds: cfg.Database.HealthCheckPeriod,
+		})
 		if err != nil {
-			return fmt.Errorf("pgxpool.New(): %w", err)
+			return fmt.Errorf("postgres.NewPool(): %w", err)
 		}
 		defer pool.Close()
 
@@ -113,6 +118,11 @@ func init() {
 	// Database options (mirrors serve so seed is runnable standalone).
 	seedCmd.Flags().String("database.uri", "", "PostgreSQL connection URI, e.g. the value of $DATABASE_URI")
 	seedCmd.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
+	seedCmd.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
+	seedCmd.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
+	seedCmd.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
+	seedCmd.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
+	seedCmd.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
 
 	// Logging options (mirrors serve so seed honours the same flags rather than
 	// only config file / env vars).

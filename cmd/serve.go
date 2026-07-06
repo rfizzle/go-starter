@@ -91,6 +91,11 @@ func init() {
 	// Database options
 	serveCmd.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
 	serveCmd.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
+	serveCmd.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
+	serveCmd.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
+	serveCmd.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
+	serveCmd.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
+	serveCmd.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
 
 	// Auth options
 	serveCmd.Flags().String("auth.jwt-secret", "", "shared HMAC secret for signing/verifying JWT bearer tokens (protected endpoints reject all requests when empty)")

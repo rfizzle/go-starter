@@ -6,7 +6,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
@@ -44,11 +43,19 @@ func New(cfg *config.Application) (*App, error) {
 func (application *App) Run(ctx context.Context) error {
 	// Create the connection pool explicitly so the application owns it and can
 	// share the exact same pool between the storage.Client (postgres.Client)
-	// and the user domain repository. pgxpool connects lazily, so the explicit
-	// Ping below is what makes an unreachable database fail startup.
-	pool, err := pgxpool.New(ctx, application.cfg.Database.URI)
+	// and the user domain repository. The pool is sized from config rather than
+	// left at the pgx defaults (4 × NumCPU), which are frequently wrong under
+	// load. pgxpool connects lazily, so the explicit Ping below is what makes an
+	// unreachable database fail startup.
+	pool, err := postgres.NewPool(ctx, application.cfg.Database.URI, postgres.PoolConfig{
+		MaxConns:                 application.cfg.Database.MaxConns,
+		MinConns:                 application.cfg.Database.MinConns,
+		MaxConnLifetimeSeconds:   application.cfg.Database.MaxConnLifetime,
+		MaxConnIdleTimeSeconds:   application.cfg.Database.MaxConnIdleTime,
+		HealthCheckPeriodSeconds: application.cfg.Database.HealthCheckPeriod,
+	})
 	if err != nil {
-		return fmt.Errorf("pgxpool.New(): %w", err)
+		return fmt.Errorf("postgres.NewPool(): %w", err)
 	}
 
 	// The pool outlives the component group: it is closed only after every
