@@ -28,11 +28,17 @@ type Build struct {
 }
 
 type Webserver struct {
-	Address      string `mapstructure:"address"`
-	Port         int    `mapstructure:"port"`
-	ReadTimeout  int    `mapstructure:"read-timeout"`
-	WriteTimeout int    `mapstructure:"write-timeout"`
-	IdleTimeout  int    `mapstructure:"idle-timeout"`
+	Address string `mapstructure:"address"`
+	Port    int    `mapstructure:"port"`
+	// ReadHeaderTimeout is the timeout, in seconds, for reading request
+	// headers. It bounds how long a client may take to send its headers,
+	// mitigating Slowloris-style attacks that hold connections open by
+	// trickling headers. 0 keeps this server's safe 5s default rather than
+	// Go's own behaviour (fall back to ReadTimeout, else no timeout at all).
+	ReadHeaderTimeout int `mapstructure:"read-header-timeout"`
+	ReadTimeout       int `mapstructure:"read-timeout"`
+	WriteTimeout      int `mapstructure:"write-timeout"`
+	IdleTimeout       int `mapstructure:"idle-timeout"`
 	// PprofEnabled mounts the /debug/pprof/* profiling endpoints on the public
 	// mux. Disabled by default: the endpoints are unauthenticated and expose
 	// process internals (an information-leak and DoS surface). Enable only in

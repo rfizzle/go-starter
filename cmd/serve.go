@@ -82,6 +82,7 @@ func init() {
 	// Webserver options
 	serveCmd.Flags().String("webserver.address", "0.0.0.0", "interface to which the webserver will bind")
 	serveCmd.Flags().Int("webserver.port", 8080, "port on which the webserver will listen")
+	serveCmd.Flags().Int("webserver.read-header-timeout", 5, "seconds allowed for reading request headers before timing out (mitigates Slowloris; 0 keeps this server's safe 5s default)")
 	serveCmd.Flags().Int("webserver.read-timeout", 60, "timeout for webserver read requests")
 	serveCmd.Flags().Int("webserver.write-timeout", 60, "timeout for webserver write requests")
 	serveCmd.Flags().Int("webserver.idle-timeout", 60, "timeout for webserver idle requests")

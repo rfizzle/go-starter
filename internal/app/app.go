@@ -146,6 +146,7 @@ func (application *App) Run(ctx context.Context) error {
 		appServer,
 		web.WithHost(application.cfg.Webserver.Address),
 		web.WithPort(application.cfg.Webserver.Port),
+		web.WithReadHeaderTimeout(time.Duration(application.cfg.Webserver.ReadHeaderTimeout)*time.Second),
 		web.WithReadTimeout(time.Duration(application.cfg.Webserver.ReadTimeout)*time.Second),
 		web.WithWriteTimeout(time.Duration(application.cfg.Webserver.WriteTimeout)*time.Second),
 		web.WithIdleTimeout(time.Duration(application.cfg.Webserver.IdleTimeout)*time.Second),

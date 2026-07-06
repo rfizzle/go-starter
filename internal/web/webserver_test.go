@@ -175,6 +175,28 @@ func TestCORSOrigins(t *testing.T) {
 	}
 }
 
+func TestReadHeaderTimeout(t *testing.T) {
+	// A non-zero ReadHeaderTimeout on the http.Server is what closes the
+	// Slowloris surface, so verify both the safe default and the override.
+	t.Run("safe default when unset", func(t *testing.T) {
+		ws, err := New(http.NewServeMux())
+		assert.NoError(t, err)
+		assert.Equal(t, 5*time.Second, ws.server.ReadHeaderTimeout)
+	})
+
+	t.Run("override via option", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithReadHeaderTimeout(2*time.Second))
+		assert.NoError(t, err)
+		assert.Equal(t, 2*time.Second, ws.server.ReadHeaderTimeout)
+	})
+
+	t.Run("non-positive keeps default", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithReadHeaderTimeout(0))
+		assert.NoError(t, err)
+		assert.Equal(t, 5*time.Second, ws.server.ReadHeaderTimeout)
+	})
+}
+
 func TestWithHostAndPortOptions(t *testing.T) {
 	handler := http.NewServeMux()
 	host := "127.0.0.1"

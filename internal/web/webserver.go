@@ -20,16 +20,17 @@ import (
 )
 
 type Webserver struct {
-	host         string
-	port         int
-	server       *http.Server
-	logger       *zap.Logger
-	fileserver   http.Handler
-	readTimeout  time.Duration
-	writeTimeout time.Duration
-	idleTimeout  time.Duration
-	pprofEnabled bool
-	corsOrigins  []string
+	host              string
+	port              int
+	server            *http.Server
+	logger            *zap.Logger
+	fileserver        http.Handler
+	readHeaderTimeout time.Duration
+	readTimeout       time.Duration
+	writeTimeout      time.Duration
+	idleTimeout       time.Duration
+	pprofEnabled      bool
+	corsOrigins       []string
 }
 
 func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, error) {
@@ -40,6 +41,10 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	newApp := &Webserver{
 		host: "0.0.0.0",
 		port: 8080,
+		// A short header-read deadline closes the Slowloris attack surface (a
+		// client trickling headers to hold connections open) by default, even
+		// when the operator leaves the other timeouts unset.
+		readHeaderTimeout: 5 * time.Second,
 		// Permissive default: allows any origin. This is a placeholder — restrict
 		// to your front-end origins via WithCORSOrigins before production.
 		corsOrigins: []string{"https://*", "http://*"},
@@ -87,12 +92,13 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 
 	// Create a new HTTP server with the handler
 	srv := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", newApp.host, newApp.port),
-		WriteTimeout: newApp.writeTimeout,
-		ReadTimeout:  newApp.readTimeout,
-		IdleTimeout:  newApp.idleTimeout,
-		ErrorLog:     zap.NewStdLog(newApp.logger),
-		Handler:      mux,
+		Addr:              fmt.Sprintf("%s:%d", newApp.host, newApp.port),
+		ReadHeaderTimeout: newApp.readHeaderTimeout,
+		WriteTimeout:      newApp.writeTimeout,
+		ReadTimeout:       newApp.readTimeout,
+		IdleTimeout:       newApp.idleTimeout,
+		ErrorLog:          zap.NewStdLog(newApp.logger),
+		Handler:           mux,
 	}
 
 	// Set the server on the app
@@ -154,6 +160,17 @@ func WithPort(port int) func(*Webserver) {
 func WithLogger(logger *zap.Logger) func(*Webserver) {
 	return func(w *Webserver) {
 		w.logger = logger
+	}
+}
+
+// WithReadHeaderTimeout bounds how long the server waits for a client to send
+// its request headers, mitigating Slowloris-style attacks. A non-positive
+// timeout is ignored so the safe default remains in place.
+func WithReadHeaderTimeout(timeout time.Duration) func(*Webserver) {
+	return func(w *Webserver) {
+		if timeout > 0 {
+			w.readHeaderTimeout = timeout
+		}
 	}
 }
 
