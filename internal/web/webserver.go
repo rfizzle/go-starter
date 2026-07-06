@@ -67,7 +67,7 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	mux.Use(chimiddleware.Timeout(60 * time.Second))
 	mux.Use(chimiddleware.RequestID)
 	mux.Use(chimiddleware.RealIP)
-	mux.Use(chimiddleware.Recoverer)
+	mux.Use(middleware.Recoverer(newApp.logger))
 	mux.Use(middleware.Logger(newApp.logger, []string{"/api/*"}))
 	mux.Use(middleware.FileServer(newApp.fileserver))
 	mux.Use(cors.Handler(cors.Options{
