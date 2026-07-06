@@ -60,6 +60,13 @@ type Webserver struct {
 	// "https://*"/"http://*" allows any origin and is a permissive placeholder:
 	// restrict it to your front-end origins before deploying to production.
 	CORSAllowedOrigins []string `mapstructure:"cors-allowed-origins"`
+	// TLSCertFile and TLSKeyFile are paths to a PEM-encoded certificate and
+	// private key. When both are set the server terminates TLS in-process
+	// (negotiating a TLS 1.2 floor); when either is empty the server serves
+	// plain HTTP and assumes TLS is terminated upstream by a reverse proxy or
+	// load balancer — the default posture for containerised deployments.
+	TLSCertFile string `mapstructure:"tls-cert-file"`
+	TLSKeyFile  string `mapstructure:"tls-key-file"`
 }
 
 type Database struct {

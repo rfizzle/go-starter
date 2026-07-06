@@ -156,6 +156,9 @@ func (application *App) Run(ctx context.Context) error {
 		web.WithFileServer(staticFs),
 		web.WithPprof(application.cfg.Webserver.PprofEnabled),
 		web.WithCORSOrigins(application.cfg.Webserver.CORSAllowedOrigins),
+		// No-op unless both paths are set; otherwise TLS is assumed to be
+		// terminated upstream by a reverse proxy.
+		web.WithTLS(application.cfg.Webserver.TLSCertFile, application.cfg.Webserver.TLSKeyFile),
 	)
 	if err != nil {
 		return fmt.Errorf("server.New(): %w", err)

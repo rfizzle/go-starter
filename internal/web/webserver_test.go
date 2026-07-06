@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net"
 	"net/http"
@@ -217,6 +218,51 @@ func TestMaxHeaderBytes(t *testing.T) {
 		ws, err := New(http.NewServeMux(), WithMaxHeaderBytes(0))
 		assert.NoError(t, err)
 		assert.Equal(t, 1<<20, ws.server.MaxHeaderBytes)
+	})
+}
+
+func TestTLSConfiguration(t *testing.T) {
+	// TLS is off by default (proxy-terminated posture) and only activates when
+	// both a cert and key path are supplied. When it does, a safe TLS 1.2 floor
+	// is installed unless overridden.
+	t.Run("disabled by default", func(t *testing.T) {
+		ws, err := New(http.NewServeMux())
+		assert.NoError(t, err)
+		assert.False(t, ws.tlsEnabled())
+		assert.Nil(t, ws.server.TLSConfig)
+	})
+
+	t.Run("enabled installs safe default floor", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", "key.pem"))
+		assert.NoError(t, err)
+		assert.True(t, ws.tlsEnabled())
+		if assert.NotNil(t, ws.server.TLSConfig) {
+			assert.Equal(t, uint16(tls.VersionTLS12), ws.server.TLSConfig.MinVersion)
+		}
+	})
+
+	t.Run("missing key path is a no-op", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", ""))
+		assert.NoError(t, err)
+		assert.False(t, ws.tlsEnabled())
+		assert.Nil(t, ws.server.TLSConfig)
+	})
+
+	t.Run("custom config overrides default", func(t *testing.T) {
+		custom := &tls.Config{MinVersion: tls.VersionTLS13}
+		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", "key.pem"), WithTLSConfig(custom))
+		assert.NoError(t, err)
+		if assert.NotNil(t, ws.server.TLSConfig) {
+			assert.Equal(t, uint16(tls.VersionTLS13), ws.server.TLSConfig.MinVersion)
+		}
+	})
+
+	t.Run("nil custom config keeps default", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", "key.pem"), WithTLSConfig(nil))
+		assert.NoError(t, err)
+		if assert.NotNil(t, ws.server.TLSConfig) {
+			assert.Equal(t, uint16(tls.VersionTLS12), ws.server.TLSConfig.MinVersion)
+		}
 	})
 }
 

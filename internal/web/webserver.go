@@ -1,7 +1,24 @@
+// Package web implements the application's HTTP server: middleware stack,
+// route mounting, and graceful lifecycle management.
+//
+// # TLS
+//
+// By default this server speaks plain HTTP and assumes TLS is terminated
+// upstream by a reverse proxy, load balancer, or ingress controller (the
+// common posture for containerised/Kubernetes deployments). It does not
+// redirect HTTP→HTTPS or set HSTS; that belongs to the terminating layer.
+//
+// For standalone deployments where the Go process is itself internet-facing,
+// enable in-process TLS termination with WithTLS (certificate + key paths).
+// That negotiates a TLS 1.2 protocol floor by default; WithTLSConfig overrides
+// the full *tls.Config for advanced setups (mutual TLS, a raised MinVersion, a
+// pinned cipher-suite list). When TLS is enabled the server calls
+// ListenAndServeTLS; otherwise it calls ListenAndServe.
 package web
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"net/http"
 	"net/http/pprof"
@@ -33,6 +50,14 @@ type Webserver struct {
 	maxBodyBytes      int64
 	pprofEnabled      bool
 	corsOrigins       []string
+	// TLS termination. When tlsCertFile and tlsKeyFile are both set (or a
+	// tlsConfig is supplied) the server terminates TLS in-process via
+	// ListenAndServeTLS; otherwise it serves plain HTTP and assumes an upstream
+	// proxy terminates TLS. tlsConfig, when nil, is populated with a safe
+	// default (TLS 1.2 floor) whenever cert/key paths are provided.
+	tlsCertFile string
+	tlsKeyFile  string
+	tlsConfig   *tls.Config
 }
 
 func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, error) {
@@ -102,6 +127,14 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	// Mount the API handlers
 	mux.Mount("/api/v1", http.StripPrefix("/api/v1", apiHandlers))
 
+	// When in-process TLS is requested via cert/key paths but no explicit
+	// tls.Config was supplied, install a safe default that refuses protocols
+	// below TLS 1.2. Go's own default MinVersion is already TLS 1.2, but we set
+	// it explicitly so the floor is visible and survives future stdlib changes.
+	if newApp.tlsConfig == nil && newApp.tlsCertFile != "" && newApp.tlsKeyFile != "" {
+		newApp.tlsConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	}
+
 	// Create a new HTTP server with the handler
 	srv := &http.Server{
 		Addr:              fmt.Sprintf("%s:%d", newApp.host, newApp.port),
@@ -110,6 +143,7 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		ReadTimeout:       newApp.readTimeout,
 		IdleTimeout:       newApp.idleTimeout,
 		MaxHeaderBytes:    newApp.maxHeaderBytes,
+		TLSConfig:         newApp.tlsConfig,
 		ErrorLog:          zap.NewStdLog(newApp.logger),
 		Handler:           mux,
 	}
@@ -118,6 +152,12 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	newApp.server = srv
 
 	return newApp, nil
+}
+
+// tlsEnabled reports whether the server should terminate TLS in-process. It is
+// true when both a certificate and key path were configured via WithTLS.
+func (application *Webserver) tlsEnabled() bool {
+	return application.tlsCertFile != "" && application.tlsKeyFile != ""
 }
 
 // shutdownTimeout bounds how long a graceful shutdown waits for in-flight
@@ -134,7 +174,16 @@ func (application *Webserver) Run(ctx context.Context) error {
 	// if we return via ctx.Done() first).
 	serveErr := make(chan error, 1)
 	go func() {
-		if err := application.server.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+		// ListenAndServeTLS with empty cert/key paths reads the certificate from
+		// the server's TLSConfig; we only take the TLS path when explicit paths
+		// were configured, so pass them through directly.
+		var err error
+		if application.tlsEnabled() {
+			err = application.server.ListenAndServeTLS(application.tlsCertFile, application.tlsKeyFile)
+		} else {
+			err = application.server.ListenAndServe()
+		}
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serveErr <- errors.Wrap(err, "issue serving webserver")
 			return
 		}
@@ -240,6 +289,36 @@ func WithFileServer(fs http.Handler) func(*Webserver) {
 func WithPprof(enabled bool) func(*Webserver) {
 	return func(w *Webserver) {
 		w.pprofEnabled = enabled
+	}
+}
+
+// WithTLS enables in-process TLS termination using the PEM-encoded certificate
+// and key at the given paths. Use this only for standalone deployments where
+// the Go process is internet-facing; when TLS is terminated upstream by a
+// reverse proxy or load balancer (the default posture) leave it unset. Both
+// paths must be non-empty for TLS to activate — if either is empty the option
+// is a no-op and the server continues to serve plain HTTP. Unless a full
+// tls.Config is supplied via WithTLSConfig, the server negotiates a TLS 1.2
+// protocol floor.
+func WithTLS(certFile, keyFile string) func(*Webserver) {
+	return func(w *Webserver) {
+		if certFile != "" && keyFile != "" {
+			w.tlsCertFile = certFile
+			w.tlsKeyFile = keyFile
+		}
+	}
+}
+
+// WithTLSConfig sets the tls.Config used when TLS is enabled via WithTLS,
+// overriding the default (a TLS 1.2 floor). Use it for advanced setups such as
+// mutual TLS, a raised MinVersion, or a pinned cipher-suite list. A nil config
+// is ignored so the safe default remains in place. This option only takes
+// effect when WithTLS has also supplied certificate and key paths.
+func WithTLSConfig(cfg *tls.Config) func(*Webserver) {
+	return func(w *Webserver) {
+		if cfg != nil {
+			w.tlsConfig = cfg
+		}
 	}
 }
 
