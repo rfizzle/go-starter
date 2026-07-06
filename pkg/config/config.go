@@ -6,12 +6,13 @@ type Application struct {
 	// "staging", "production"). It selects logger defaults and is attached as a
 	// field to every log line. It is distinct from Build.Env, which records the
 	// environment the binary was built for.
-	Environment string    `mapstructure:"environment"`
-	Build       Build     `mapstructure:"build"`
-	Webserver   Webserver `mapstructure:"webserver"`
-	Database    Database  `mapstructure:"database"`
-	Auth        Auth      `mapstructure:"auth"`
-	Logging     Logging   `mapstructure:"logging"`
+	Environment   string        `mapstructure:"environment"`
+	Build         Build         `mapstructure:"build"`
+	Webserver     Webserver     `mapstructure:"webserver"`
+	Database      Database      `mapstructure:"database"`
+	Auth          Auth          `mapstructure:"auth"`
+	Logging       Logging       `mapstructure:"logging"`
+	Observability Observability `mapstructure:"observability"`
 	// ShutdownDelay is the delay, in seconds, between receiving a shutdown
 	// signal and beginning graceful shutdown. It gives orchestrators such as
 	// Kubernetes time to propagate the not-ready state and stop routing traffic
@@ -118,6 +119,36 @@ type Auth struct {
 	JWTAudience string `mapstructure:"jwt-audience"`
 	// JWTTTL is the lifetime, in seconds, of generated tokens. Default 3600.
 	JWTTTL int `mapstructure:"jwt-ttl"`
+}
+
+// Observability configures OpenTelemetry (OTLP) export of traces and metrics.
+//
+// The generated ogen code already emits spans and metrics against the global
+// OpenTelemetry providers, but until a provider with an exporter is installed
+// those signals go to the SDK's no-op providers and are silently dropped. When
+// Enabled is true the application installs SDK providers wired to an OTLP/gRPC
+// collector so the signals are actually exported; when false the no-op
+// providers remain in place and there is zero exporter overhead.
+type Observability struct {
+	// Enabled turns on OTLP export of traces and metrics. When false (the
+	// default) the global OpenTelemetry providers stay no-op and nothing is
+	// exported, so instrumented code runs with negligible overhead.
+	Enabled bool `mapstructure:"enabled"`
+	// Endpoint is the OTLP/gRPC collector address, host:port without a scheme
+	// (e.g. "localhost:4317"). Empty falls back to the OTel SDK's own
+	// environment-variable resolution (OTEL_EXPORTER_OTLP_ENDPOINT), then to
+	// the SDK default of localhost:4317.
+	Endpoint string `mapstructure:"endpoint"`
+	// Insecure disables transport security (TLS) on the OTLP/gRPC connection.
+	// Enable it only for local collectors or inside a trusted network; leave it
+	// false so the exporter negotiates TLS to the collector in production.
+	Insecure bool `mapstructure:"insecure"`
+	// SampleRatio is the head-based trace sampling probability in [0.0, 1.0]:
+	// 1.0 samples every trace, 0.0 samples none. It is wrapped in a parent-based
+	// sampler so a sampling decision made upstream is always respected, keeping
+	// distributed traces complete. Values <= 0 sample nothing; values >= 1
+	// sample everything. Default 1.0.
+	SampleRatio float64 `mapstructure:"sample-ratio"`
 }
 
 type Logging struct {

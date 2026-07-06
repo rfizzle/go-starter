@@ -115,6 +115,12 @@ func init() {
 	serveCmd.Flags().String("logging.level", "info", "minimum log level: debug, info, warn, or error (--verbose forces debug)")
 	serveCmd.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")
 
+	// Observability options
+	serveCmd.Flags().Bool("observability.enabled", false, "export traces and metrics via OTLP/gRPC (disabled by default; when off the OpenTelemetry providers stay no-op and nothing is exported)")
+	serveCmd.Flags().String("observability.endpoint", "", "OTLP/gRPC collector address as host:port without scheme (empty uses OTEL_EXPORTER_OTLP_ENDPOINT, then the SDK default localhost:4317)")
+	serveCmd.Flags().Bool("observability.insecure", false, "disable TLS on the OTLP/gRPC connection (use only for local collectors or trusted networks)")
+	serveCmd.Flags().Float64("observability.sample-ratio", 1.0, "head-based trace sampling probability in [0.0, 1.0], wrapped in a parent-based sampler (1.0 samples every trace, 0.0 none)")
+
 	// Lifecycle options
 	serveCmd.Flags().Int("shutdown-delay", 0, "seconds to wait after a shutdown signal before draining (e.g. for Kubernetes endpoint sync)")
 }

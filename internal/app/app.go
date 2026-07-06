@@ -12,6 +12,7 @@ import (
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/rfizzle/go-starter/internal/controller"
+	"github.com/rfizzle/go-starter/internal/observability"
 	"github.com/rfizzle/go-starter/internal/storage/postgres"
 	"github.com/rfizzle/go-starter/internal/user"
 	"github.com/rfizzle/go-starter/internal/web"
@@ -41,6 +42,33 @@ func New(cfg *config.Application) (*App, error) {
 // the first failure cancels the group and drives a coordinated graceful
 // shutdown.
 func (application *App) Run(ctx context.Context) error {
+	// Install OpenTelemetry providers before anything instrumented runs so the
+	// generated ogen server's spans and metrics are exported from the first
+	// request. When observability is disabled this is a no-op and the global
+	// providers stay no-op. The shutdown flush runs on a fresh context because
+	// ctx is already cancelled by the time we unwind (see the deferred call),
+	// and it runs last (defer ordering) so late spans from draining requests are
+	// still captured.
+	otelShutdown, err := observability.Init(ctx, application.cfg)
+	if err != nil {
+		return fmt.Errorf("observability.Init(): %w", err)
+	}
+	defer func() {
+		// Bound the flush so a wedged exporter connection can't hang shutdown.
+		// Reuse the webserver's shutdown budget, falling back to a safe default
+		// when it is left unset so we never derive a zero (already-expired)
+		// deadline.
+		flushTimeout := time.Duration(application.cfg.Webserver.ShutdownTimeout) * time.Second
+		if flushTimeout <= 0 {
+			flushTimeout = 15 * time.Second
+		}
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), flushTimeout)
+		defer cancel()
+		if err := otelShutdown(shutdownCtx); err != nil {
+			application.logger.Warn("opentelemetry shutdown did not complete cleanly", zap.Error(err))
+		}
+	}()
+
 	// Create the connection pool explicitly so the application owns it and can
 	// share the exact same pool between the storage.Client (postgres.Client)
 	// and the user domain repository. The pool is sized from config rather than
