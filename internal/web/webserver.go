@@ -30,6 +30,7 @@ type Webserver struct {
 	writeTimeout      time.Duration
 	idleTimeout       time.Duration
 	maxHeaderBytes    int
+	maxBodyBytes      int64
 	pprofEnabled      bool
 	corsOrigins       []string
 }
@@ -51,6 +52,10 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		// memory. Set explicitly rather than relying on the implicit default so
 		// the limit is visible and tunable.
 		maxHeaderBytes: 1 << 20,
+		// Cap each request body at 10 MiB so an oversized POST/PUT can't force
+		// the server to buffer unbounded memory. Downstream handlers that need to
+		// accept larger payloads can raise this via WithMaxBodyBytes.
+		maxBodyBytes: 10 << 20,
 		// Permissive default: allows any origin. This is a placeholder — restrict
 		// to your front-end origins via WithCORSOrigins before production.
 		corsOrigins: []string{"https://*", "http://*"},
@@ -68,6 +73,7 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	mux.Use(chimiddleware.RequestID)
 	mux.Use(chimiddleware.RealIP)
 	mux.Use(middleware.Recoverer(newApp.logger))
+	mux.Use(middleware.MaxBytes(newApp.maxBodyBytes))
 	mux.Use(middleware.Logger(newApp.logger, []string{"/api/*"}))
 	mux.Use(middleware.FileServer(newApp.fileserver))
 	mux.Use(cors.Handler(cors.Options{
@@ -207,6 +213,17 @@ func WithMaxHeaderBytes(maxBytes int) func(*Webserver) {
 		if maxBytes > 0 {
 			w.maxHeaderBytes = maxBytes
 		}
+	}
+}
+
+// WithMaxBodyBytes caps the size of each request body the server will read,
+// bounding the memory a single request can force the server to buffer. Unlike
+// WithMaxHeaderBytes, a non-positive value disables the limit entirely
+// (unbounded bodies), overriding the safe 10 MiB default rather than preserving
+// it — 0 means "no limit", not "reject everything".
+func WithMaxBodyBytes(maxBytes int64) func(*Webserver) {
+	return func(w *Webserver) {
+		w.maxBodyBytes = maxBytes
 	}
 }
 

@@ -151,6 +151,7 @@ func (application *App) Run(ctx context.Context) error {
 		web.WithWriteTimeout(time.Duration(application.cfg.Webserver.WriteTimeout)*time.Second),
 		web.WithIdleTimeout(time.Duration(application.cfg.Webserver.IdleTimeout)*time.Second),
 		web.WithMaxHeaderBytes(application.cfg.Webserver.MaxHeaderBytes),
+		web.WithMaxBodyBytes(application.cfg.Webserver.MaxBodyBytes),
 		web.WithLogger(application.logger),
 		web.WithFileServer(staticFs),
 		web.WithPprof(application.cfg.Webserver.PprofEnabled),

@@ -44,6 +44,11 @@ type Webserver struct {
 	// server to buffer, mitigating oversized-header attacks. 0 keeps this
 	// server's safe 1 MiB default.
 	MaxHeaderBytes int `mapstructure:"max-header-bytes"`
+	// MaxBodyBytes caps the size, in bytes, of each request body the server will
+	// read. It bounds the memory a single POST/PUT can force the server to
+	// buffer; reading past it fails the request (413 or 400 depending on the
+	// handler). 0 or less disables the limit (unbounded bodies). Default 10 MiB.
+	MaxBodyBytes int64 `mapstructure:"max-body-bytes"`
 	// PprofEnabled mounts the /debug/pprof/* profiling endpoints on the public
 	// mux. Disabled by default: the endpoints are unauthenticated and expose
 	// process internals (an information-leak and DoS surface). Enable only in
