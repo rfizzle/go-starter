@@ -150,6 +150,8 @@ func (application *App) Run(ctx context.Context) error {
 		web.WithReadTimeout(time.Duration(application.cfg.Webserver.ReadTimeout)*time.Second),
 		web.WithWriteTimeout(time.Duration(application.cfg.Webserver.WriteTimeout)*time.Second),
 		web.WithIdleTimeout(time.Duration(application.cfg.Webserver.IdleTimeout)*time.Second),
+		web.WithRequestTimeout(time.Duration(application.cfg.Webserver.RequestTimeout)*time.Second),
+		web.WithShutdownTimeout(time.Duration(application.cfg.Webserver.ShutdownTimeout)*time.Second),
 		web.WithMaxHeaderBytes(application.cfg.Webserver.MaxHeaderBytes),
 		web.WithMaxBodyBytes(application.cfg.Webserver.MaxBodyBytes),
 		web.WithLogger(application.logger),

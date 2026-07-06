@@ -86,6 +86,8 @@ func init() {
 	serveCmd.Flags().Int("webserver.read-timeout", 60, "timeout for webserver read requests")
 	serveCmd.Flags().Int("webserver.write-timeout", 60, "timeout for webserver write requests")
 	serveCmd.Flags().Int("webserver.idle-timeout", 60, "timeout for webserver idle requests")
+	serveCmd.Flags().Int("webserver.request-timeout", 60, "seconds allowed for total request processing before the request context is cancelled (0 or less disables the limit)")
+	serveCmd.Flags().Int("webserver.shutdown-timeout", 15, "seconds a graceful shutdown waits for in-flight requests to drain before forcing close (0 keeps this server's safe 15s default)")
 	serveCmd.Flags().Int("webserver.max-header-bytes", 1<<20, "maximum size in bytes of request headers the server will read (bounds memory per request; 0 keeps this server's safe 1 MiB default)")
 	serveCmd.Flags().Int64("webserver.max-body-bytes", 10<<20, "maximum size in bytes of each request body the server will read (bounds memory per request; 0 or less disables the limit)")
 	serveCmd.Flags().Bool("webserver.pprof-enabled", false, "expose /debug/pprof/* profiling endpoints on the public mux (unauthenticated; enable only in trusted environments)")

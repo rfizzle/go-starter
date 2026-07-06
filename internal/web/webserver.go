@@ -46,6 +46,8 @@ type Webserver struct {
 	readTimeout       time.Duration
 	writeTimeout      time.Duration
 	idleTimeout       time.Duration
+	requestTimeout    time.Duration
+	shutdownTimeout   time.Duration
 	maxHeaderBytes    int
 	maxBodyBytes      int64
 	pprofEnabled      bool
@@ -72,6 +74,15 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		// client trickling headers to hold connections open) by default, even
 		// when the operator leaves the other timeouts unset.
 		readHeaderTimeout: 5 * time.Second,
+		// Bound total request-processing time so a slow handler (or a client that
+		// stalls mid-request) can't hold a connection indefinitely. Applied via
+		// chi's Timeout middleware, which cancels the request context at the
+		// deadline. Set to 0 via WithRequestTimeout to disable.
+		requestTimeout: 60 * time.Second,
+		// Bound how long a graceful shutdown waits for in-flight requests to drain
+		// before the server is forced closed, so a wedged handler can't hang the
+		// process indefinitely on SIGTERM.
+		shutdownTimeout: 15 * time.Second,
 		// Cap total request header size at 1 MiB (Go's own default) so an
 		// oversized-header request can't force the server to buffer unbounded
 		// memory. Set explicitly rather than relying on the implicit default so
@@ -94,7 +105,11 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 
 	// Setup middleware
 	mux := chi.NewMux()
-	mux.Use(chimiddleware.Timeout(60 * time.Second))
+	// A non-positive request timeout disables the middleware entirely; otherwise
+	// chi cancels the request context once the deadline elapses.
+	if newApp.requestTimeout > 0 {
+		mux.Use(chimiddleware.Timeout(newApp.requestTimeout))
+	}
 	mux.Use(chimiddleware.RequestID)
 	mux.Use(chimiddleware.RealIP)
 	mux.Use(middleware.Recoverer(newApp.logger))
@@ -160,14 +175,10 @@ func (application *Webserver) tlsEnabled() bool {
 	return application.tlsCertFile != "" && application.tlsKeyFile != ""
 }
 
-// shutdownTimeout bounds how long a graceful shutdown waits for in-flight
-// requests to drain before the server is forced closed.
-const shutdownTimeout = 15 * time.Second
-
 // Run starts the HTTP server and blocks until ctx is cancelled or the server
-// fails. On cancellation it performs a graceful shutdown, bounded by
-// shutdownTimeout. It returns nil on a clean shutdown so it composes with an
-// errgroup without treating an intentional stop as an error.
+// fails. On cancellation it performs a graceful shutdown, bounded by the
+// configured shutdown timeout. It returns nil on a clean shutdown so it composes
+// with an errgroup without treating an intentional stop as an error.
 func (application *Webserver) Run(ctx context.Context) error {
 	// ListenAndServe blocks, so run it in a goroutine and surface any startup
 	// error through a buffered channel (buffered so the goroutine never leaks
@@ -196,7 +207,7 @@ func (application *Webserver) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		// Use a fresh context: the one we were handed is already cancelled, so
 		// deriving the shutdown deadline from it would abort immediately.
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), application.shutdownTimeout)
 		defer cancel()
 
 		if err := application.server.Shutdown(shutdownCtx); err != nil {
@@ -251,6 +262,29 @@ func WithWriteTimeout(timeout time.Duration) func(*Webserver) {
 func WithIdleTimeout(timeout time.Duration) func(*Webserver) {
 	return func(w *Webserver) {
 		w.idleTimeout = timeout
+	}
+}
+
+// WithRequestTimeout bounds total request-processing time via chi's Timeout
+// middleware, cancelling the request context once the deadline elapses so a slow
+// handler or stalled client can't hold a connection indefinitely. A non-positive
+// timeout disables the middleware entirely (unbounded processing), overriding
+// the safe 60s default rather than preserving it.
+func WithRequestTimeout(timeout time.Duration) func(*Webserver) {
+	return func(w *Webserver) {
+		w.requestTimeout = timeout
+	}
+}
+
+// WithShutdownTimeout bounds how long a graceful shutdown waits for in-flight
+// requests to drain before the server is forced closed, so a wedged handler
+// can't hang the process on SIGTERM. A non-positive timeout is ignored so the
+// safe 15s default remains in place.
+func WithShutdownTimeout(timeout time.Duration) func(*Webserver) {
+	return func(w *Webserver) {
+		if timeout > 0 {
+			w.shutdownTimeout = timeout
+		}
 	}
 }
 

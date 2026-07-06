@@ -221,6 +221,74 @@ func TestMaxHeaderBytes(t *testing.T) {
 	})
 }
 
+func TestRequestTimeout(t *testing.T) {
+	// The chi Timeout middleware bounds total request processing; verify the safe
+	// default, an override, and that a non-positive value disables it.
+	t.Run("safe default when unset", func(t *testing.T) {
+		ws, err := New(http.NewServeMux())
+		assert.NoError(t, err)
+		assert.Equal(t, 60*time.Second, ws.requestTimeout)
+	})
+
+	t.Run("override via option", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithRequestTimeout(5*time.Second))
+		assert.NoError(t, err)
+		assert.Equal(t, 5*time.Second, ws.requestTimeout)
+	})
+
+	t.Run("non-positive disables the limit", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithRequestTimeout(0))
+		assert.NoError(t, err)
+		assert.Equal(t, time.Duration(0), ws.requestTimeout)
+	})
+
+	t.Run("deadline cancels a slow handler", func(t *testing.T) {
+		// A handler that outlives the request timeout should see its context
+		// cancelled, which is what frees the connection under the middleware.
+		var ctxErr error
+		handler := chi.NewRouter()
+		handler.Get("/slow", func(w http.ResponseWriter, r *http.Request) {
+			select {
+			case <-r.Context().Done():
+				ctxErr = r.Context().Err()
+			case <-time.After(2 * time.Second):
+			}
+			w.WriteHeader(http.StatusOK)
+		})
+
+		ws, err := New(handler, WithRequestTimeout(50*time.Millisecond))
+		assert.NoError(t, err)
+
+		req := httptest.NewRequest(http.MethodGet, "/api/v1/slow", nil)
+		rec := httptest.NewRecorder()
+		ws.server.Handler.ServeHTTP(rec, req)
+
+		assert.ErrorIs(t, ctxErr, context.DeadlineExceeded)
+	})
+}
+
+func TestShutdownTimeout(t *testing.T) {
+	// The shutdown timeout bounds how long graceful shutdown waits for in-flight
+	// requests to drain, so verify both the safe default and the override.
+	t.Run("safe default when unset", func(t *testing.T) {
+		ws, err := New(http.NewServeMux())
+		assert.NoError(t, err)
+		assert.Equal(t, 15*time.Second, ws.shutdownTimeout)
+	})
+
+	t.Run("override via option", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithShutdownTimeout(30*time.Second))
+		assert.NoError(t, err)
+		assert.Equal(t, 30*time.Second, ws.shutdownTimeout)
+	})
+
+	t.Run("non-positive keeps default", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), WithShutdownTimeout(0))
+		assert.NoError(t, err)
+		assert.Equal(t, 15*time.Second, ws.shutdownTimeout)
+	})
+}
+
 func TestTLSConfiguration(t *testing.T) {
 	// TLS is off by default (proxy-terminated posture) and only activates when
 	// both a cert and key path are supplied. When it does, a safe TLS 1.2 floor

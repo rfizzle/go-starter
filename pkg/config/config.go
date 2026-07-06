@@ -39,6 +39,17 @@ type Webserver struct {
 	ReadTimeout       int `mapstructure:"read-timeout"`
 	WriteTimeout      int `mapstructure:"write-timeout"`
 	IdleTimeout       int `mapstructure:"idle-timeout"`
+	// RequestTimeout bounds total request-processing time, in seconds, via chi's
+	// Timeout middleware. It cancels the request context once the deadline
+	// elapses so a slow handler or stalled client can't hold a connection
+	// indefinitely. 0 or less disables the middleware (unbounded processing).
+	// Default 60s.
+	RequestTimeout int `mapstructure:"request-timeout"`
+	// ShutdownTimeout bounds, in seconds, how long a graceful shutdown waits for
+	// in-flight requests to drain before the server is forced closed, so a wedged
+	// handler can't hang the process on SIGTERM. 0 keeps this server's safe 15s
+	// default.
+	ShutdownTimeout int `mapstructure:"shutdown-timeout"`
 	// MaxHeaderBytes caps the total size, in bytes, of request headers the
 	// server will read. It bounds the memory a single request can force the
 	// server to buffer, mitigating oversized-header attacks. 0 keeps this
