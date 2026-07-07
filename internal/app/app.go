@@ -6,6 +6,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
 	"golang.org/x/sync/errgroup"
 
@@ -97,6 +98,19 @@ func (application *App) Run(ctx context.Context) error {
 			application.logger.Warn("database pool close did not complete cleanly", zap.Error(err))
 		}
 	}()
+
+	// Expose pgxpool statistics (acquired/idle/total, empty-acquire count, …) on
+	// the same default registry the /metrics endpoint serves, so connection-pool
+	// exhaustion is observable before queries start timing out. The collector
+	// reads pool.Stat() lazily on each scrape, so its lifetime is tied to the
+	// pool: register here, unregister on shutdown so a subsequent Run (e.g. in a
+	// test) does not collide with a stale collector on the process-wide registry.
+	poolCollector := postgres.NewPoolCollector(pool)
+	if err := prometheus.Register(poolCollector); err != nil {
+		application.logger.Warn("could not register database pool metrics collector", zap.Error(err))
+	} else {
+		defer prometheus.Unregister(poolCollector)
+	}
 
 	store, err := postgres.Open(
 		ctx,
