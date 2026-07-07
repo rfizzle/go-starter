@@ -51,6 +51,12 @@ func Logger(logger *zap.Logger, loggingPaths []string) func(next http.Handler) h
 				zap.String("remote", r.RemoteAddr),
 				zap.String("request", r.RequestURI),
 				zap.String("method", r.Method),
+				zap.Int("resp-bytes", ww.BytesWritten()),
+			}
+			// ContentLength is -1 when the request body size is unknown (e.g.
+			// chunked transfer encoding); only log it when the client declared one.
+			if r.ContentLength >= 0 {
+				fields = append(fields, zap.Int64("req-bytes", r.ContentLength))
 			}
 			if requestID != "" {
 				fields = append(fields, zap.String("request-id", requestID))
