@@ -1,4 +1,4 @@
-package config
+package observability
 
 import (
 	"fmt"
@@ -6,6 +6,8 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/rfizzle/go-starter/pkg/config"
 )
 
 // NewLogger builds a *zap.Logger from the application's logging and environment
@@ -13,11 +15,16 @@ import (
 // the same binary can emit human-readable console logs in development and
 // structured JSON in production without code changes.
 //
+// This lives in the observability package so a single package owns the
+// construction of all three telemetry signals — logger, tracer, and meter (see
+// Init). Callers build the logger here and install the tracer/meter providers
+// with Init.
+//
 // Precedence for the level: an explicit Logging.Level wins; otherwise it
 // defaults to "info". Callers wanting verbose output should set Logging.Level to
 // "debug" before calling. The resolved environment is attached as a field to
 // every log line.
-func NewLogger(cfg *Application) (*zap.Logger, error) {
+func NewLogger(cfg *config.Application) (*zap.Logger, error) {
 	level, err := parseLevel(cfg.Logging.Level)
 	if err != nil {
 		return nil, err

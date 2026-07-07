@@ -9,9 +9,9 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/app"
 	"github.com/rfizzle/go-starter/internal/cli"
+	"github.com/rfizzle/go-starter/internal/observability"
 	"go.uber.org/zap"
 
-	"github.com/rfizzle/go-starter/pkg/config"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -42,7 +42,7 @@ go-starter serve --config /etc/crypt/config.json`,
 
 		// Replace the bootstrap logger with one driven by config (level, format,
 		// environment) now that config is resolved.
-		appLogger, err := config.NewLogger(cfg)
+		appLogger, err := observability.NewLogger(cfg)
 		if err != nil {
 			logger.Fatal("error initializing logger", zap.Error(err))
 		}

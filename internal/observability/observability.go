@@ -13,10 +13,10 @@
 // function does nothing. This keeps the exporter dependency inert until an
 // operator opts in, so a fresh clone runs with zero telemetry overhead.
 //
-// This owns logger-adjacent construction only for traces and meters; the zap
-// logger is still built in pkg/config. Consolidating all three here is the
-// longer-term pattern (see the hardening review), but the logger is
-// intentionally left where it is for now to keep this change focused.
+// This package owns the construction of all three telemetry signals: NewLogger
+// (see logger.go) builds the zap logger, and Init installs the OpenTelemetry
+// tracer and meter providers. Consolidating them here gives every project
+// scaffolded from this template one place that owns logger + tracer + meter.
 package observability
 
 import (

@@ -1,9 +1,11 @@
-package config
+package observability
 
 import (
 	"testing"
 
 	"go.uber.org/zap/zapcore"
+
+	"github.com/rfizzle/go-starter/pkg/config"
 )
 
 func TestParseLevel(t *testing.T) {
@@ -76,9 +78,9 @@ func TestNewLogger(t *testing.T) {
 	t.Run("builds with valid config", func(t *testing.T) {
 		t.Parallel()
 
-		logger, err := NewLogger(&Application{
+		logger, err := NewLogger(&config.Application{
 			Environment: "production",
-			Logging:     Logging{Level: "debug", Format: "json"},
+			Logging:     config.Logging{Level: "debug", Format: "json"},
 		})
 		if err != nil {
 			t.Fatalf("NewLogger() unexpected error: %v", err)
@@ -91,7 +93,7 @@ func TestNewLogger(t *testing.T) {
 	t.Run("rejects invalid level", func(t *testing.T) {
 		t.Parallel()
 
-		if _, err := NewLogger(&Application{Logging: Logging{Level: "bogus"}}); err == nil {
+		if _, err := NewLogger(&config.Application{Logging: config.Logging{Level: "bogus"}}); err == nil {
 			t.Fatal("NewLogger() expected error for invalid level, got nil")
 		}
 	})

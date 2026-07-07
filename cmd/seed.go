@@ -9,10 +9,10 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
+	"github.com/rfizzle/go-starter/internal/observability"
 	"github.com/rfizzle/go-starter/internal/seed"
 	"github.com/rfizzle/go-starter/internal/storage/postgres"
 	"github.com/rfizzle/go-starter/internal/user"
-	"github.com/rfizzle/go-starter/pkg/config"
 )
 
 // seedCmd represents the seed command. It applies pending migrations and then
@@ -43,7 +43,7 @@ go-starter seed --database.uri "$DATABASE_URI"`,
 		}
 
 		// Replace the bootstrap logger with one driven by config, matching serve.
-		appLogger, err := config.NewLogger(cfg)
+		appLogger, err := observability.NewLogger(cfg)
 		if err != nil {
 			return fmt.Errorf("initialize logger: %w", err)
 		}
