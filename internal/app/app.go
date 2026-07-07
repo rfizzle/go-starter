@@ -219,7 +219,7 @@ func (application *App) Run(ctx context.Context) error {
 	})
 
 	// Set the ready flag to true
-	application.ready.Store(true)
+	application.setReady(true)
 
 	// Log that we are serving the application
 	application.logger.Info(fmt.Sprintf("application started on %s:%d", application.cfg.Webserver.Address, application.cfg.Webserver.Port))
@@ -227,7 +227,7 @@ func (application *App) Run(ctx context.Context) error {
 	// Block until the group's context is cancelled (signal) or a component
 	// fails. Mark the app not-ready as soon as we begin unwinding.
 	err = group.Wait()
-	application.ready.Store(false)
+	application.setReady(false)
 	application.logger.Info("application stopped")
 
 	return err
@@ -238,7 +238,24 @@ func (application *App) Ready() bool {
 }
 
 func (application *App) SetReady(ready bool) {
-	application.ready.Store(ready)
+	application.setReady(ready)
+}
+
+// setReady updates the readiness flag and logs genuine state transitions so
+// readiness probe flaps are traceable. Swap reports the previous value
+// atomically, so a write that does not change the flag (e.g. repeated
+// not-ready during shutdown) is silent and only true→false / false→true edges
+// are logged.
+func (application *App) setReady(ready bool) {
+	previous := application.ready.Swap(ready)
+	if previous == ready {
+		return
+	}
+
+	application.logger.Info("readiness state changed",
+		zap.Bool("ready", ready),
+		zap.Bool("previous", previous),
+	)
 }
 
 func (application *App) Logger() *zap.Logger {
