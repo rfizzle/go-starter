@@ -131,8 +131,8 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 	@goose -s -dir internal/storage/postgres/migrations create $(name) sql
 
 ## Release:
-sync-version: ## Propagate .version (single source of truth) into package.json and api/openapi.yml
-	@echo "${MAGENTA}Syncing version from .version...${RESET}"
+sync-version: ## Propagate the git tag version (single source of truth) into .version and api/openapi.yml
+	@echo "${MAGENTA}Syncing version from the latest git tag...${RESET}"
 	@./scripts/sync-version.bash
 
 ## Docker:

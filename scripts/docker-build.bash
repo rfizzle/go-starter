@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # Application variables
 APPLICATION_NAME="starter"
@@ -10,9 +11,11 @@ PROJECT_PATH=$(realpath "$DIR_PATH/../")
 source "${PROJECT_PATH}/scripts/colors.bash"
 source "${PROJECT_PATH}/scripts/version.bash"
 
-# Setup application variables. `.version` is the single source of truth for the
-# release version; everything else (package.json, openapi.yml) is derived from it
-# via scripts/sync-version.bash.
+# Setup application variables. A git tag (vX.Y.Z) is the single source of truth
+# for the release version (see scripts/version.bash). `.version` and
+# api/openapi.yml are files derived from it for contexts that read them
+# directly; this script instead calls read_version itself, so no separate
+# `make sync-version` step is required for the Docker tag to be correct.
 GIT_COMMIT=$(git rev-list -1 HEAD)
 VERSION=$(read_version "$PROJECT_PATH")
 

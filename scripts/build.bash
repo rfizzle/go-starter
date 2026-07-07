@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -euo pipefail
 
 # Script variables
 APPLICATION_NAME="starter"
@@ -55,15 +56,15 @@ if [ -n "$CLEAN" ]; then
   if [ -n "$VERBOSE" ]; then
     echo -e "${MAGENTA}Cleaning up old bin files...${RESET}"
   fi
-  rm "$PROJECT_PATH/bin/osx/$APPLICATION_NAME" &>/dev/null
-  rm -r "$PROJECT_PATH/bin/osx" &>/dev/null
-  rm "$PROJECT_PATH/bin/windows/$APPLICATION_NAME.exe" &>/dev/null
-  rm -r "$PROJECT_PATH/bin/windows" &>/dev/null
-  rm "$PROJECT_PATH/bin/linux/$APPLICATION_NAME" &>/dev/null
-  rm -r "$PROJECT_PATH/bin/linux" &>/dev/null
-  rm "$PROJECT_PATH/bin/$APPLICATION_NAME-$VERSION-osx_64bit.zip" &>/dev/null
-  rm "$PROJECT_PATH/bin/$APPLICATION_NAME-$VERSION-windows_64bit.zip" &>/dev/null
-  rm "$PROJECT_PATH/bin/$APPLICATION_NAME-$VERSION-linux_64bit.zip" &>/dev/null
+  rm "$PROJECT_PATH/bin/osx/$APPLICATION_NAME" &>/dev/null || true
+  rm -r "$PROJECT_PATH/bin/osx" &>/dev/null || true
+  rm "$PROJECT_PATH/bin/windows/$APPLICATION_NAME.exe" &>/dev/null || true
+  rm -r "$PROJECT_PATH/bin/windows" &>/dev/null || true
+  rm "$PROJECT_PATH/bin/linux/$APPLICATION_NAME" &>/dev/null || true
+  rm -r "$PROJECT_PATH/bin/linux" &>/dev/null || true
+  rm "$PROJECT_PATH/bin/$APPLICATION_NAME-$VERSION-osx_64bit.zip" &>/dev/null || true
+  rm "$PROJECT_PATH/bin/$APPLICATION_NAME-$VERSION-windows_64bit.zip" &>/dev/null || true
+  rm "$PROJECT_PATH/bin/$APPLICATION_NAME-$VERSION-linux_64bit.zip" &>/dev/null || true
 fi
 
 # Create new clean directories
