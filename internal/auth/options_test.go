@@ -15,7 +15,7 @@ func TestWithContextKey(t *testing.T) {
 
 	authService, err := NewService(ctx, validator, Logger(logger), ContextKey("custom_key"))
 	assert.NoError(t, err)
-	
+
 	// Cast to concrete type to access private fields for testing
 	svc := authService.(*service)
 	assert.Equal(t, "custom_key", svc.contextKey)
@@ -32,7 +32,7 @@ func TestOptionsChaining(t *testing.T) {
 	)
 
 	assert.NoError(t, err)
-	
+
 	// Cast to concrete type to verify options were applied
 	svc := authService.(*service)
 	assert.Equal(t, "test_context", svc.contextKey)

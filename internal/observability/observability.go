@@ -32,6 +32,7 @@ import (
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+
 	// Match the semconv version resource.Default() is built from (see the OTel
 	// SDK's resource package) so resource.Merge below sees a single schema URL
 	// and does not report a conflict.

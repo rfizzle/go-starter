@@ -12,11 +12,11 @@ const (
 	// StatusNone indicates that no migrations have been applied to the database.
 	// This typically occurs on a fresh database installation.
 	StatusNone MigrationStatus = 0
-	
+
 	// StatusPartial indicates that some, but not all, migrations have been applied.
 	// This may occur when migrations are added over time or if a migration failed.
 	StatusPartial MigrationStatus = 1
-	
+
 	// StatusComplete indicates that all available migrations have been successfully applied.
 	// The database schema is current with all migration files.
 	StatusComplete MigrationStatus = 2

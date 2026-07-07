@@ -20,7 +20,7 @@ func (mV *mockValidator) Validate(r *http.Request) (string, error) {
 
 func TestNewService(t *testing.T) {
 	ctx := context.Background()
-	
+
 	// Test case: Successful creation of Service
 	validator := &mockValidator{}
 	logger := zaptest.NewLogger(t)
@@ -45,14 +45,14 @@ func TestServiceInterface(t *testing.T) {
 	ctx := context.Background()
 	validator := &mockValidator{}
 	logger := zaptest.NewLogger(t)
-	
+
 	service, err := NewService(ctx, validator, Logger(logger))
 	assert.Nil(t, err)
 	assert.NotNil(t, service)
-	
+
 	// Test that service implements Service interface
 	var _ Service = service
-	
+
 	// Test that service has all required methods
 	assert.NotNil(t, service.Middleware())
 	assert.NotNil(t, service.RequireAuthentication())

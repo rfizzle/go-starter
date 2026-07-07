@@ -96,7 +96,7 @@ func TestRequireAuthentication(t *testing.T) {
 
 		handler := requireAuth(nextHandler)
 		handler.ServeHTTP(rr, req)
-		
+
 		assert.Equal(t, http.StatusUnauthorized, rr.Code)
 	})
 }

@@ -70,7 +70,6 @@ func (client *Client) WithTx(ctx context.Context, fn func(tx storage.Transaction
 	return err
 }
 
-
 func (tx *transaction) Query(ctx context.Context, sql string, args ...interface{}) (storage.RowScanner, error) {
 	rows, err := tx._query(ctx, sql, args...)
 	if err != nil {

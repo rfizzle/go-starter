@@ -388,4 +388,3 @@ func TestTransaction_InsertMany(t *testing.T) {
 	err = mock.ExpectationsWereMet()
 	assert.NoError(t, err)
 }
-

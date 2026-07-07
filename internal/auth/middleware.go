@@ -84,4 +84,3 @@ func (s *service) RequireAuthenticationWithCustomResponse(errorHandler func(w ht
 		})
 	}
 }
-

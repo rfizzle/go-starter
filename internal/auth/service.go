@@ -85,4 +85,3 @@ func Logger(logger *zap.Logger) Option {
 		return nil
 	}
 }
-

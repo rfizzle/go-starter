@@ -25,7 +25,7 @@ func (s *service) AuditMiddleware(auditor AuditLogger) func(next http.Handler) h
 			if isAuthRelatedRequest(r) {
 				// Get user information if available
 				userID, _ := s.subjectFromContext(r.Context())
-				
+
 				// Determine success based on status code
 				success := rw.statusCode < 400
 
@@ -62,13 +62,13 @@ func isAuthRelatedRequest(r *http.Request) bool {
 	// This is a simple heuristic - you might want to customize this
 	// based on your specific authentication endpoints
 	authPaths := []string{"/auth", "/login", "/logout", "/token"}
-	
+
 	for _, path := range authPaths {
 		if strings.Contains(r.URL.Path, path) {
 			return true
 		}
 	}
-	
+
 	// Also check if Authorization header is present
 	return r.Header.Get("Authorization") != ""
 }
@@ -82,12 +82,12 @@ func GetClientIP(r *http.Request) string {
 			return strings.TrimSpace(ips[0])
 		}
 	}
-	
+
 	// Check X-Real-IP header
 	if xri := r.Header.Get("X-Real-IP"); xri != "" {
 		return xri
 	}
-	
+
 	// Fall back to RemoteAddr
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
@@ -118,4 +118,3 @@ func LogAuthEvent(ctx context.Context, auditor AuditLogger, eventType, userID, c
 		_ = logErr // Suppress unused variable warning for now
 	}
 }
-
