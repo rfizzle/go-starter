@@ -5,12 +5,23 @@
 # with the exact version read from go.mod.
 ARG GO_VERSION=1.25
 
+# Pin the goreleaser version used to cross-compile the binary (see
+# .goreleaser.yaml, invoked here via `make linux`).
+ARG GORELEASER_VERSION=v2.17.0
+
 # Build stage: Build the binary
 FROM golang:${GO_VERSION}-alpine as golang
 
 # Install git.
 # Git is required for fetching the dependencies.
 RUN apk update && apk add --no-cache git make zip bash
+
+# Install goreleaser, which performs the actual cross-compile (see
+# .goreleaser.yaml). Installed as a Go tool, outside the project's own
+# module/vendor graph. GOTOOLCHAIN=auto lets `go install` fetch a newer Go
+# toolchain if goreleaser's go.mod requires one ahead of this image's Go version.
+ARG GORELEASER_VERSION
+RUN GOTOOLCHAIN=auto go install github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION}
 
 # Make empty directory for permission copy
 RUN mkdir /empty

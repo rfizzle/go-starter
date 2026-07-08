@@ -33,6 +33,9 @@ node_modules/
 # Binaries
 bin/
 
+# goreleaser output
+dist/
+
 # AI Agents
 .claude
 .aider

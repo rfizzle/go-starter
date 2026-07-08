@@ -1,0 +1,56 @@
+# goreleaser config for producing cross-platform release archives.
+# Local snapshot build: `goreleaser build --snapshot --clean`
+# Local snapshot release (binaries + archives, no publish): `goreleaser release --snapshot --clean`
+# Real releases are cut by pushing a `vX.Y.Z` tag (see scripts/version.bash for
+# how that tag is resolved as the single source of truth). GitHub Release
+# publishing, Docker image publishing, and changelog generation are
+# intentionally not configured here yet — they depend on CI/release workflows
+# that don't exist in this repo yet.
+version: 2
+
+project_name: starter
+
+builds:
+  - id: starter
+    binary: starter
+    main: .
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    flags:
+      - -mod=vendor
+    ldflags:
+      - -s -w
+      - -X {{.ModulePath}}/cmd.ApplicationName=starter
+      - -X {{.ModulePath}}/cmd.BuildBranch={{.Branch}}
+      - -X {{.ModulePath}}/cmd.BuildRevision={{.FullCommit}}
+      - -X {{.ModulePath}}/cmd.BuildVersion={{.Version}}
+      - -X {{.ModulePath}}/cmd.BuildEnv=production
+      - -X {{.ModulePath}}/cmd.BuildDate={{.CommitTimestamp}}
+
+archives:
+  - id: starter
+    formats:
+      - zip
+    name_template: >-
+      {{ .ProjectName }}-{{ .Version }}-{{ .Os }}_{{ .Arch }}
+    files:
+      - LICENSE
+      # Glob (not a literal filename) so archiving doesn't fail on a clone
+      # that doesn't have a CHANGELOG.md yet (see docs/reviews §3).
+      - CHANGELOG*
+
+checksum:
+  name_template: checksums.txt
+
+snapshot:
+  version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
+
+changelog:
+  disable: true

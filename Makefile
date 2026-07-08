@@ -9,6 +9,7 @@ GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
 SQLC=sqlc
+GORELEASER=goreleaser
 PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
 PROJECT_PACKAGES=$(shell go list ./...)
 ROOT=$(shell pwd)
@@ -35,30 +36,38 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc migration sync-version docker
+.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc migration sync-version docker check-goreleaser
 
 all: help
 
 ## Build:
-build: generate fmt clean tidy ## Build all binaries
+check-goreleaser:
+	@command -v $(GORELEASER) >/dev/null 2>&1 || { echo "${RED}goreleaser not found. Install: https://goreleaser.com/install/${RESET}"; exit 1; }
+
+build: generate fmt clean tidy check-goreleaser ## Build release archives for all platforms via goreleaser (dist/)
 	@echo "${MAGENTA}Building all distro packages...${RESET}"
-	@./scripts/build.bash --osx --linux --windows
+	@$(GORELEASER) release --clean --skip=publish,announce --auto-snapshot
 
-linux: ## Build your project and put the output binary in bin/linux/
+# linux/osx/windows below are amd64-only local-dev conveniences (e.g. for the
+# Dockerfile's `make linux`); `make build` above is the full goreleaser matrix.
+linux: check-goreleaser ## Build your project and put the output binary in bin/linux/
 	@echo "${MAGENTA}Building package for Linux...${RESET}"
-	@./scripts/build.bash --linux
+	@mkdir -p bin/linux
+	@GOOS=linux GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/linux/starter
 
-osx: ## Build your project and put the output binary in bin/osx/
+osx: check-goreleaser ## Build your project and put the output binary in bin/osx/
 	@echo "${MAGENTA}Building package for OSX...${RESET}"
-	@./scripts/build.bash --osx
+	@mkdir -p bin/osx
+	@GOOS=darwin GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/osx/starter
 
-windows: ## Build your project and put the output binary in bin/windows/
+windows: check-goreleaser ## Build your project and put the output binary in bin/windows/
 	@echo "${MAGENTA}Building package for Windows...${RESET}"
-	@./scripts/build.bash --windows
+	@mkdir -p bin/windows
+	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/windows/starter.exe
 
 clean: ## Remove build related file (bin/ and vendor/)
 	@echo "${MAGENTA}Cleaning binaries...${RESET}"
-	@rm -fr ./bin/osx ./bin/linux ./bin/windows
+	@rm -fr ./bin/osx ./bin/linux ./bin/windows ./dist
 
 clean_vendor: ## Remove built binaries
 	@echo "${MAGENTA}Cleaning vendor files...${RESET}"
