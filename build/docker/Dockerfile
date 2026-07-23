@@ -1,76 +1,74 @@
-# syntax=docker/dockerfile:1
+# Multi-platform index digests are pinned for reproducible amd64 and arm64
+# builds. Dependabot proposes weekly updates; see README.md for the validation
+# steps required when either digest changes.
+FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine3.24@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS build
 
-# Accept the Go version for the image to be set as a build argument.
-# Default to Go 1.25 to match go.mod. scripts/docker-build.bash overrides this
-# with the exact version read from go.mod.
-ARG GO_VERSION=1.25
-
-# Pin the goreleaser version used to cross-compile the binary (see
-# .goreleaser.yaml, invoked here via `make linux`).
-ARG GORELEASER_VERSION=v2.17.0
-
-# Build stage: Build the binary
-FROM golang:${GO_VERSION}-alpine as golang
-
-# Install git.
-# Git is required for fetching the dependencies.
-RUN apk update && apk add --no-cache git make zip bash
-
-# Install goreleaser, which performs the actual cross-compile (see
-# .goreleaser.yaml). Installed as a Go tool, outside the project's own
-# module/vendor graph. GOTOOLCHAIN=auto lets `go install` fetch a newer Go
-# toolchain if goreleaser's go.mod requires one ahead of this image's Go version.
-ARG GORELEASER_VERSION
-RUN GOTOOLCHAIN=auto go install github.com/goreleaser/goreleaser/v2@${GORELEASER_VERSION}
-
-# Make empty directory for permission copy
-RUN mkdir /empty
-
-# Set the working directory outside $GOPATH to enable the support for modules.
 WORKDIR /src
 
-# Copy Go Module config
-COPY go.mod .
-COPY go.sum .
-COPY vendor ./vendor
+ARG TARGETOS
+ARG TARGETARCH
+ARG BUILD_BRANCH
+ARG BUILD_DATE
+ARG BUILD_DATE_RFC3339
+ARG BUILD_ENV
+ARG BUILD_REVISION
+ARG BUILD_VERSION
 
-# Download Go Modules
-RUN go mod download -x
-RUN go mod verify
+COPY go.mod go.sum ./
+COPY vendor ./vendor/
+COPY main.go generate.go ./
+COPY cmd ./cmd/
+COPY internal ./internal/
+COPY pkg ./pkg/
+COPY web ./web/
 
-# Import the code from the context.
-COPY . .
+RUN test -n "${TARGETOS}" \
+    && test -n "${TARGETARCH}" \
+    && test -n "${BUILD_BRANCH}" \
+    && test -n "${BUILD_DATE}" \
+    && test -n "${BUILD_DATE_RFC3339}" \
+    && test -n "${BUILD_ENV}" \
+    && test -n "${BUILD_REVISION}" \
+    && test -n "${BUILD_VERSION}" \
+    && CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" \
+    go build -mod=vendor -trimpath \
+    -ldflags="-s -w \
+    -X github.com/rfizzle/go-starter/cmd.ApplicationName=starter \
+    -X github.com/rfizzle/go-starter/cmd.BuildBranch=${BUILD_BRANCH} \
+    -X github.com/rfizzle/go-starter/cmd.BuildDate=${BUILD_DATE} \
+    -X github.com/rfizzle/go-starter/cmd.BuildEnv=${BUILD_ENV} \
+    -X github.com/rfizzle/go-starter/cmd.BuildRevision=${BUILD_REVISION} \
+    -X github.com/rfizzle/go-starter/cmd.BuildVersion=${BUILD_VERSION}" \
+    -o /out/starter . \
+    && mkdir -p /runtime/output /runtime/secrets /runtime/tmp /runtime/etc/app
 
-# Build app
-RUN make linux
+FROM gcr.io/distroless/static-debian13:nonroot@sha256:f7f8f729987ad0fdf6b05eeeae94b26e6a0f613bdf46feea7fc40f7bd72953e6 AS final
 
-# Set permissions on app
-RUN chmod +x /src/bin/linux/starter
+ARG BUILD_BRANCH
+ARG BUILD_DATE_RFC3339
+ARG BUILD_ENV
+ARG BUILD_REVISION
+ARG BUILD_VERSION
 
-# Final stage: Bare minimum run container.
-FROM gcr.io/distroless/static as final
+LABEL org.opencontainers.image.created="${BUILD_DATE_RFC3339}" \
+    org.opencontainers.image.description="OpenAPI-first foundation for PostgreSQL-backed Go services" \
+    org.opencontainers.image.licenses="MIT" \
+    org.opencontainers.image.ref.name="${BUILD_BRANCH}" \
+    org.opencontainers.image.revision="${BUILD_REVISION}" \
+    org.opencontainers.image.source="https://github.com/rfizzle/go-starter" \
+    org.opencontainers.image.title="starter" \
+    org.opencontainers.image.version="${BUILD_VERSION}" \
+    io.github.rfizzle.go-starter.environment="${BUILD_ENV}"
 
-# Copy binary
-COPY --chown=nonroot:nonroot --from=golang /src/bin/linux/starter /app
+COPY --chown=nonroot:nonroot --from=build /out/starter /app
+COPY --chown=nonroot:nonroot --from=build /runtime/output /output
+COPY --chown=nonroot:nonroot --from=build /runtime/secrets /secrets
+COPY --chown=nonroot:nonroot --from=build /runtime/tmp /tmp
+COPY --chown=nonroot:nonroot --from=build /runtime/etc/app /etc/app
 
-# Create some useful empty directories
-COPY --chown=nonroot:nonroot --from=golang /empty /output
-COPY --chown=nonroot:nonroot --from=golang /empty /secrets
-
-# Copy temp directory
-COPY --chown=nonroot:nonroot --from=golang /empty /tmp
-
-# Copy etc directory
-COPY --chown=nonroot:nonroot --from=golang /empty /etc
-
-# Copy collector config directory
-COPY --chown=nonroot:nonroot --from=golang /empty /etc/app
-
-# Perform any further action as an unprivileged user.
 USER nonroot:nonroot
 
-# Set port exposure
 EXPOSE 8080
 
-# Set the entrypoint of the container
-CMD ["/app", "serve"]
+ENTRYPOINT ["/app"]
+CMD ["serve"]

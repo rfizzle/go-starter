@@ -1,0 +1,28 @@
+# Version-control and automation metadata
+.git
+.github
+.gitignore
+
+# Local editor and operating-system state
+.idea
+.vscode
+.DS_Store
+
+# Local configuration and dependencies not used by the Go build
+.env
+.env.*
+node_modules
+
+# Build, test, coverage, and release output
+bin
+dist
+coverage.out
+*.coverprofile
+*.test
+/gostarter
+/starter
+
+# Files that are not inputs to the production binary
+docs
+compose.yaml
+package.json

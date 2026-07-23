@@ -39,7 +39,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -198,6 +198,12 @@ sync-version: ## Propagate the git tag version (single source of truth) into .ve
 docker: ## Use the dockerfile to build the container
 	@echo "${MAGENTA}Building docker image...${RESET}"
 	@./scripts/docker-build.bash
+
+container-check: check-goreleaser ## Validate container and release architecture configuration
+	@echo "${MAGENTA}Checking GoReleaser configuration...${RESET}"
+	@$(GORELEASER) check
+	@echo "${MAGENTA}Checking amd64 and arm64 container configuration...${RESET}"
+	@docker buildx build --check --platform linux/amd64,linux/arm64 -f build/docker/Dockerfile .
 
 ## Help:
 help: ## Show this help.

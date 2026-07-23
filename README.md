@@ -118,6 +118,7 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | `make dev-reset` | Delete local database data and start PostgreSQL fresh. |
 | `make release-snapshot` | Build local release archives in `dist/`. |
 | `make docker` | Build the current container image. |
+| `make container-check` | Validate the amd64/arm64 release and container configuration. |
 | `make vuln` | Scan Go dependencies with `govulncheck`. |
 
 `make tools` reads exact versions from `scripts/tool-versions.env`. Set
@@ -182,10 +183,26 @@ doubles; use a disposable PostgreSQL instance for end-to-end validation.
 
 ## Deployment notes
 
-`make release-snapshot` uses `.goreleaser.yaml` to produce cross-platform
-archives. `make docker` builds the multi-stage image from
+`make release-snapshot` uses `.goreleaser.yaml` to produce explicit amd64 and
+arm64 archives. `make docker` builds the local architecture from
 `build/docker/Dockerfile`; the final image runs as a non-root user and invokes
-`serve`.
+`/app serve`. The builder uses only the committed vendor tree, and the build
+script injects the version, revision, branch, commit date, and production
+environment into both the binary and OCI image labels.
+
+The Docker build also accepts an explicit multi-platform output. For example,
+after creating `dist/`, this writes an OCI archive without publishing it:
+
+```sh
+CONTAINER_PLATFORMS=linux/amd64,linux/arm64 \
+  CONTAINER_OUTPUT=type=oci,dest=dist/starter-image.tar \
+  make docker
+```
+
+Both base-image tags are pinned to multi-platform index digests. Dependabot
+checks the Dockerfile weekly. Review a proposed tag and digest together, confirm
+that the Go builder version still agrees with `go.mod`, then run
+`make container-check` and `make docker` before merging the update.
 
 The service applies pending embedded migrations before accepting traffic.
 Provide configuration through deployment-managed environment variables or an
