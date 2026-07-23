@@ -52,16 +52,17 @@ When no specific package is provided:
 2. Ensure adherence to Go conventions and project standards
 3. Create structured review documents with findings and required changes
 4. Support iterative review process including confirmation of fixes
-5. Verify test coverage and quality for changed code
+5. Verify each test protects a named contract, regression, boundary, or realistic risk
 6. Check for breaking changes and backward compatibility
 7. Review documentation updates and completeness
 8. Track review status through initial review → implementation → final approval
 
 ## GO PATTERNS
-Reference [docs/development/foundations.md](../development/foundations.md) for:
+Reference [docs/development/foundations.md](../../development/foundations.md) for:
 - Standard Go Project Layout compliance
-- Interface-implementation pattern (interfaces in internal/<domain>/, implementations in subdirectories)
-- TDD-first development validation
+- Contract-first package boundaries
+- Consumer-owned interfaces and concrete constructor returns
+- Risk-based testing
 - Go 1.22+ conventions and best practices
 - Idiomatic Go code patterns
 
@@ -94,23 +95,26 @@ See [DEFINITIONS.md](../DEFINITIONS.md) for complete review criteria and quality
 
 ### Code Quality
 - **Correctness**: Logic errors, edge cases, error handling
-- **Performance**: Inefficient algorithms, memory leaks, unnecessary allocations
+- **Scope**: Behavior not traceable to the approved specification or request
+- **Simplicity**: Unnecessary abstraction, indirection, configuration, or generalization
+- **Bounds**: Unbounded inputs, resources, retries, concurrency, or buffering
+- **Performance**: Inefficient algorithms or unsupported optimization mechanisms
 - **Concurrency**: Race conditions, goroutine leaks, proper channel usage
 - **Security**: Input validation, SQL injection, secrets exposure
 - **Style**: gofmt compliance, naming conventions, code organization
 
 ### Go-Specific Issues
-- **Interface Design**: Premature interfaces, proper abstraction levels
+- **Interface Design**: Premature interfaces, oversized contracts, or provider mirroring
 - **Error Handling**: Proper error wrapping, context preservation, no ignored errors
 - **Context Usage**: Context as first parameter, proper cancellation handling
 - **Package Design**: Clear responsibilities, minimal public surface
-- **Testing**: Table-driven tests, proper test organization, mocking strategies
+- **Testing**: Risk traceability, stable boundaries, deterministic behavior, and minimal duplication
 - **PACKAGE STAGE COMPLETENESS**: Package stage tasks should be complete before transition
 - **IMPLEMENTATION SEQUENCE**: Changes should follow planned package stage order
 
 ### Project Standards
 - **Architecture**: Standard Go Project Layout compliance
-- **Dependencies**: Appropriate external library usage
+- **Dependencies**: New libraries and layers have a current concrete need
 - **Documentation**: Godoc comments, README updates, architectural decisions
 - **Configuration**: Proper config management, environment handling
 - **Build**: Makefile targets, CI/CD compatibility
@@ -154,7 +158,7 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 
 ### Initial Feature Review
 1. Verify feature completeness against requirements
-2. Check test coverage and edge cases
+2. Check that meaningful requirements and risks have effective, non-duplicative tests
 3. Validate error handling and input validation
 4. Review performance implications
 5. Ensure documentation is updated
@@ -176,7 +180,7 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 
 ### Bug Fix Review
 1. Verify the fix addresses the root cause
-2. Check for regression test coverage
+2. Check for a regression test when it can reproduce the defect at a stable boundary
 3. Ensure no new issues are introduced
 4. Validate error handling improvements
 5. Review related code that might be affected
@@ -184,7 +188,7 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 ### Refactoring Review
 1. Verify backward compatibility is maintained
 2. Check that behavior is preserved
-3. Validate test coverage is maintained
+3. Validate that tests still protect the relevant contracts and risks
 4. Ensure code clarity is improved
 5. Review performance impact
 
@@ -197,10 +201,10 @@ Use the template at `docs/ai/templates/review.md` as the base structure for all 
 
 ### Package Review
 1. Evaluate package cohesion and responsibility boundaries
-2. Check interface design and abstraction levels
-3. Verify internal vs external API boundaries
+2. Verify purpose, non-goals, public contract, and operational bounds
+3. Check interface need, ownership, size, and implementation placement
 4. Assess package dependencies and coupling
-5. Review package-level documentation and examples
+5. Require package documentation and a README where the package policy calls for one
 
 ## TEMPLATE VALIDATION
 
@@ -265,7 +269,9 @@ Review the changes I've made
 - **Breaking changes**: Require architectural review
 - **Performance regressions**: Need benchmarking analysis
 - **Large architectural changes**: Require design review
-- **Missing tests**: Block merge until coverage added
+- **Missing tests**: Block only when a named contract, regression, boundary, or significant
+  risk lacks effective verification
+- **Scope expansion**: Block behavior or complexity that lacks an approved requirement
 - **PACKAGE STAGE VIOLATIONS**: Block transition until current package stage is complete
 - **SEQUENCE VIOLATIONS**: Flag implementation that skips planned package stages
 

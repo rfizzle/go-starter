@@ -9,7 +9,7 @@ Implementation plans bridge the gap between high-level feature requirements and 
 - **Task Breakdown**: Features decomposed into manageable development tasks
 - **Technical Approach**: Go-specific implementation strategies and patterns
 - **Risk Assessment**: Potential issues and mitigation strategies  
-- **Test Strategy**: Comprehensive testing requirements
+- **Verification Strategy**: Acceptance criteria and risks mapped to effective checks
 - **Definition of Done**: Clear completion criteria
 
 ## Plan Structure
@@ -21,7 +21,7 @@ All implementation plans follow the template in `docs/ai/templates/plan.md` and 
 2. **Technical Scope** - Packages, APIs, database changes, dependencies
 3. **Task Breakdown** - Phased approach with specific, actionable tasks
 4. **Go Implementation** - Package structure following standard patterns
-5. **Test Strategy** - Unit, integration, and E2E testing requirements
+5. **Verification Strategy** - The narrowest stable check for each requirement or risk
 6. **Risk Assessment** - Potential issues with mitigation plans
 
 ### Metadata
@@ -59,23 +59,24 @@ Examples:
 ## Go-Specific Considerations
 
 ### Package Organization
-Follow standard interface-implementation patterns:
-- **Interfaces**: `internal/<domain>/interfaces.go`
-- **Single Implementation**: `internal/<domain>/service.go`
-- **Multiple Implementations**: `internal/<domain>/<provider>/`
-- **Controllers**: `internal/controller/`
+Follow contract-first package boundaries:
+- **Contracts**: Document purpose, non-goals, public behavior, bounds, and ownership
+- **Interfaces**: Define small interfaces only at real substitution or consumer seams
+- **Single Implementation**: Keep the natural implementation in the contract package
+- **Multiple Implementations**: Place real variants in named subpackages
+- **Controllers**: Keep generated transport mapping in `internal/controller/`
 
 ### Implementation Patterns
 - **Error Handling**: Domain-specific errors with proper wrapping
 - **Context Usage**: Cancellation and timeout support
-- **Testing**: Table-driven tests with comprehensive coverage
+- **Testing**: Use table-driven tests only when shared structure makes them clearer
 - **Documentation**: Godoc comments on all exported items
 
 ### Quality Standards
 - **Go Conventions**: `gofmt`, `golangci-lint`, `go vet` compliance
-- **Test Coverage**: 85%+ coverage for new code
+- **Test Value**: Every test protects a contract, regression, boundary, or named risk
 - **Interface Design**: Small, focused interfaces
-- **Dependency Injection**: Constructor functions accepting interfaces
+- **Dependency Injection**: Constructors accept narrow interfaces only at real seams
 
 ## Plan Lifecycle
 
@@ -104,9 +105,9 @@ Follow standard interface-implementation patterns:
 - Code reviews verify plan adherence
 
 ### With Testing Strategy
-- Plans define comprehensive test requirements
-- Testing approaches align with Go best practices
-- Coverage targets specified for each component
+- Plans map each acceptance criterion and significant risk to effective verification
+- Testing approaches use the narrowest stable boundary that can detect the failure
+- Coverage is a diagnostic signal, not a completion target
 
 ## Common Plan Templates
 
@@ -132,10 +133,10 @@ Follow standard interface-implementation patterns:
 
 ### Plan Validation
 - [ ] All template sections completed
-- [ ] Tasks are specific and actionable (4-8 hours each)
+- [ ] Tasks are specific, necessary, and independently verifiable
 - [ ] Go implementation patterns correct
-- [ ] Risk assessment comprehensive
-- [ ] Test strategy complete
+- [ ] Material risks and bounded mitigations identified
+- [ ] Verification maps to every acceptance criterion and significant risk
 
 ### Technical Review Criteria
 - [ ] Architecture decisions sound

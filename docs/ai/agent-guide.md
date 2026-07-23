@@ -73,7 +73,7 @@ Comprehensive guide for selecting and working with AI agents in Go development p
 - Support both plan mode (analysis strategy) and edit mode (review execution)
 - Create structured review documents with findings and recommendations
 - Support iterative review cycles with status tracking
-- Validate test coverage and Go conventions
+- Validate test value, risk coverage, and Go conventions
 
 #### ❌ Out of Scope
 - Writing or modifying application code
@@ -128,7 +128,7 @@ Comprehensive guide for selecting and working with AI agents in Go development p
 - **Code quality analysis** → Review Agent
 - **Security assessment** → Review Agent
 - **Performance analysis** → Review Agent
-- **Test coverage analysis** → Review Agent
+- **Test-value and risk analysis** → Review Agent
 - **Review document creation** → Review Agent
 - **Standards compliance** → Review Agent
 

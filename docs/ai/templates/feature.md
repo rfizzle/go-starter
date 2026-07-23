@@ -1,6 +1,6 @@
-# Feature Template
+# Feature: [FEATURE_NAME]
 
-<!-- Replace [PLACEHOLDER] text and remove these comments -->
+<!-- Replace placeholder text and remove instructions that do not apply. -->
 
 ## Metadata
 
@@ -9,135 +9,140 @@
 **Status:** [Draft/Review/Approved/In Development/Complete]  
 **Owner:** [Name/Role]
 
-## User Story
-**As a** [user type]  
-**I want** [functionality]  
-**So that** [benefit]
+## User Need
 
-## Problem & Solution
-**Problem:** [What problem this solves]
+**As a** [user type]
 
-**Current State:** [How users work today]
+**I want** [specific capability]
 
-**Desired State:** [What users should be able to do]
+**So that** [observable benefit]
 
-## Feature Details
+## Problem
 
-### Key Capabilities
-1. [Capability 1]
-2. [Capability 2] 
-3. [Capability 3]
+**Current behavior:** [What happens today]
 
-### User Flow
-1. [Step 1]
-2. [Step 2]
-3. [Step 3]
-4. [Expected outcome]
+**Desired outcome:** [What must become possible]
+
+## Scope
+
+### In Scope
+
+- [Smallest capability required to produce the desired outcome]
+- [Required boundary, error, or compatibility behavior]
+
+### Non-Goals
+
+- [Related behavior this feature intentionally does not provide]
+- [Speculative extension, configuration, or optimization that is excluded]
+
+Do not treat non-goals as deferred implementation work unless a later specification
+explicitly adds them.
+
+## Public Contract
+
+Describe only externally observable behavior:
+
+- **Inputs:** [Accepted inputs and their meaning]
+- **Outputs:** [Results and externally visible effects]
+- **Errors:** [Stable error outcomes callers may rely on]
+- **Compatibility:** [Existing behavior that must remain unchanged]
+- **API:** [OpenAPI operations or `None`]
+- **Persistence:** [Required durable state or `None`]
+
+If the feature introduces or materially changes a package, identify:
+
+- **Package purpose:** [One clear responsibility]
+- **Package non-goals:** [Responsibilities kept outside the package]
+- **Contract form:** [Exported concrete API, shared interface, or consumer-local interface]
+- **Implementation shape:** [One local implementation or named implementation subpackages]
+- **Documentation:** [Package documentation and whether a README is required]
+
+Do not require an interface when a documented concrete API is sufficient.
+
+## Operational Bounds
+
+Specify only bounds relevant to this feature:
+
+- **Input and payload limits:** [Limit and rejection behavior]
+- **Time and deadlines:** [Timeout or cancellation behavior]
+- **Pagination and result limits:** [Bounds or `Not applicable`]
+- **Concurrency and resource limits:** [Bounds or `Not applicable`]
+- **Retry or degradation policy:** [Bounded specified behavior or `None`]
+
+No retry, fallback, cache, queue, or background worker is implied unless it is explicitly
+specified here.
 
 ## Acceptance Criteria
-- [ ] **AC1:** Given [context], when [action], then [result]
-- [ ] **AC2:** Given [context], when [action], then [result]
-- [ ] **AC3:** Given [context], when [action], then [result]
 
-### Non-Functional Requirements
-- [ ] **Performance:** [Criteria]
-- [ ] **Security:** [Requirements]
-- [ ] **Usability:** [UX requirements]
+- [ ] **AC1:** Given [context], when [action], then [observable result]
+- [ ] **AC2:** Given [context], when [action], then [observable result]
+- [ ] **AC3:** Given [context], when [action], then [observable result]
 
-## Technical Requirements
+Add only criteria necessary to define the feature boundary. Each criterion must be
+specific, measurable, and independently verifiable.
 
-### API Changes
-- **Endpoints:** [New/modified endpoints]
-- **Models:** [Data structures]
-- **Auth:** [Authentication needs]
+## Verification
 
-### Database
-- **Tables:** [New/modified tables]
-- **Migrations:** [Schema changes]
-- **Performance:** [Indexes needed]
+Map each acceptance criterion or significant risk to the narrowest effective
+verification. Do not require every test level.
 
-### Go Implementation
-Follow the standard interface-implementation pattern:
-- **Packages:** [Package organization]
-- **Interfaces:** [Key interfaces in internal/[domain]/interfaces.go]
-- **Implementation:** [Single impl directly in internal/[domain]/ or multiple impls in subdirectories]
-- **Testing:** [Test strategy and coverage goals]
+| Requirement or risk | Verification | Defect it would catch |
+| --- | --- | --- |
+| AC1 | [Unit, package, integration, E2E, inspection, or command] | [Realistic failure] |
+| AC2 | [Verification] | [Realistic failure] |
+| [Named boundary or risk] | [Verification] | [Realistic failure] |
 
-## Success Metrics
-- **KPI 1:** [Metric] - Target: [Value]
-- **KPI 2:** [Metric] - Target: [Value]
+Tests without a meaningful contract, regression, boundary, or risk should not be added.
+Coverage percentage is not a completion criterion.
 
-## Testing Strategy
-1. **Unit Tests:** [Core logic testing]
-2. **Integration Tests:** [API and database testing]
-3. **E2E Tests:** [User journey testing]
+## Complexity Assessment
 
-**Coverage Target:** 85%+ for new code
+Mark each item introduced by the proposed feature and justify it:
 
-## Implementation Phases
+- [ ] New external dependency
+- [ ] New package or architectural layer
+- [ ] New interface with one expected implementation
+- [ ] New persistent state or configuration
+- [ ] Concurrency, background work, caching, retries, or queues
+- [ ] Reusable abstraction without multiple current consumers
+- [ ] Behavior not directly traceable to an acceptance criterion
 
-### Phase 1: Foundation
-- [ ] [Task 1]
-- [ ] [Task 2]
+**Justification or `None`:** [Why each selected item is necessary]
 
-### Phase 2: Core Features
-- [ ] [Task 1]
-- [ ] [Task 2]
+Material scope, operational, or maintenance expansion requires approval before
+implementation.
 
-### Phase 3: Enhancement
-- [ ] [Task 1]
-- [ ] [Task 2]
+## Dependencies and Risks
 
-## Risks
-- **[Risk 1]:** [Description] → [Mitigation]
-- **[Risk 2]:** [Description] → [Mitigation]
+- **Blocked by:** [Required prerequisite or `None`]
+- **External dependency:** [Required external system or `None`]
+- **Material risk:** [Risk and bounded mitigation or `None`]
 
-## Dependencies
-- **Blocked by:** [Prerequisites]
-- **Blocking:** [Dependent features]
+Do not invent risks or mitigations merely to fill this section.
 
 ## Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Code reviewed and approved
-- [ ] Tests written and passing (85%+ coverage)
-- [ ] Go conventions followed (gofmt, golint, go vet)
-- [ ] Documentation updated
-- [ ] Security review completed
-- [ ] Performance targets met
 
+- [ ] Acceptance criteria are met.
+- [ ] Implemented behavior does not exceed approved scope.
+- [ ] Public contracts and operational bounds are documented.
+- [ ] Meaningful verification passes.
+- [ ] Generated artifacts are current.
+- [ ] Relevant formatting, linting, and test checks pass.
+- [ ] Package documentation and README requirements are satisfied.
+- [ ] Unsupported or intentionally omitted behavior is recorded.
 
-## Sign-off
-- [ ] **Product Owner:** [Name] - [Date]
-- [ ] **Technical Lead:** [Name] - [Date]
-- [ ] **Security Review:** [Name] - [Date]
+## Sign-Off
 
-## TEMPLATE VALIDATION CHECKLIST
+- [ ] **Product owner or requester:** [Name] - [Date]
+- [ ] **Technical reviewer:** [Name] - [Date]
+- [ ] **Additional review:** [Security, operations, or `Not required`] - [Date]
 
-Before finalizing this feature document, verify:
+## Template Validation
 
-### Content Completeness
-- [ ] All `[PLACEHOLDER]` values replaced with actual content
-- [ ] Template comments (`<!-- -->`) removed
-- [ ] User story follows proper format (As a/I want/So that)
-- [ ] Acceptance criteria use Given/When/Then format
-- [ ] All sections contain meaningful content (not just examples)
-
-### Technical Accuracy
-- [ ] API endpoints align with OpenAPI specification standards
-- [ ] Database changes include migration strategy
-- [ ] Go implementation follows interface-implementation pattern
-- [ ] Package structure matches project interface pattern conventions
-- [ ] Testing strategy covers unit, integration, and E2E levels
-
-### Quality Standards
-- [ ] Requirements are specific and measurable
-- [ ] Success metrics are clearly defined
-- [ ] Risk assessment includes mitigation strategies
-- [ ] Dependencies are clearly identified
-- [ ] Implementation phases are logical and achievable
-
-### AI Agent Guidance
-- [ ] Technical requirements provide sufficient context for implementation
-- [ ] Feature scope is clear and bounded
-- [ ] Integration points with existing systems are documented
-- [ ] Error scenarios and edge cases are considered
+- [ ] All remaining content is specific to this feature.
+- [ ] In-scope behavior and non-goals form a clear boundary.
+- [ ] Acceptance criteria describe observable outcomes rather than implementation.
+- [ ] Every planned test protects a named requirement or risk.
+- [ ] Operational mechanisms are bounded and explicitly required.
+- [ ] New abstractions and dependencies have current, concrete justification.
+- [ ] Package contracts use the simplest suitable API and implementation shape.

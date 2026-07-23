@@ -5,7 +5,7 @@ Go Starter is a production-ready, enterprise-grade foundation for building scala
 
 ## Key Goals
 - Speed up API development with an 80% time reduction
-- Maintain >90% test coverage
+- Protect public contracts and significant risks with focused tests
 - Zero additional configs for Kubernetes deployment
 
 **Reference `foundations.md` first** - it contains core Go principles, patterns, and workflows that apply to all work.
@@ -14,8 +14,8 @@ Go Starter is a production-ready, enterprise-grade foundation for building scala
 
 ## Development Principles
 
-* **Architecture**: Follow **Go Standard Project Layout** with interfaces in their own packages
-* **Workflow**: **Test-Driven Development (TDD)** - write tests before code
+* **Architecture**: Follow **Go Standard Project Layout** with explicit package contracts
+* **Workflow**: Map acceptance criteria and significant risks to effective verification
 * **Quality**: Use **`go test`** and **`golangci-lint`** for validation
 * **Git**: Clean commits with meaningful messages, feature branches for major changes
 * **Clarity**: Clear names, document **why** decisions were made, not just what code does
@@ -43,10 +43,10 @@ When implementing new features or significant changes:
    - Run `make generate` to update generated API files
    - Update controllers in `internal/controller/` to implement new interfaces
 
-2. **Implementation** (TDD approach):
+2. **Implementation** (contract-driven approach):
    - Create feature branch from main
-   - Write tests first following TDD
-   - Implement code to make tests pass
+   - Map acceptance criteria and significant risks to effective verification
+   - Implement the smallest change that satisfies the approved contract
    - Refactor while keeping tests green
 
 3. **Quality Checks**:
@@ -128,7 +128,7 @@ Update project documentation when:
 All code must meet these standards before merging:
 
 * **Tests Pass** - All existing and new tests must pass
-* **Test Coverage** - Maintain >90% test coverage for new code
+* **Useful Tests** - Each test protects a contract, regression, boundary, or named risk
 * **Linting Clean** - No golangci-lint warnings
 * **Formatted** - Code properly formatted with gofmt and goimports
 * **Documentation** - Public APIs documented with godoc comments

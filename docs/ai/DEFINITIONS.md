@@ -166,7 +166,7 @@ Would you prefer the other approach?
 2. **Security**: No security vulnerabilities introduced
 3. **Performance**: No significant performance regressions
 4. **Maintainability**: Code follows project patterns and is readable
-5. **Testing**: Adequate test coverage for changes
+5. **Testing**: Tests protect the changed contracts, regressions, boundaries, and risks
 
 ## Inter-Agent Communication
 

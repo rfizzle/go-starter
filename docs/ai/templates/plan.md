@@ -2,156 +2,167 @@
 
 **Source:** `docs/features/[YYYY-MM-DD-feature-name.md]`  
 **Date:** [YYYY-MM-DD]  
-**Effort:** [Story Points]  
-**Priority:** [High/Medium/Low]  
 **Status:** [Planning/Ready/In Progress/Complete]
 
-<!-- Replace [PLACEHOLDER] text and remove these comments -->
+<!-- Replace placeholder text and remove instructions that do not apply. -->
 
-## Feature Summary
-- **Problem:** [What problem this solves]
-- **Solution:** [High-level approach]
-- **Users:** [Who benefits]
-- **Success:** [How we measure success]
+## Outcome and Boundary
 
-## Technical Scope
-- **Packages:** [internal/ packages affected]
-- **API Changes:** [New endpoints, breaking changes]
-- **Database:** [Schema changes, migrations]
-- **Dependencies:** [External services, new libraries]
-- **Interface Changes Required:** [Yes/No - Whether Phase 1 (Interface and Type Creation) is needed for implementation]
+- **Problem:** [Problem being solved]
+- **Required outcome:** [Observable result]
+- **In scope:** [Acceptance criteria covered by this plan]
+- **Non-goals:** [Related behavior intentionally excluded]
+- **Existing behavior preserved:** [Compatibility requirements]
 
-## Task Breakdown
+Stop planning when every acceptance criterion has an implementation and verification
+path. Do not add adjacent improvements to make the plan appear comprehensive.
 
-Organize tasks by package to enable focused implementation with natural commit boundaries.
+## Existing System
 
-### Package Implementation Stages
+- **Relevant packages:** [Current code that owns the behavior]
+- **Existing contracts:** [Exported APIs, interfaces, OpenAPI operations, or database
+  contracts already available]
+- **Existing implementation pattern:** [Pattern to reuse]
+- **Constraints:** [Known bounds or compatibility requirements]
 
-#### Stage 1: Domain Layer (`internal/[domain]`) [X points]
-**Purpose**: Core business logic, interfaces, and domain types
-- [ ] **Task 1**: [Description] - Owner: [Name] - Effort: [Hours]
-- [ ] **Task 2**: [Description] - Owner: [Name] - Effort: [Hours]
-**Package Dependencies**: None (foundation layer)
-**Commit Point**: After all domain interfaces and types are complete
+Prefer modifying an existing clear owner over creating a new layer or parallel path.
 
-#### Stage 2: Storage Layer (`internal/storage`) [Y points] 
-**Purpose**: Data persistence and repository implementations
-- [ ] **Task 1**: [Description] - Owner: [Name] - Effort: [Hours]
-- [ ] **Task 2**: [Description] - Owner: [Name] - Effort: [Hours]
-**Package Dependencies**: Requires Stage 1 (domain interfaces)
-**Commit Point**: After storage interfaces implemented and tested
+## Simplest Viable Design
 
-#### Stage 3: OpenAPI Specification (`api/openapi.yml`) [Z points]
-**Purpose**: API contract definition and code generation preparation
-- [ ] **Task 1**: Update OpenAPI specification with new endpoints - Owner: [Name] - Effort: [Hours]
-- [ ] **Task 2**: Run `make generate` to generate API interfaces - Owner: [Name] - Effort: [Hours]  
-**Package Dependencies**: Requires Stage 1 (domain types for request/response models)
-**Commit Point**: After OpenAPI spec updated and code generated
-**Note**: Generated code goes to `internal/api/v1/oas_*_gen.go` - never edit these files directly
+Describe the least complex design that satisfies the approved scope:
 
-#### Stage 4: Controller Layer (`internal/controller`) [A points]
-**Purpose**: HTTP handlers implementing generated API interfaces
-- [ ] **Task 1**: Implement generated API interfaces in controllers - Owner: [Name] - Effort: [Hours]
-- [ ] **Task 2**: Add request validation and error handling - Owner: [Name] - Effort: [Hours]
-**Package Dependencies**: Requires Stage 1 (domain), Stage 2 (storage), Stage 3 (generated API interfaces)
-**Commit Point**: After controllers implemented and integration tests pass
+[Short implementation description]
 
-### Implementation Order
-1. **Stage 1** → **Stage 2** → **Stage 3** → **Stage 4** (Sequential)
-2. Allow user approval and commits between each stage
-3. Each stage should be complete before moving to the next
-4. **OpenAPI Workflow**: Stage 3 modifies spec and generates code, Stage 4 implements the generated interfaces
+Explain why a smaller direct change is insufficient only when additional structure is
+required.
 
-## Go Implementation
+### Package Contract Assessment
 
-### Package Structure
-Follow the standard interface-implementation pattern:
-- **Interfaces:** internal/[domain]/interfaces.go
-- **Single Implementation:** internal/[domain]/service.go
-- **Multiple Implementations:** internal/[domain]/[provider]/
-- **Controllers:** internal/controller/[feature]
-- **Repository:** internal/storage additions
+For every new or materially changed package:
 
-### Interface Requirements Assessment
-**Evaluate whether interfaces and types need to be created or modified:**
-- **New Interfaces Needed:** [Yes/No - Explain what new interfaces are required]
-- **Type Changes Required:** [Yes/No - Explain what new types or modifications needed]
-- **Existing Interface Modifications:** [Yes/No - Explain what existing interfaces need changes]
-- **Implementation Only:** [Yes/No - Can implementation use existing interfaces without changes]
+| Package | Purpose and non-goals | Public contract | Implementation | Documentation |
+| --- | --- | --- | --- | --- |
+| `[path]` | [One responsibility; explicit exclusions] | [Concrete API or justified interface] | [Local or named subpackages] | [`doc.go`; README if required] |
 
-### OpenAPI Workflow
-- **API Contract Changes**: Update `api/openapi.yml` first
-- **Code Generation**: Run `make generate` to update `internal/api/v1/oas_*_gen.go`
-- **Controller Implementation**: Implement generated interfaces in `internal/controller/`
-- **Never Edit Generated Files**: All API changes must go through OpenAPI spec updates
+Apply these rules:
 
-### Patterns
-- Error handling: Domain-specific errors with wrapping
-- Context usage: Cancellation and timeouts
-- Testing: Table-driven tests with good coverage
+- A documented contract does not require an interface.
+- Prefer consumer-defined narrow interfaces for dependency seams.
+- Keep one natural implementation local to the contract package.
+- Put multiple real variants in named subpackages beneath a shared contract.
+- Return concrete types from constructors unless the contract requires otherwise.
+- Add compile-time assertions for concrete interface implementations.
+- Require a concise README for business modules, substantial contracts, multiple
+  implementations, or important lifecycle and operational behavior.
 
-## Test Strategy
-- [ ] **Unit Tests:** [Key scenarios to test]
-- [ ] **Integration Tests:** [API and database tests]
-- [ ] **E2E Tests:** [User journey tests]
-- **Coverage Target:** 85%+ for new code
+### Import and Ownership Boundaries
+
+- **Contract owner:** [Package that defines stable shared behavior]
+- **Implementation owner:** [Package or subpackages containing concrete behavior]
+- **Composition root:** [Where concrete dependencies are constructed and injected]
+- **Forbidden dependencies:** [Imports or implementation details callers must not use]
+
+## Contract Changes
+
+Include only applicable changes:
+
+- **OpenAPI:** [Operation and schema changes or `None`]
+- **Go API:** [Exported type, function, method, or interface changes or `None`]
+- **Persistence:** [Migration, query, or transaction changes or `None`]
+- **Configuration:** [Required configuration change or `None`]
+- **Errors:** [Stable error outcomes and translation or `None`]
+
+For API changes, update `api/openapi.yml` first and regenerate
+`internal/api/v1/oas_*_gen.go`. Never edit generated API files directly.
+
+## Operational Bounds
+
+- **Input and result limits:** [Bounds and rejection behavior]
+- **Timeout and cancellation:** [Propagation and ownership]
+- **Concurrency and resource limits:** [Bounds or `Not applicable`]
+- **Retry, fallback, and degradation:** [Specified bounded behavior or `None`]
+- **Cleanup and partial failure:** [Resource and atomicity behavior]
+
+Do not introduce an unbounded mechanism or a resilience mechanism without a documented
+failure mode.
+
+## Complexity Gate
+
+For each selected item, record the current concrete need and approval status:
+
+| Addition | Needed? | Justification | Approval |
+| --- | --- | --- | --- |
+| External dependency | [Yes/No] | [Current need] | [Approved/Not required] |
+| New package or layer | [Yes/No] | [Current need] | [Approved/Not required] |
+| One-implementation interface | [Yes/No] | [Why concrete API is insufficient] | [Approved/Not required] |
+| Persistent state or configuration | [Yes/No] | [Current need] | [Approved/Not required] |
+| Concurrency or background work | [Yes/No] | [Current need and bound] | [Approved/Not required] |
+| Cache, retry, fallback, or queue | [Yes/No] | [Failure mode and bound] | [Approved/Not required] |
+| Reusable abstraction | [Yes/No] | [Current consumers] | [Approved/Not required] |
+
+Remove any unjustified addition from the design. Material scope or maintenance expansion
+must be approved before implementation.
+
+## Implementation Steps
+
+Keep steps small, ordered, and traceable to approved behavior.
+
+1. [Contract or specification change required by AC#]
+2. [Smallest implementation change required by AC#]
+3. [Boundary or implementation wiring required by AC#]
+4. [Documentation and verification]
+
+Do not create placeholder layers, speculative extension points, or unrelated refactoring.
+
+## Verification Plan
+
+Choose the narrowest effective verification for each requirement or significant risk.
+
+| Requirement or risk | Level | Check | Defect it catches |
+| --- | --- | --- | --- |
+| AC1 | [Unit/package/integration/E2E/inspection] | [Test or command] | [Realistic defect] |
+| AC2 | [Level] | [Test or command] | [Realistic defect] |
+| [Boundary or regression] | [Level] | [Test or command] | [Realistic defect] |
+
+- Do not require unit, integration, and E2E tests for every change.
+- Reuse one contract test suite when multiple implementations share meaningful behavior.
+- Do not test generated code, trivial accessors, library behavior, or private call order.
+- Coverage percentage is not a completion target.
+- Record intentionally omitted tests when the omission is relevant to review.
+
+## Required Commands
+
+Run the smallest relevant set during implementation and the repository checks appropriate
+to the final diff:
+
+```bash
+make generate
+make fmt
+make lint
+make test
+```
+
+Use `make race`, integration tests, vulnerability scanning, or benchmarks only when the
+changed risk warrants them.
 
 ## Definition of Done
-- [ ] Code follows Go conventions (gofmt, golint, go vet)
-- [ ] Tests pass with 85%+ coverage
-- [ ] Code reviewed and approved
-- [ ] Documentation updated (godoc, API docs)
-- [ ] Monitoring configured
 
-## Risks & Mitigation
-- **[Risk 1]:** [Description] → [Mitigation]
-- **[Risk 2]:** [Description] → [Mitigation]
+- [ ] Every implementation step maps to approved scope.
+- [ ] Every acceptance criterion is satisfied and verified.
+- [ ] No material behavior was added beyond the specification.
+- [ ] Package contracts, bounds, and non-goals are documented.
+- [ ] Interfaces and implementation packages have current concrete justification.
+- [ ] Meaningful tests pass without redundant risk coverage.
+- [ ] Generated artifacts and relevant documentation are current.
+- [ ] Applicable formatting, linting, build, and test checks pass.
+- [ ] Unsupported behavior and intentionally omitted tests are recorded.
 
-## Dependencies
-- **Blocked by:** [Prerequisites]
-- **Blocking:** [What waits on this]
+## Plan Validation
 
-
-## TEMPLATE VALIDATION CHECKLIST
-
-Before finalizing this implementation plan, verify:
-
-### Content Completeness
-- [ ] All `[PLACEHOLDER]` values replaced with actual content
-- [ ] Template comments (`<!-- -->`) removed
-- [ ] Source feature document linked correctly
-- [ ] All task descriptions are specific and actionable
-- [ ] Effort estimates provided for each task
-
-### Technical Accuracy
-- [ ] Package structure follows the interface-implementation pattern
-- [ ] API changes align with OpenAPI workflow (spec → generate → implement)
-- [ ] Database changes include proper migration strategy
-- [ ] Go implementation patterns are idiomatic and consistent
-- [ ] Integration points with existing systems identified
-- [ ] OpenAPI workflow correctly documented (never edit generated files)
-
-### Planning Quality
-- [ ] Tasks are properly sized (4-8 hours each)
-- [ ] Dependencies between tasks are clearly identified
-- [ ] Phases are logically organized and sequential
-- [ ] Risk assessment is comprehensive with mitigation plans
-- [ ] Definition of done is specific and measurable
-
-### AI Agent Readiness
-- [ ] Tasks provide sufficient context for implementation
-- [ ] Code patterns and examples are included where helpful
-- [ ] Testing requirements are clearly defined
-- [ ] Quality standards reference project conventions
-- [ ] Interface requirements assessment completed (determines implementation phases needed)
-- [ ] **Package stages organized with clear dependencies and commit points**
-- [ ] **Implementation order specified for package transitions**
-- [ ] **OpenAPI workflow stages correctly sequenced**
-
-### Project Alignment
-- [ ] Plan follows Standard Go Project Layout principles
-- [ ] Interface-implementation pattern correctly applied
-- [ ] Testing strategy includes unit, integration, and E2E levels
-- [ ] Documentation requirements clearly specified
-- [ ] Monitoring and observability considerations included
-- [ ] OpenAPI-first workflow properly integrated
+- [ ] The plan identifies the smallest viable design.
+- [ ] Existing contracts and patterns are reused where suitable.
+- [ ] New complexity passes the complexity gate.
+- [ ] Package ownership and import direction are explicit.
+- [ ] One implementation stays local; multiple variants use named subpackages.
+- [ ] Verification maps to contracts and risks rather than coverage targets.
+- [ ] Non-goals prevent likely scope expansion.

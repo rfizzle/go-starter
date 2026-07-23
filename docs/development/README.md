@@ -55,8 +55,8 @@ make ci          # Full CI pipeline (generate, fmt, lint, test)
 1. **Plan**: Review requirements and create implementation plan
 2. **API First**: Update `api/openapi.yml` if API changes needed
 3. **Generate**: Run `make generate` to update generated code
-4. **Test**: Write tests following TDD approach
-5. **Implement**: Write code to pass tests
+4. **Verify**: Select tests for acceptance criteria and significant risks
+5. **Implement**: Make the smallest change that satisfies the approved contract
 6. **Quality**: Run `make fmt lint test`
 7. **Review**: Submit for code review
 8. **Deploy**: Build and deploy
@@ -71,7 +71,8 @@ make ci          # Full CI pipeline (generate, fmt, lint, test)
 5. Update integration tests
 
 #### Creating a New Service
-Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) for the standard pattern.
+Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md) for
+contract-first package and consumer-owned interface guidance.
 
 #### Database Changes
 1. Create migration in `migrations/`
@@ -87,21 +88,21 @@ All code must meet these standards:
 ### Go Standards
 - **Formatting**: `gofmt` and `goimports` compliant
 - **Linting**: Pass `golangci-lint` checks
-- **Testing**: 85%+ test coverage for new code
+- **Testing**: Tests protect named contracts, regressions, boundaries, or risks
 - **Documentation**: Godoc comments on all exported items
 - **Naming**: Follow Go naming conventions
 
 ### Project Standards
-- **Interface Pattern**: Follow established interface-implementation pattern
+- **Package Contracts**: Document purpose, non-goals, public behavior, bounds, and ownership
 - **Error Handling**: Proper error wrapping with context
 - **Context Usage**: Thread context through all operations
-- **TDD Approach**: Tests written before implementation
+- **Test Selection**: Use the narrowest stable test boundary that detects the relevant failure
 
 ### Architecture Standards
 - **Standard Go Project Layout**: Consistent directory structure
 - **OpenAPI First**: API changes start with specification
 - **Clean Architecture**: Proper separation of concerns
-- **Dependency Injection**: Interfaces over concrete types
+- **Dependency Injection**: Small consumer-owned interfaces at real seams
 
 ## Troubleshooting
 
@@ -136,9 +137,9 @@ make test-cover  # Run tests with coverage report
 ### First Contribution Checklist
 - [ ] Development environment set up and tested
 - [ ] All quality checks passing (`make ci`)
-- [ ] Familiar with interface-implementation pattern
+- [ ] Familiar with package contracts and consumer-owned interface guidance
 - [ ] Understanding of OpenAPI workflow
-- [ ] TDD approach understood and practiced
+- [ ] Risk-based testing approach understood and practiced
 - [ ] Code review process understood
 
 ---

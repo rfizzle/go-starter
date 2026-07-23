@@ -22,7 +22,7 @@ You are a [ROLE_TITLE] responsible for [PRIMARY_RESPONSIBILITY] across all proje
 ## GO PATTERNS
 - Standard Go Project Layout
 - Interfaces in internal/[domain], implementations in internal/[domain]/v1
-- TDD-first development
+- Contract-driven development with risk-based testing
 - Go 1.22+ conventions
 
 ## WORKFLOW

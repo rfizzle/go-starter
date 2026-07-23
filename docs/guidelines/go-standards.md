@@ -18,11 +18,12 @@ This document defines Go-specific coding standards, patterns, and conventions fo
 - **Package comments** describing the package purpose
 
 ### Interface Design
-Follow the standard interface-implementation pattern:
-- **Define interfaces** in `internal/<domain>/interfaces.go`
-- **Single implementations** directly in `internal/<domain>/`
-- **Multiple implementations** in named subdirectories (e.g., `internal/<domain>/postgres/`)
-- **Small interfaces** - prefer many small interfaces over large ones
+Follow contract-first package boundaries:
+- **Define interfaces where consumed** when a real substitution seam is needed
+- **Return concrete types** from constructors
+- **Single implementations** stay directly in the contract package
+- **Multiple real implementations** live in named subdirectories
+- **Small interfaces** describe only the behavior a consumer requires
 
 ---
 
@@ -72,33 +73,32 @@ func Process(data []byte) (*Result, error) {
 }
 ```
 
-### Interface Implementation
+### Consumer Interface and Implementation
 ```go
-// Define in internal/<domain>/interfaces.go
+// Define beside the consumer that needs this behavior.
 type Repository interface {
     Create(ctx context.Context, item Item) error
     GetByID(ctx context.Context, id string) (Item, error)
-    Update(ctx context.Context, item Item) error
-    Delete(ctx context.Context, id string) error
 }
 
-// Single implementation in internal/<domain>/repository.go
-type repository struct {
+// The provider returns a concrete implementation.
+type Store struct {
     db Database
 }
 
-func NewRepository(db Database) Repository {
-    return &repository{db: db}
+func NewStore(db Database) *Store {
+    return &Store{db: db}
 }
 
-func (r *repository) Create(ctx context.Context, item Item) error {
+func (s *Store) Create(ctx context.Context, item Item) error {
     // implementation
 }
 ```
 
 ### Constructor Pattern
 - Use `New<TypeName>` for constructors
-- Return interfaces, not concrete types when possible
+- Return concrete types
+- Accept small interfaces when the constructor consumes a behavioral seam
 - Accept configuration as options or structs
 
 ```go
@@ -107,8 +107,8 @@ type Config struct {
     Retries int
 }
 
-func NewService(config Config) Service {
-    return &service{
+func NewService(config Config) *Service {
+    return &Service{
         timeout: config.Timeout,
         retries: config.Retries,
     }
@@ -236,10 +236,9 @@ type UserRepository interface {
 // Package user provides functionality for managing user accounts,
 // including authentication, profile management, and user preferences.
 //
-// The package follows the interface-implementation pattern with
-// interfaces defined in this package and implementations in the same
-// package for single implementations, or named subdirectories for
-// multiple implementations.
+// The package documents its public contract and keeps its single
+// implementation local. Consumers define narrow interfaces when they
+// need a substitution seam.
 package user
 ```
 

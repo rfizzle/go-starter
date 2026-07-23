@@ -22,8 +22,8 @@ Core development documentation for engineers working on this codebase.
 Specific development guidelines and standards for consistent code quality.
 
 - **[go-standards.md](guidelines/go-standards.md)** - Go-specific coding standards and conventions
-- **[interface-pattern.md](guidelines/interface-pattern.md)** - Interface-implementation pattern guide with examples
-- **[testing-strategy.md](guidelines/testing-strategy.md)** - Comprehensive testing approach and requirements
+- **[interface-pattern.md](guidelines/interface-pattern.md)** - Consumer-owned interface and implementation guidance
+- **[testing-strategy.md](guidelines/testing-strategy.md)** - Risk-based testing and contract verification
 
 ### 📁 architecture/
 Architectural decisions, patterns, and system design documentation.
@@ -49,8 +49,7 @@ AI agent documentation, prompts, and templates for consistent AI interactions.
 #### ai/prompts/
 AI agent role definitions and scope boundaries.
 
-- **[ai.md](ai/prompts/ai.md)** - AI documentation specialist agent
-- **[feature.md](ai/prompts/feature.md)** - Product owner agent for feature requirements
+- **[documentation.md](ai/prompts/documentation.md)** - Documentation and feature-specification agent
 - **[planning.md](ai/prompts/planning.md)** - Senior engineer agent for implementation planning
 - **[review.md](ai/prompts/review.md)** - Code review agent for quality assurance
 
@@ -73,11 +72,12 @@ This project follows an OpenAPI-first approach where:
 2. Controllers implement generated interfaces
 3. Changes start with the OpenAPI specification
 
-### Interface-Implementation Pattern
-All domain packages follow a standard pattern:
-- Interfaces defined in `internal/<domain>/interfaces.go`
-- Single implementations directly in `internal/<domain>/`
-- Multiple implementations in named subdirectories (e.g., `internal/<domain>/postgres/`)
+### Package Contracts and Implementations
+Every nontrivial package has a documented contract. An interface is added only for a real
+substitution boundary or a consumer that needs a narrower seam:
+- Keep one natural implementation in the contract package
+- Keep multiple real implementations in named subpackages
+- Prefer small consumer-owned interfaces and concrete constructor returns
 
 ### Standard Go Project Layout
 The codebase follows the Standard Go Project Layout:
@@ -93,8 +93,8 @@ The codebase follows the Standard Go Project Layout:
 ### Standard Development Cycle
 1. **API Changes** (if needed): Modify `api/openapi.yml`
 2. **Generate Code**: Run `make generate`
-3. **Write Tests**: Follow TDD approach
-4. **Implement**: Write code to pass tests
+3. **Select Verification**: Map requirements and risks to the narrowest effective checks
+4. **Implement**: Make the smallest change that satisfies the approved contract
 5. **Quality Checks**: Run `make fmt lint test`
 6. **Build**: Run `make build`
 
@@ -117,7 +117,7 @@ The codebase follows the Standard Go Project Layout:
 ### Best Practices
 - Always reference specific file paths when discussing code
 - Use templates for creating new documentation
-- Follow the interface-implementation pattern for new code
+- Define clear package contracts and add interfaces only at justified seams
 - Maintain consistency with existing patterns
 
 ## Contributing

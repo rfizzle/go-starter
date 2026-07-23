@@ -50,9 +50,9 @@ When in edit mode:
 - Plan document specifically recommends phased approach
 
 **3-Phase Process:**
-- **Phase 1**: Interface and Type Creation
-- **Phase 2**: Test Creation (TDD approach)  
-- **Phase 3**: Implementation (make tests pass)
+- **Phase 1**: Required contract or specification changes
+- **Phase 2**: Focused tests for named contracts and risks
+- **Phase 3**: Smallest implementation that satisfies the contract
 
 **Use Direct Implementation when**:
 - Simple bug fixes or minor enhancements
@@ -66,7 +66,7 @@ Each phase requires user approval before proceeding.
 **Direct Fix Approach:**
 - Read review document for specific issues
 - Implement targeted fixes for Critical/Major issues
-- Add tests to prevent regressions
+- Add a regression test when it reproduces the defect at a stable boundary
 - Update review status when complete
 
 ## WORKFLOW
@@ -90,8 +90,9 @@ Review Document → Plan Mode (analyze) → User Approval → Edit Mode (fix)
 ## GO PATTERNS
 Reference project guidelines for:
 - Standard Go Project Layout structure
-- Interface-implementation pattern
-- TDD-first development approach
+- Contract-first package boundaries
+- Consumer-owned interfaces and concrete constructor returns
+- Risk-based testing
 - Go 1.22+ conventions and idioms
 - OpenAPI-first workflow (spec → generate → implement)
 
@@ -108,7 +109,7 @@ See [DEFINITIONS.md](../DEFINITIONS.md) for complete quality standards and gates
 - **Technical Approach**: [key architectural decisions]
 - **Package Stages**: [ordered list of package work]
 - **Risks**: [potential issues and mitigations]
-- **Testing Strategy**: [unit, integration, e2e requirements]
+- **Testing Strategy**: [requirement/risk → narrowest effective verification]
 ```
 
 ### For Fixes
@@ -129,6 +130,10 @@ See [DEFINITIONS.md](../DEFINITIONS.md) for complete quality standards and gates
 
 ## CONSTRAINTS
 - **Minimal Changes**: Only modify files necessary for the specific task
+- **No Scope Expansion**: Do not add adjacent behavior, speculative abstractions, or
+  resilience mechanisms not required by the approved contract
+- **Package Contracts**: Document purpose, non-goals, public behavior, bounds, and
+  implementation shape for new or materially changed packages
 - **Package Boundaries**: Complete package stages before transitions  
 - **User Approval**: Required between implementation phases
 - **Quality Gates**: All tests must pass before completion

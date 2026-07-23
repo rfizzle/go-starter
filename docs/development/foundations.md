@@ -33,9 +33,10 @@ project/
 
 ### Interface Strategy
 Follow the interface pattern defined in [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md):
-- **Define interfaces** in `internal/<domain>/interfaces.go`
-- **Single implementations** directly in `internal/<domain>/`
-- **Multiple implementations** in named subdirectories (e.g., `internal/<domain>/postgres/`)
+- **Document package contracts** before choosing implementation structure
+- **Define small interfaces** only at real substitution or consumer seams
+- **Keep one implementation** directly in its contract package
+- **Keep multiple real implementations** in named subdirectories
 
 ### Package & Naming
 - **Short, lowercase names** - no underscores or mixedCaps
@@ -51,11 +52,11 @@ Follow the interface pattern defined in [docs/guidelines/interface-pattern.md](.
 
 ## Development Workflow
 
-### Test-Driven Development (TDD)
-1. **Write failing tests first**
-2. **Write minimal code** to pass tests  
-3. **Refactor** while keeping tests green
-4. **Maintain 80%+ coverage** for new code
+### Contract-Driven Development
+1. **Bound the behavior** with acceptance criteria and non-goals
+2. **Select verification** for meaningful contracts, boundaries, regressions, and risks
+3. **Write the smallest implementation** that satisfies the contract
+4. **Refactor only when it reduces total reasoning or maintenance cost**
 
 ### Quality Gates
 - **gofmt** - Proper formatting
@@ -155,7 +156,7 @@ func TestFunction(t *testing.T) {
 - **Scope creep** - Stay within declared boundaries
 - **Assumption making** - Ask for clarification
 - **Over-engineering** - Start simple, add complexity when needed
-- **Test shortcuts** - Test all code, even "simple" parts
+- **Tests for tests' sake** - Add tests only for a contract, boundary, regression, or named risk
 
 ---
 
@@ -169,7 +170,7 @@ func TestFunction(t *testing.T) {
 
 ### Documentation Quality  
 - **Clear purpose** - Write for humans
-- **Complete coverage** - Explain the why
+- **Contract coverage** - Explain public behavior, bounds, and reasons
 - **Runnable examples** - Include where helpful
 - **Stay current** - Keep docs synced with code
 
@@ -184,7 +185,7 @@ func TestFunction(t *testing.T) {
 
 ### Universal
 - **Quality gates pass** - All checks green
-- **Test coverage** - Appropriate tests included
+- **Useful tests** - Each test protects a meaningful behavior or risk
 - **Documentation current** - Changes properly documented
 - **Clean integration** - Works smoothly with existing code
 

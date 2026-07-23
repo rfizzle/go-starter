@@ -18,7 +18,7 @@ Establish clear, actionable guidelines that development teams follow to maintain
 - Security best practices
 
 ### [interface-pattern.md](interface-pattern.md)
-**Interface-implementation package pattern**
+**Contract-first package and consumer-interface guidance**
 - Package structure and organization
 - Interface definition guidelines
 - Versioned implementations
@@ -27,12 +27,11 @@ Establish clear, actionable guidelines that development teams follow to maintain
 - Migration approaches
 
 ### [testing-strategy.md](testing-strategy.md)
-**Comprehensive testing approach**
-- Test-Driven Development (TDD) workflow
-- Unit testing patterns
-- Integration testing approach
-- End-to-end testing
-- Test coverage requirements
+**Risk-based testing approach**
+- Contract and regression test selection
+- Unit and package testing patterns
+- Integration and end-to-end boundary testing
+- Coverage as a diagnostic signal
 - Mocking and test doubles
 
 ## Quick Reference
@@ -98,8 +97,7 @@ func TestFunction(t *testing.T) {
 - [ ] Code follows naming conventions
 - [ ] All errors handled appropriately
 - [ ] Public APIs have godoc comments
-- [ ] Tests written and passing
-- [ ] Test coverage >90% for new code
+- [ ] Meaningful contract and risk tests pass
 - [ ] No linting warnings (`make lint`)
 - [ ] Code formatted (`make fmt`)
 
@@ -107,9 +105,10 @@ func TestFunction(t *testing.T) {
 1. **Correctness** - Does it work as intended?
 2. **Clarity** - Is the code easy to understand?
 3. **Consistency** - Does it follow project patterns?
-4. **Testing** - Are tests comprehensive?
-5. **Performance** - Any obvious bottlenecks?
-6. **Security** - Any security concerns?
+4. **Scope** - Is every behavior traceable to an approved requirement?
+5. **Testing** - Does every test protect a meaningful contract or risk?
+6. **Performance** - Are mechanisms and optimizations supported by evidence?
+7. **Security** - Are boundaries and sensitive operations safe?
 
 ## Common Patterns
 

@@ -13,15 +13,15 @@ Provide a single source of truth for feature requirements, ensuring alignment be
 1. **Discovery**: Identify user need or business requirement
 2. **Documentation**: Create feature document using the template
 3. **Planning**: Create implementation plan in `../plans/`  
-4. **Implementation**: Follow TDD approach with regular updates
-5. **Validation**: Verify acceptance criteria and run comprehensive tests
+4. **Implementation**: Build the smallest change that satisfies the approved contract
+5. **Validation**: Map acceptance criteria and significant risks to effective verification
 6. **Completion**: Update status and archive materials
 
 ### Creating New Features
 
 Use the AI-powered feature agent configured in `docs/ai/prompts/feature.md` to:
 
-- Gather comprehensive business and user requirements
+- Gather specific, bounded business and user requirements
 - Create user stories following "As a [user], I want [goal] so that [benefit]" format
 - Document features using the standardized template
 - Define testable, measurable acceptance criteria
@@ -41,7 +41,7 @@ All feature documents follow the template at `docs/ai/templates/feature.md` and 
 2. **Problem & Solution** - Context and approach  
 3. **Acceptance Criteria** - Definition of done
 4. **Technical Requirements** - API, database, implementation details
-5. **Testing Strategy** - How we validate success
+5. **Verification Strategy** - The narrowest effective check for each requirement or risk
 
 ### Metadata
 - **ID**: Unique identifier (YYYY-MM-DD-feature-name)
@@ -79,9 +79,9 @@ All feature documents follow the template at `docs/ai/templates/feature.md` and 
 
 ### Technical Requirements
 - Reference existing patterns in codebase
-- Follow Standard Go Project Layout
+- Define package purpose, non-goals, public contract, bounds, and implementation shape
 - Consider backward compatibility
-- Plan for observability and security
+- Add observability, security, and resilience mechanisms only when the feature requires them
 
 ### Acceptance Criteria Format
 ```
@@ -119,10 +119,10 @@ docs/features/
 
 Features integrate with the overall development workflow:
 
-- **Requirements gathering**: Use AI agent to create comprehensive features
+- **Requirements gathering**: Create specific features with explicit non-goals
 - **Implementation planning**: Reference features when creating plans
-- **Development**: Follow TDD approach with regular feature updates
-- **Testing**: Validate against acceptance criteria
+- **Development**: Keep implementation traceable to approved acceptance criteria
+- **Testing**: Validate acceptance criteria and named risks without coverage or test-count targets
 - **Deployment**: Use rollout plans defined in features
 
 ## Best Practices

@@ -35,21 +35,27 @@
 
 ### Code Quality
 - [ ] **Correctness**: Logic errors, edge cases, error handling
-- [ ] **Performance**: Efficient algorithms, memory usage
+- [ ] **Scope**: Changes map to approved acceptance criteria without adjacent features
+- [ ] **Simplicity**: Design is the least complex one that satisfies the contract
+- [ ] **Bounds**: Inputs, resources, concurrency, retries, and failure behavior are bounded
+- [ ] **Performance**: Evidence supports any performance mechanism or optimization
 - [ ] **Concurrency**: Race conditions, goroutine leaks, proper channel usage
 - [ ] **Security**: Input validation, SQL injection, secrets exposure
 - [ ] **Style**: gofmt compliance, naming conventions, code organization
 
 ### Go-Specific Issues
-- [ ] **Interface Design**: Proper abstraction levels
+- [ ] **Package Contract**: Purpose, non-goals, public API, bounds, and ownership are clear
+- [ ] **Interface Design**: Interfaces are small, justified, and consumer-owned where possible
+- [ ] **Implementation Shape**: One implementation stays local; real variants use named subpackages
 - [ ] **Error Handling**: Proper error wrapping, context preservation
 - [ ] **Context Usage**: Context as first parameter, proper cancellation handling
 - [ ] **Package Design**: Clear responsibilities, minimal public surface
-- [ ] **Testing**: Table-driven tests, proper test organization, mocking strategies
+- [ ] **Documentation**: Package documentation and README are present when required
+- [ ] **Testing**: Each test protects a named contract, regression, boundary, or risk
 
 ### Project Standards
 - [ ] **Architecture**: Standard Go Project Layout compliance
-- [ ] **Dependencies**: Appropriate external library usage
+- [ ] **Dependencies**: New dependencies and layers have current concrete justification
 - [ ] **Documentation**: Godoc comments, README updates, architectural decisions
 - [ ] **Configuration**: Proper config management, environment handling
 - [ ] **Build**: Makefile targets, CI/CD compatibility
@@ -76,12 +82,15 @@ Before finalizing this code review, verify:
 - [ ] Go patterns and conventions are correctly applied
 - [ ] Security and performance concerns are valid
 - [ ] Architectural feedback aligns with project standards
-- [ ] Test coverage requirements are appropriate
+- [ ] Test feedback identifies the contract or realistic defect being protected
+- [ ] Review does not request tests solely to raise coverage or test count
+- [ ] Speculative abstractions, configurability, and resilience mechanisms are rejected
 - [ ] Dependencies and build considerations are accurate
 
 ### Review Effectiveness
 - [ ] Critical issues would block deployment
 - [ ] Major issues significantly impact code quality
-- [ ] Minor issues provide meaningful improvements
+- [ ] Minor issues provide meaningful in-scope improvements
 - [ ] Recommendations are specific and actionable
+- [ ] Recommendations do not expand the approved feature scope
 - [ ] Review criteria checklist is completed accurately
