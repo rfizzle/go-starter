@@ -176,7 +176,7 @@ and `make vendor` are intentionally explicit.
 | `internal/app/` | Composition root, dependency assembly, and application lifecycle. |
 | `internal/domain/` | Infrastructure-free business data, repository contracts, and business errors. |
 | `internal/modules/` | Business capabilities; `user/` is the example PostgreSQL-backed module. |
-| `internal/platform/` | Technical infrastructure: config, database, middleware, observability, rate limiting, and web serving. |
+| `internal/platform/` | Technical infrastructure: config, database, HTTP server and middleware, observability, and rate limiting. |
 | `internal/controller/` | Hand-written generated-transport-to-domain mapping. |
 | `internal/auth/` | Authentication and generated security-handler integration. |
 | `internal/cli/` | Shared CLI lifecycle and seed support. |

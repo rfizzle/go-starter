@@ -78,6 +78,10 @@ use the `GOSTARTER_` prefix:
 | `auth.jwt-secret` | `GOSTARTER_AUTH_JWT_SECRET` |
 | `logging.level` | `GOSTARTER_LOGGING_LEVEL` |
 | `logging.format` | `GOSTARTER_LOGGING_FORMAT` |
+| `observability.enabled` | `GOSTARTER_OBSERVABILITY_ENABLED` |
+| `observability.endpoint` | `GOSTARTER_OBSERVABILITY_ENDPOINT` |
+| `observability.insecure` | `GOSTARTER_OBSERVABILITY_INSECURE` |
+| `observability.sample-ratio` | `GOSTARTER_OBSERVABILITY_SAMPLE_RATIO` |
 | `webserver.address` | `GOSTARTER_WEBSERVER_ADDRESS` |
 | `webserver.port` | `GOSTARTER_WEBSERVER_PORT` |
 
@@ -95,6 +99,11 @@ go run . serve
 
 Command flags take precedence over these environment variables. See
 `go run . serve --help` and `go run . seed --help` for every supported setting.
+The `cmd` package owns Viper file, environment, and flag loading;
+`internal/platform/config` contains only decoded values and validation.
+Logger and OpenTelemetry provider construction lives in
+`internal/platform/observability`. OpenTelemetry export is disabled unless
+`observability.enabled` is true.
 
 ## PostgreSQL lifecycle
 

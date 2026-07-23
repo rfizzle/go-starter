@@ -1,3 +1,9 @@
+// Package config defines the application's decoded configuration and its
+// command-scoped validation rules.
+//
+// It is a side-effect-free platform leaf: command composition roots own file,
+// environment, and flag loading, then pass populated Application values to
+// consumers.
 package config
 
 type Application struct {
