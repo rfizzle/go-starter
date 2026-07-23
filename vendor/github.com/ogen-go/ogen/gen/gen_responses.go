@@ -70,17 +70,57 @@ func (g *Generator) generateResponses(ctx *genctx, opName string, responses open
 	var (
 		countTypes = 0
 		lastWalked *ir.Type
+		hasSSE     bool
 	)
 
 	if err := walkResponseTypes(result, func(_ string, t *ir.Type) (*ir.Type, error) {
 		countTypes++
 		lastWalked = t
+		if t != nil && t.SSE != nil {
+			hasSSE = true
+		}
 		return t, nil
 	}); err != nil {
 		return nil, errors.Wrap(err, "walk")
 	}
 
+	// We'll need to use an interface-based approach for raw responses
+	var needsInterface bool
 	if countTypes == 1 {
+	statusCodesLoop:
+		for _, resp := range result.StatusCode {
+			for _, media := range resp.Contents {
+				if media.RawResponse {
+					needsInterface = true
+					break statusCodesLoop
+				}
+			}
+		}
+		if !needsInterface {
+		patternLoop:
+			for _, resp := range result.Pattern {
+				if resp == nil {
+					continue
+				}
+				for _, media := range resp.Contents {
+					if media.RawResponse {
+						needsInterface = true
+						break patternLoop
+					}
+				}
+			}
+		}
+		if !needsInterface && result.Default != nil {
+			for _, media := range result.Default.Contents {
+				if media.RawResponse {
+					needsInterface = true
+					break
+				}
+			}
+		}
+	}
+
+	if countTypes == 1 && !needsInterface {
 		result.Type = lastWalked
 		return result, nil
 	}
@@ -91,6 +131,11 @@ func (g *Generator) generateResponses(ctx *genctx, opName string, responses open
 		return nil, errors.Wrap(err, "method name")
 	}
 	iface.AddMethod(methodName)
+	if hasSSE {
+		// Response interfaces need an internal hook so the client can
+		// initialize the init SSE branch.
+		iface.AddMethodSignature("initSSEStream", "(sseConnectFunc, sseClientConfig)")
+	}
 	if err := ctx.saveType(iface); err != nil {
 		return nil, errors.Wrap(err, "save interface type")
 	}
@@ -112,8 +157,92 @@ func (g *Generator) generateResponses(ctx *genctx, opName string, responses open
 		return nil, errors.Wrap(err, "walk")
 	}
 
+	// Add raw response concrete types for content types with RawResponse=true
+	if err := addRawResponseTypes(ctx, result, iface, opName); err != nil {
+		return nil, errors.Wrap(err, "add raw response types")
+	}
+
 	result.Type = iface
 	return result, nil
+}
+
+// addRawResponseTypes adds concrete types for raw responses that implement the interface
+func addRawResponseTypes(ctx *genctx, result *ir.Responses, iface *ir.Type, opName string) error {
+	addRawType := func(prefix string, response *ir.Response) error {
+		if response == nil {
+			return nil
+		}
+
+		for contentType, media := range response.Contents {
+			if !media.RawResponse {
+				continue
+			}
+
+			rawTypeName, err := pascal(opName, prefix, "Raw", string(contentType))
+			if err != nil {
+				return errors.Wrapf(err, "raw type name: %s %s", prefix, contentType)
+			}
+
+			rawType := &ir.Type{
+				Kind: ir.KindStruct,
+				Name: rawTypeName,
+				Doc:  fmt.Sprintf("%s represents raw HTTP response for %s %s.", rawTypeName, opName, contentType),
+				Fields: []*ir.Field{
+					{
+						Name: "Response",
+						Type: ir.Pointer(&ir.Type{
+							Kind:      ir.KindPrimitive,
+							Primitive: "http.Response",
+							External: ir.ExternalType{
+								PackagePath: "net/http",
+								TypeName:    "Response",
+								IsPointer:   false,
+							},
+						}, ir.NilOptional),
+						Tag: ir.Tag{JSON: "-"},
+					},
+				},
+			}
+
+			// Remove the original structured type from the interface
+			// since we're replacing it with a raw response type
+			originalType := media.Type
+			originalType.Unimplement(iface)
+
+			rawType.Implement(iface)
+
+			if err := ctx.saveType(rawType); err != nil {
+				return errors.Wrap(err, "save raw type")
+			}
+
+			response.Contents[contentType] = ir.Media{
+				Encoding:      media.Encoding,
+				Type:          rawType,
+				JSONStreaming: media.JSONStreaming,
+				RawResponse:   media.RawResponse,
+				SSEEventShape: media.SSEEventShape,
+			}
+		}
+		return nil
+	}
+
+	for code, response := range result.StatusCode {
+		if err := addRawType(statusText(code), response); err != nil {
+			return errors.Wrapf(err, "status code %d", code)
+		}
+	}
+
+	for pattern, response := range result.Pattern {
+		if err := addRawType(fmt.Sprintf("%dXX", pattern+1), response); err != nil {
+			return errors.Wrapf(err, "pattern %d", pattern)
+		}
+	}
+
+	if err := addRawType("Default", result.Default); err != nil {
+		return errors.Wrap(err, "default")
+	}
+
+	return nil
 }
 
 func (g *Generator) responseToIR(
@@ -127,7 +256,7 @@ func (g *Generator) responseToIR(
 			return r, nil
 		}
 
-		n, err := pascal(cleanRef(ref))
+		n, err := g.namer().pascal(cleanRef(ref))
 		if err != nil {
 			return nil, errors.Wrapf(err, "response name: %q", ref)
 		}
@@ -187,7 +316,12 @@ func (g *Generator) responseToIR(
 	var unsupported []string
 	for ct, content := range contents {
 		t, e := content.Type, content.Encoding
-		if e.JSON() || t.IsStream() || isBinary(t.Schema) {
+		if e.JSON() ||
+			e.ProblemJSON() ||
+			e.EventStream() ||
+			t.IsStream() ||
+			isBinary(t.Schema) ||
+			content.RawResponse {
 			continue
 		}
 		delete(contents, ct)
@@ -212,7 +346,14 @@ func (g *Generator) responseToIR(
 				},
 			}
 		}
-		t, err := wrapResponseType(ctx, name, resp.Ref, media.Type, headers, withStatusCode, len(contents) > 1)
+		// Use content-type-specific name for wrapper when there are multiple contents
+		// to avoid name conflicts (e.g., when both application/json and
+		// application/vnd.github.v3.star+json have array schemas without names).
+		wrapperName := name
+		if len(contents) > 1 {
+			wrapperName, _ = pascal(name, string(contentType))
+		}
+		t, err := wrapResponseType(ctx, wrapperName, resp.Ref, media.Type, headers, withStatusCode, len(contents) > 1)
 		if err != nil {
 			return nil, errors.Wrapf(err, "content: %q: wrap response type", contentType)
 		}
@@ -220,6 +361,8 @@ func (g *Generator) responseToIR(
 			Encoding:      media.Encoding,
 			Type:          t,
 			JSONStreaming: media.JSONStreaming,
+			RawResponse:   media.RawResponse,
+			SSEEventShape: media.SSEEventShape,
 		}
 	}
 
@@ -246,7 +389,7 @@ func wrapResponseType(
 	}
 
 	if schema := t.Schema; schema != nil && !schema.Ref.IsZero() {
-		if t, ok := ctx.lookupWType(respRef, schema.Ref); ok {
+		if t, ok := ctx.lookupWType(respRef, schema.Ref, headers); ok {
 			return t, nil
 		}
 
@@ -255,7 +398,7 @@ func wrapResponseType(
 				return
 			}
 
-			if err := ctx.saveWType(respRef, schema.Ref, ret); err != nil {
+			if err := ctx.saveWType(respRef, schema.Ref, headers, ret); err != nil {
 				rerr = err
 				ret = nil
 			}
@@ -273,27 +416,34 @@ func wrapResponseType(
 		}()
 	}
 
-	// Prefer response name to schema name in case of wrapping.
-	if (respRef.IsZero() || multipleContents) && t.Name != "" {
-		name = t.Name
-	}
-
-	var (
-		namePostfix string
-		doc         string
-	)
+	var namePostfix string
 	switch {
 	case len(headers) > 0 && withStatusCode:
 		namePostfix = "StatusCodeWithHeaders"
-		doc = fmt.Sprintf("%sStatusCodeWithHeaders wraps %s with status code and response headers.", name, t.Go())
 	case len(headers) > 0:
 		namePostfix = "Headers"
-		doc = fmt.Sprintf("%sHeaders wraps %s with response headers.", name, t.Go())
 	case withStatusCode:
 		namePostfix = "StatusCode"
-		doc = fmt.Sprintf("%sStatusCode wraps %s with StatusCode.", name, t.Go())
 	default:
 		panic("unreachable")
+	}
+
+	// Prefer response name to schema name in case of wrapping, unless that name is
+	// already taken by a wrapper with a different header set.
+	if (respRef.IsZero() || multipleContents) && t.Name != "" {
+		if _, taken := ctx.lookupType(t.Name + namePostfix); !taken {
+			name = t.Name
+		}
+	}
+
+	var doc string
+	switch namePostfix {
+	case "StatusCodeWithHeaders":
+		doc = fmt.Sprintf("%sStatusCodeWithHeaders wraps %s with status code and response headers.", name, t.Go())
+	case "Headers":
+		doc = fmt.Sprintf("%sHeaders wraps %s with response headers.", name, t.Go())
+	case "StatusCode":
+		doc = fmt.Sprintf("%sStatusCode wraps %s with StatusCode.", name, t.Go())
 	}
 
 	wrapper := &ir.Type{
@@ -310,9 +460,16 @@ func wrapResponseType(
 	}
 
 	injectHeaderFields(headers, wrapper)
+	responseType := t
+	if t.SSE != nil {
+		// SSE stream values carry mutex and connection state, so wrapped
+		// responses must hold them by pointer.
+		responseType = ir.Pointer(t, ir.NilOptional)
+		wrapper.DeclareMethod("initSSEStream(sseConnectFunc, sseClientConfig)")
+	}
 	wrapper.Fields = append(wrapper.Fields, &ir.Field{
 		Name: "Response",
-		Type: t,
+		Type: responseType,
 	})
 
 	return wrapper, nil

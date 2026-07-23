@@ -1,7 +1,10 @@
 package validate
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/ogen-go/ogen/ogenregex"
@@ -64,9 +67,27 @@ func InvalidContentType(contentType string) error {
 // UnexpectedStatusCodeError reports that client got unexpected status code.
 type UnexpectedStatusCodeError struct {
 	StatusCode int
+	Payload    *http.Response
+}
+
+// UnexpectedStatusCodeWithResponse creates new UnexpectedStatusCode.
+func UnexpectedStatusCodeWithResponse(response *http.Response) error {
+	ret := &UnexpectedStatusCodeError{
+		StatusCode: response.StatusCode,
+		Payload:    response,
+	}
+
+	// response.Body is defer-closed by caller.
+	// we want to retain it in Payload.
+	buf, err := io.ReadAll(response.Body)
+	response.Body = io.NopCloser(bytes.NewBuffer(buf))
+	return errors.Join(ret, err)
 }
 
 // UnexpectedStatusCode creates new UnexpectedStatusCode.
+//
+// Deprecated: client codes generated a while ago used this function.
+// Kept here solely for backward compatibility to them.
 func UnexpectedStatusCode(statusCode int) error {
 	return &UnexpectedStatusCodeError{
 		StatusCode: statusCode,
@@ -111,4 +132,35 @@ type NoRegexMatchError struct {
 // MaxLengthError implements error.
 func (e *NoRegexMatchError) Error() string {
 	return fmt.Sprintf("no regex match: %s", e.Pattern.String())
+}
+
+// DuplicateItemsError indicates duplicate items in a uniqueItems array.
+type DuplicateItemsError struct {
+	// Indices contains all indices where duplicates were found.
+	// First element is the original, subsequent are duplicates.
+	Indices []int
+}
+
+// Error implements error.
+func (e *DuplicateItemsError) Error() string {
+	if len(e.Indices) < 2 {
+		return "duplicate items found"
+	}
+	return fmt.Sprintf("duplicate item found at indices %d and %d",
+		e.Indices[0], e.Indices[1])
+}
+
+// DepthLimitError indicates nesting depth limit was exceeded.
+type DepthLimitError struct {
+	// MaxDepth is the configured maximum depth.
+	MaxDepth int
+
+	// TypeName is the type being compared when limit was hit.
+	TypeName string
+}
+
+// Error implements error.
+func (e *DepthLimitError) Error() string {
+	return fmt.Sprintf("equality check depth limit exceeded for type %s (max: %d)",
+		e.TypeName, e.MaxDepth)
 }

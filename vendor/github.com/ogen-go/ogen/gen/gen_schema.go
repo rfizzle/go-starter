@@ -35,6 +35,9 @@ type generateSchemaOverride struct {
 	refEncoding map[jsonschema.Ref]ir.Encoding
 	nameRef     func(ref jsonschema.Ref, def refNamer) (string, error)
 	fieldMut    func(*ir.Field) error
+	// request indicates this schema is for a request body (not response).
+	// Used to decide how to handle empty schemas.
+	request bool
 }
 
 func (g *Generator) generateSchema(
@@ -57,6 +60,8 @@ func (g *Generator) generateSchema(
 	}
 
 	gen := newSchemaGen(lookup)
+	gen.initialisms = g.initialisms
+	gen.rules = g.rules
 	if o := override; o != nil {
 		if n := o.nameRef; n != nil {
 			prev := gen.nameRef
@@ -67,10 +72,12 @@ func (g *Generator) generateSchema(
 		if m := o.fieldMut; m != nil {
 			gen.fieldMut = m
 		}
+		gen.request = o.request
 	}
 	gen.log = g.log.Named("schemagen")
 	gen.fail = g.fail
 	gen.depthLimit = g.parseOpts.SchemaDepthLimit
+	gen.imports = g.imports
 
 	t, err := gen.generate(name, schema, optional)
 	if err != nil {
@@ -185,6 +192,7 @@ func GenerateSchema(schema *jsonschema.Schema, fs FileSystem, opts GenerateSchem
 	if err := w.Generate("jsonschema", opts.FileName, TemplateConfig{
 		Package: opts.PkgName,
 		Types:   ctx.local.types,
+		Imports: gen.imports,
 	}); err != nil {
 		return errors.Wrap(err, "write")
 	}

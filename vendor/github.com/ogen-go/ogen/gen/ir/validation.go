@@ -2,11 +2,13 @@ package ir
 
 import (
 	"fmt"
+	"maps"
 	"math/big"
 	"slices"
 
 	"github.com/go-faster/errors"
 	"github.com/go-faster/jx"
+	"github.com/shopspring/decimal"
 
 	"github.com/ogen-go/ogen/jsonschema"
 	"github.com/ogen-go/ogen/ogenregex"
@@ -14,11 +16,14 @@ import (
 )
 
 type Validators struct {
-	String validate.String
-	Int    validate.Int
-	Float  validate.Float
-	Array  validate.Array
-	Object validate.Object
+	String  validate.String
+	Int     validate.Int
+	Float   validate.Float
+	Decimal validate.Decimal
+	Array   validate.Array
+	Object  validate.Object
+	// Ogen contains parameters for custom validation.
+	Ogen map[string]any
 }
 
 func (v *Validators) SetString(schema *jsonschema.Schema) (err error) {
@@ -34,6 +39,27 @@ func (v *Validators) SetString(schema *jsonschema.Schema) (err error) {
 	if schema.MinLength != nil {
 		v.String.SetMinLength(int(*schema.MinLength))
 	}
+
+	// Interpret numeric constraints on string type.
+	// This handles specs that use maximum/minimum on strings representing numbers.
+	set := func(num jx.Num, f func(float64)) error {
+		if len(num) < 1 {
+			return nil
+		}
+		val, err := num.Float64()
+		if err != nil {
+			return err
+		}
+		f(val)
+		return nil
+	}
+	if err := set(jx.Num(schema.Maximum), v.String.SetMaximumNumeric); err != nil {
+		return errors.Wrap(err, "set maximum")
+	}
+	if err := set(jx.Num(schema.Minimum), v.String.SetMinimumNumeric); err != nil {
+		return errors.Wrap(err, "set minimum")
+	}
+
 	if schema.Format == "email" {
 		v.String.Email = true
 	}
@@ -70,6 +96,17 @@ func (v *Validators) SetInt(schema *jsonschema.Schema) error {
 	}
 	v.Int.MaxExclusive = schema.ExclusiveMaximum
 	v.Int.MinExclusive = schema.ExclusiveMinimum
+
+	// Interpret pattern constraint on integer type.
+	// This validates the string representation of the integer.
+	if schema.Pattern != "" {
+		regex, err := ogenregex.Compile(schema.Pattern)
+		if err != nil {
+			return errors.Wrap(err, "pattern")
+		}
+		v.Int.SetPattern(regex)
+	}
+
 	return nil
 }
 
@@ -100,6 +137,47 @@ func (v *Validators) SetFloat(schema *jsonschema.Schema) error {
 	}
 	v.Float.MaxExclusive = schema.ExclusiveMaximum
 	v.Float.MinExclusive = schema.ExclusiveMinimum
+
+	// Interpret pattern constraint on float type.
+	// This validates the string representation of the float.
+	if schema.Pattern != "" {
+		regex, err := ogenregex.Compile(schema.Pattern)
+		if err != nil {
+			return errors.Wrap(err, "pattern")
+		}
+		v.Float.SetPattern(regex)
+	}
+
+	return nil
+}
+
+func (v *Validators) SetDecimal(schema *jsonschema.Schema) error {
+	if num := jx.Num(schema.MultipleOf); len(num) > 0 {
+		n, err := decimal.NewFromString(string(num))
+		if err != nil {
+			return errors.Wrap(err, "parse multipleOf")
+		}
+		v.Decimal.SetMultipleOf(n)
+	}
+	set := func(num jx.Num, f func(decimal.Decimal)) error {
+		if len(num) == 0 {
+			return nil
+		}
+		val, err := decimal.NewFromString(string(num))
+		if err != nil {
+			return err
+		}
+		f(val)
+		return nil
+	}
+	if err := set(jx.Num(schema.Maximum), v.Decimal.SetMaximum); err != nil {
+		return errors.Wrap(err, "set maximum")
+	}
+	if err := set(jx.Num(schema.Minimum), v.Decimal.SetMinimum); err != nil {
+		return errors.Wrap(err, "set minimum")
+	}
+	v.Decimal.MaxExclusive = schema.ExclusiveMaximum
+	v.Decimal.MinExclusive = schema.ExclusiveMinimum
 	return nil
 }
 
@@ -122,10 +200,26 @@ func (v *Validators) SetObject(schema *jsonschema.Schema) {
 	if schema.MinProperties != nil {
 		v.Object.SetMinProperties(int(*schema.MinProperties))
 	}
+	if schema.MinLength != nil {
+		v.Object.SetMinLength(int(*schema.MinLength))
+	}
+	if schema.MaxLength != nil {
+		v.Object.SetMaxLength(int(*schema.MaxLength))
+	}
 }
 
 func (t *Type) NeedValidation() bool {
 	return t.needValidation(&walkpath{})
+}
+
+func (v *Validators) SetOgenValidate(schema *jsonschema.Schema) {
+	if len(schema.OgenValidate) == 0 {
+		return
+	}
+	if v.Ogen == nil {
+		v.Ogen = make(map[string]any, len(schema.OgenValidate))
+	}
+	maps.Copy(v.Ogen, schema.OgenValidate)
 }
 
 func (t *Type) needValidation(path *walkpath) (result bool) {
@@ -145,14 +239,17 @@ func (t *Type) needValidation(path *walkpath) (result bool) {
 			// NaN, Inf, float validators.
 			return true
 		}
-		if t.IsNumeric() && t.Validators.Int.Set() {
-			return true
+		if t.IsNumeric() {
+			return t.Validators.Int.Set() || t.Validators.Decimal.Set()
 		}
 		if t.Validators.String.Set() {
 			switch t.Primitive {
 			case String, ByteSlice:
 				return true
 			}
+		}
+		if len(t.Validators.Ogen) > 0 {
+			return true
 		}
 		return false
 	case KindEnum:
@@ -177,13 +274,22 @@ func (t *Type) needValidation(path *walkpath) (result bool) {
 		if t.Validators.Array.Set() {
 			return true
 		}
+		if len(t.Validators.Ogen) > 0 {
+			return true
+		}
 		return t.Item.needValidation(path)
 	case KindStruct:
+		if len(t.Validators.Ogen) > 0 {
+			return true
+		}
 		return slices.ContainsFunc(t.Fields, func(f *Field) bool {
 			return f.Type.needValidation(path)
 		})
 	case KindMap:
 		if t.Validators.Object.Set() {
+			return true
+		}
+		if len(t.Validators.Ogen) > 0 {
 			return true
 		}
 		return t.Item.needValidation(path)
