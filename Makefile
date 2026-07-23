@@ -38,7 +38,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker check-goreleaser
 
 all: help
 
@@ -76,6 +76,23 @@ clean_vendor: ## Remove built binaries
 	@echo "${MAGENTA}Cleaning vendor files...${RESET}"
 	@rm -fr ./vendor/*
 
+## Development:
+dev-up: ## Start local PostgreSQL and wait until it is healthy
+	@docker compose up --detach --wait postgres
+
+dev-down: ## Stop local services while preserving PostgreSQL data
+	@docker compose down --remove-orphans
+
+dev-run: dev-up ## Migrate, seed, and run the service using .env
+	@test -f .env || { echo "${RED}.env not found. Run: cp .env.example .env${RESET}"; exit 1; }
+	@set -a; . ./.env; set +a; $(GOCMD) run . seed
+	@set -a; . ./.env; set +a; exec $(GOCMD) run . serve
+
+dev-reset: ## Delete local PostgreSQL data and start a fresh database
+	@echo "${YELLOW}Deleting the local PostgreSQL volume and all of its data...${RESET}"
+	@docker compose down --volumes --remove-orphans
+	@docker compose up --detach --wait postgres
+
 ## Format:
 fmt: ## Run gofmt on all source files
 	@echo "${MAGENTA}Running gofmt...${RESET}"
@@ -86,7 +103,7 @@ fmt: ## Run gofmt on all source files
 	@# Pass the api/ directory (not a *.yaml glob): yamlfmt walks it and
 	@# matches every .yaml/.yml file by extension, so the api/openapi.yml
 	@# spec is covered. A *.yaml glob silently skipped the .yml spec.
-	@$(YAMLFMT) api
+	@$(YAMLFMT) api compose.yaml
 
 fmt-check: ## Verify Go and YAML files are formatted
 	@echo "${MAGENTA}Checking gofmt...${RESET}"
@@ -94,7 +111,7 @@ fmt-check: ## Verify Go and YAML files are formatted
 	@echo "${MAGENTA}Checking goimports...${RESET}"
 	@test -z "$$($(GOIMPORTS) -e -format-only -l $(PROJECT_GOFILES))"
 	@echo "${MAGENTA}Checking YAML formatting...${RESET}"
-	@$(YAMLFMT) -lint api
+	@$(YAMLFMT) -lint api compose.yaml
 
 lint: ## Run go vet and golangci-lint
 	@echo "${MAGENTA}Running go vet...${RESET}"

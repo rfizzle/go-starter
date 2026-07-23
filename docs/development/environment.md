@@ -1,327 +1,127 @@
 # Development Environment
 
-This document covers development environment setup, tooling requirements, and troubleshooting for the Go Starter project.
+This guide covers the supported local service workflow. See the root
+[README](../../README.md) for the project overview and
+[CONTRIBUTING](../../CONTRIBUTING.md) for the full validation workflow.
 
 ## Prerequisites
 
-### Go Version
-- **Go 1.22+** is required
-- **Latest stable version** is recommended
-- Use `go version` to check your current version
+- Go 1.25.7 (the version declared in `go.mod`)
+- Make
+- Docker with the Compose plugin
 
-```bash
-go version
-# Should show: go version go1.22.x platform/arch
-```
+Run `make env` to inspect the additional tools used by generation, formatting,
+linting, and release tasks. Tool version pinning and bootstrap automation are
+handled separately from the local database workflow.
 
-### Development Tools
+## First run
 
-#### Required Tools
-```bash
-# Install golangci-lint for code quality
-go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+Copy the example application environment, then run the development target:
 
-# Install ogen for OpenAPI code generation
-go install github.com/ogen-go/ogen/cmd/ogen@latest
-
-# Install goimports for import management
-go install golang.org/x/tools/cmd/goimports@latest
-
-# Install yamlfmt for YAML formatting (optional but recommended)
-go install github.com/google/yamlfmt/cmd/yamlfmt@latest
-```
-
-#### Development Database
-```bash
-# PostgreSQL 15+ (via Docker recommended)
-docker run --name go-starter-postgres \
-  -e POSTGRES_PASSWORD=devpassword \
-  -e POSTGRES_DB=gostarter \
-  -p 5432:5432 -d postgres:15
-```
-
-## Project Setup
-
-### Initial Setup
-```bash
-# Clone and setup project
-git clone <repository-url>
-cd go-starter
-
-# Install dependencies
-go mod tidy
-
-# Generate API code
-make generate
-
-# Verify everything works
-make ci
-```
-
-### Environment Configuration
-```bash
-# Copy example environment file
+```sh
 cp .env.example .env
-
-# Edit with your local settings
-vim .env
+make dev-run
 ```
 
-### Generated Code
+The target performs the local startup sequence:
 
-The project uses ogen for OpenAPI code generation:
+1. starts the `postgres` service from `compose.yaml`;
+2. waits for PostgreSQL's `pg_isready` health check;
+3. exports the values from the ignored `.env` file;
+4. runs `go run . seed`, which applies pending embedded migrations and
+   idempotently inserts the example user;
+5. runs `go run . serve`.
 
-```bash
-# Generate server/client/types into an internal package
-go run github.com/ogen-go/ogen/cmd/ogen -convenient-errors --clean --package api --target internal/api/v1 api/openapi.yml
+The service is ready when both health probes succeed:
+
+```sh
+curl --fail http://localhost:8080/api/v1/healthz/liveness
+curl --fail http://localhost:8080/api/v1/healthz/readiness
 ```
 
-### Typical integration
+Stop the Go process with Ctrl-C. PostgreSQL continues running until you stop it:
 
-* Generated interfaces/types: `internal/api/v1/...`
-* Implement server methods in `internal/controller/...` where handlers satisfy the generated `Server` interface.
-* Compose middlewares (auth/logging/metrics) in `internal/http`.
-
-## Build System
-
-### Makefile Commands
-
-The project uses a Makefile for all common operations:
-
-```bash
-# Code generation and formatting
-make generate    # Regenerate OpenAPI code
-make fmt         # Format Go and YAML files
-make tidy        # Clean up go.mod
-
-# Quality checks
-make lint        # Run golangci-lint
-make vet         # Run go vet
-make test        # Run tests
-make race        # Run tests with race detector
-
-# Building
-make build       # Multi-platform builds
-make linux       # Linux build only  
-make osx         # macOS build only
-make windows     # Windows build only
-
-# Development workflow
-make ci          # Full CI pipeline (generate, fmt, lint, test)
-make clean       # Clean build artifacts
-make docker      # Build Docker image
+```sh
+make dev-down
 ```
 
-### NPM Script Alternative
-```bash
-# The project also supports npm-style commands
-npm run build
-npm run test  
-npm run fmt
-npm run lint
+`dev-down` preserves the named database volume, so the next `dev-up` or
+`dev-run` retains local data.
+
+## Local configuration
+
+The committed `.env.example` uses the exact Viper environment names consumed by
+the CLI. Nested configuration keys replace dots and dashes with underscores and
+use the `GOSTARTER_` prefix:
+
+| Application key | Environment variable |
+| --- | --- |
+| `environment` | `GOSTARTER_ENVIRONMENT` |
+| `database.uri` | `GOSTARTER_DATABASE_URI` |
+| `auth.jwt-secret` | `GOSTARTER_AUTH_JWT_SECRET` |
+| `logging.level` | `GOSTARTER_LOGGING_LEVEL` |
+| `logging.format` | `GOSTARTER_LOGGING_FORMAT` |
+| `webserver.address` | `GOSTARTER_WEBSERVER_ADDRESS` |
+| `webserver.port` | `GOSTARTER_WEBSERVER_PORT` |
+
+The `.env` file is loaded by `make dev-run`; the application does not
+automatically read dotenv files when invoked directly. To run commands
+manually, export the file first:
+
+```sh
+set -a
+. ./.env
+set +a
+go run . seed
+go run . serve
 ```
 
-## IDE Setup
+Command flags take precedence over these environment variables. See
+`go run . serve --help` and `go run . seed --help` for every supported setting.
 
-### VS Code
-Recommended extensions:
-- Go (official Go extension)
-- YAML (Red Hat)
-- OpenAPI (Swagger) Viewer
+## PostgreSQL lifecycle
 
-Settings (`.vscode/settings.json`):
-```json
-{
-  "go.lintTool": "golangci-lint",
-  "go.lintOnSave": "package",
-  "go.formatTool": "goimports",
-  "go.useLanguageServer": true
-}
+The Compose service uses the pinned `postgres:17.5-alpine` image, binds only to
+`127.0.0.1:5432`, and stores data in a named volume. Its `gostarter` username,
+password, and database are intentionally non-production values that match the
+URI in `.env.example`.
+
+| Target | Behavior |
+| --- | --- |
+| `make dev-up` | Start PostgreSQL and wait until it is healthy. |
+| `make dev-down` | Stop Compose services and preserve database data. |
+| `make dev-run` | Run `dev-up`, migrate, seed, and serve. |
+| `make dev-reset` | Delete the named PostgreSQL volume, then start fresh. |
+
+`dev-reset` is the only local development target that deletes database data.
+Run it explicitly when a clean database is required:
+
+```sh
+make dev-reset
 ```
 
-### GoLand/IntelliJ
-- Enable Go modules support
-- Set goimports as formatter
-- Configure golangci-lint as external tool
-
-## Quality Standards
-
-### Code Quality
-All code must pass:
-```bash
-make fmt         # Code formatting
-make lint        # Code linting  
-make vet         # Static analysis
-make test        # All tests
-```
-
-### Pre-commit Hooks (Recommended)
-```bash
-# Install pre-commit
-pip install pre-commit
-
-# Install hooks
-pre-commit install
-
-# Run on all files
-pre-commit run --all-files
-```
+Both `seed` and `serve` apply pending migrations before accessing application
+tables. Running `seed` repeatedly is safe: existing baseline records are
+skipped. Migration SQL lives in `internal/storage/postgres/migrations/` and is
+embedded in the binary.
 
 ## Troubleshooting
 
-### Common Issues
+Inspect container and health-check state:
 
-#### Build Failures
-```bash
-# Clean and rebuild
-make clean
-go mod tidy
-make generate
-make build
+```sh
+docker compose ps
+docker compose logs postgres
 ```
 
-#### Test Failures
-```bash
-# Run with verbose output
-go test -v ./...
+If port 5432 is already in use, stop the conflicting local PostgreSQL instance
+or change both the Compose port mapping and `GOSTARTER_DATABASE_URI`.
 
-# Run specific test
-go test -v ./internal/auth -run TestService
+To validate the Compose model without starting containers:
 
-# Run with race detector
-make race
+```sh
+docker compose config
 ```
 
-#### Generated Code Issues
-```bash
-# Clean generated files
-rm -rf internal/api/v1/*_gen.go
-
-# Regenerate
-make generate
-```
-
-#### Database Issues
-```bash
-# Reset database
-docker stop go-starter-postgres
-docker rm go-starter-postgres
-# Run initial setup command again
-```
-
-### Performance Issues
-
-#### Slow Tests
-```bash
-# Run tests in parallel
-go test -v -parallel 4 ./...
-
-# Skip integration tests
-go test -short ./...
-```
-
-#### Slow Builds
-```bash
-# Use build cache
-export GOCACHE=$(go env GOCACHE)
-
-# Parallel builds
-make build -j4
-```
-
-### Environment Variables
-
-#### Required Variables
-```bash
-DATABASE_URL=postgres://user:pass@localhost/gostarter
-PORT=8080
-LOG_LEVEL=info
-```
-
-#### Optional Variables
-```bash
-ENABLE_PPROF=true
-CORS_ORIGINS=*
-JWT_SECRET=your-secret-key
-```
-
-## Docker Development
-
-### Development Container
-```bash
-# Build development image
-docker build -f Dockerfile.dev -t go-starter:dev .
-
-# Run with hot reload
-docker run -v $(pwd):/app -p 8080:8080 go-starter:dev
-```
-
-### Production Container
-```bash
-# Build production image
-make docker
-
-# Run production container
-docker run -p 8080:8080 go-starter:latest
-```
-
-## Testing
-
-### Test Categories
-- **Unit Tests**: Fast, isolated tests
-- **Integration Tests**: Database and external service tests  
-- **E2E Tests**: Full application tests
-
-### Test Commands
-```bash
-# All tests
-make test
-
-# Unit tests only
-go test -short ./...
-
-# Integration tests
-go test -tags=integration ./...
-
-# Specific package
-go test ./internal/auth
-
-# With coverage
-go test -cover ./...
-```
-
-### Test Database
-```bash
-# Use separate test database
-export TEST_DATABASE_URL=postgres://user:pass@localhost/gostarter_test
-
-# Or use in-memory database for faster tests
-export USE_MEMORY_DB=true
-```
-
-## Performance Profiling
-
-### CPU Profiling
-```bash
-# Start server with profiling
-ENABLE_PPROF=true go run main.go
-
-# Generate CPU profile
-go tool pprof http://localhost:8080/debug/pprof/profile
-
-# Memory profile
-go tool pprof http://localhost:8080/debug/pprof/heap
-```
-
-### Benchmarks
-```bash
-# Run benchmarks
-go test -bench=. ./...
-
-# With memory allocation stats
-go test -bench=. -benchmem ./...
-```
-
----
-
-*This development environment setup ensures consistent, high-quality development across all contributors to the Go Starter project.*
+For generated code, tests, linting, and release commands, use the targets listed
+by `make help`.

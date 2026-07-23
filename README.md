@@ -45,29 +45,17 @@ make build
 ./bin/gostarter --help
 ```
 
-At this point the binary is ready; the remaining commands require PostgreSQL.
-For a disposable local database:
+Create the ignored local configuration file, then start the complete
+development flow:
 
 ```sh
-docker run --name gostarter-postgres --rm -d \
-  -e POSTGRES_USER=gostarter \
-  -e POSTGRES_PASSWORD=gostarter \
-  -e POSTGRES_DB=gostarter \
-  -p 5432:5432 \
-  postgres:17.5-alpine
+cp .env.example .env
+make dev-run
 ```
 
-Configure the process, apply the embedded migrations, seed the example user,
-and start the server:
-
-```sh
-export GOSTARTER_DATABASE_URI='postgres://gostarter:gostarter@localhost:5432/gostarter?sslmode=disable'
-export GOSTARTER_AUTH_JWT_SECRET='local-development-secret-change-before-use'
-./bin/gostarter seed --environment development
-./bin/gostarter serve --environment development
-```
-
-In another terminal, probe the running service:
+`dev-run` starts the pinned PostgreSQL Compose service, waits for its health
+check, loads `.env`, applies pending embedded migrations, idempotently seeds the
+example user, and serves the application. In another terminal, probe it:
 
 ```sh
 curl --fail http://localhost:8080/api/v1/healthz/liveness
@@ -75,14 +63,17 @@ curl --fail http://localhost:8080/api/v1/healthz/readiness
 curl --fail http://localhost:8080/metrics
 ```
 
-Stop the service with Ctrl-C, then remove the disposable database:
+Stop the service with Ctrl-C, then stop PostgreSQL while preserving its named
+data volume:
 
 ```sh
-docker stop gostarter-postgres
+make dev-down
 ```
 
-The local credentials and permissive CORS defaults above are for development
-only. Do not reuse them in a deployed environment.
+Run `make dev-up` when only PostgreSQL is needed. `make dev-reset` is the
+explicit destructive path: it deletes the local PostgreSQL volume and starts a
+fresh healthy database. The credentials in `compose.yaml` and `.env.example`
+are for development only; do not reuse them in a deployed environment.
 
 ## Configuration
 
@@ -117,6 +108,10 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | `make cover` | Write `coverage.out` and print statement coverage. |
 | `make generate` | Regenerate ogen and sqlc output. |
 | `make generate-check` | Fail if committed generated code is stale. |
+| `make dev-up` | Start local PostgreSQL and wait for health. |
+| `make dev-run` | Start PostgreSQL, migrate, seed, and serve using `.env`. |
+| `make dev-down` | Stop local services without deleting database data. |
+| `make dev-reset` | Delete local database data and start PostgreSQL fresh. |
 | `make release-snapshot` | Build local release archives in `dist/`. |
 | `make docker` | Build the current container image. |
 | `make vuln` | Scan Go dependencies with `govulncheck`. |

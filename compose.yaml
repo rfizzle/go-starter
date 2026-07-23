@@ -1,0 +1,22 @@
+name: go-starter
+services:
+  postgres:
+    image: postgres:17.5-alpine
+    environment:
+      POSTGRES_DB: gostarter
+      POSTGRES_PASSWORD: gostarter
+      POSTGRES_USER: gostarter
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$$POSTGRES_USER" -d "$$POSTGRES_DB"
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    volumes:
+      - gostarter-postgres-data:/var/lib/postgresql/data
+volumes:
+  gostarter-postgres-data:

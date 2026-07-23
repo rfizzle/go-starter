@@ -3,14 +3,29 @@ package cmd
 import (
 	"context"
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/rfizzle/go-starter/pkg/config"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
+
+type syncErrorWriteSyncer struct {
+	err error
+}
+
+func (writer syncErrorWriteSyncer) Write(data []byte) (int, error) {
+	return len(data), nil
+}
+
+func (writer syncErrorWriteSyncer) Sync() error {
+	return writer.err
+}
 
 type fakeServeApplication struct {
 	run      func(context.Context) error
@@ -269,5 +284,43 @@ func TestServeCommand_LoggerCleanupPreservesRunError(t *testing.T) {
 	}
 	if !errors.Is(err, syncErr) {
 		t.Errorf("Execute() error = %v, want sync error preserved", err)
+	}
+}
+
+func TestSyncLogger(t *testing.T) {
+	syncErr := errors.New("sync failed")
+	tests := []struct {
+		name    string
+		syncErr error
+		wantErr error
+	}{
+		{
+			name:    "invalid terminal operation is harmless",
+			syncErr: &os.PathError{Op: "sync", Path: "/dev/stderr", Err: syscall.EINVAL},
+		},
+		{
+			name:    "unsupported terminal ioctl is harmless",
+			syncErr: &os.PathError{Op: "sync", Path: "/dev/stderr", Err: syscall.ENOTTY},
+		},
+		{
+			name:    "genuine sync failure propagates",
+			syncErr: syncErr,
+			wantErr: syncErr,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			core := zapcore.NewCore(
+				zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+				syncErrorWriteSyncer{err: tt.syncErr},
+				zap.DebugLevel,
+			)
+
+			err := syncLogger(zap.New(core))
+			if !errors.Is(err, tt.wantErr) {
+				t.Fatalf("syncLogger() error = %v, want error wrapping %v", err, tt.wantErr)
+			}
+		})
 	}
 }

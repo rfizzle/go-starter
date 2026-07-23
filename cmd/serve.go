@@ -122,10 +122,10 @@ go-starter serve --config /etc/crypt/config.json`,
 
 func syncLogger(appLogger *zap.Logger) error {
 	err := appLogger.Sync()
-	// Syncing stdout/stderr commonly returns EINVAL when the destination is an
-	// unbuffered terminal. All log entries have already been written in that
-	// case, so it is not a cleanup failure.
-	if errors.Is(err, syscall.EINVAL) {
+	// Syncing stdout/stderr commonly returns EINVAL or ENOTTY when the
+	// destination is an unbuffered terminal. All log entries have already been
+	// written in those cases, so neither is a cleanup failure.
+	if errors.Is(err, syscall.EINVAL) || errors.Is(err, syscall.ENOTTY) {
 		return nil
 	}
 	return err
