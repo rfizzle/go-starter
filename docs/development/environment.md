@@ -45,9 +45,10 @@ The target performs the local startup sequence:
 1. starts the `postgres` service from `compose.yaml`;
 2. waits for PostgreSQL's `pg_isready` health check;
 3. exports the values from the ignored `.env` file;
-4. runs `go run . seed`, which applies pending embedded migrations and
-   idempotently inserts the example user;
-5. runs `go run . serve`.
+4. runs `go run . migrate up`, which applies pending embedded migrations under
+   a PostgreSQL advisory lock;
+5. runs `go run . seed`, which idempotently inserts the example user;
+6. runs `go run . serve`.
 
 The service is ready when both health probes succeed:
 
@@ -75,6 +76,7 @@ use the `GOSTARTER_` prefix:
 | --- | --- |
 | `environment` | `GOSTARTER_ENVIRONMENT` |
 | `database.uri` | `GOSTARTER_DATABASE_URI` |
+| `database.auto-migrate` | `GOSTARTER_DATABASE_AUTO_MIGRATE` |
 | `auth.jwt-secret` | `GOSTARTER_AUTH_JWT_SECRET` |
 | `logging.level` | `GOSTARTER_LOGGING_LEVEL` |
 | `logging.format` | `GOSTARTER_LOGGING_FORMAT` |
@@ -93,12 +95,14 @@ manually, export the file first:
 set -a
 . ./.env
 set +a
+go run . migrate up
 go run . seed
 go run . serve
 ```
 
 Command flags take precedence over these environment variables. See
-`go run . serve --help` and `go run . seed --help` for every supported setting.
+`go run . migrate --help`, `go run . serve --help`, and
+`go run . seed --help` for every supported setting.
 The `cmd` package owns Viper file, environment, and flag loading;
 `internal/platform/config` contains only decoded values and validation.
 Logger and OpenTelemetry provider construction lives in
@@ -126,10 +130,14 @@ Run it explicitly when a clean database is required:
 make dev-reset
 ```
 
-Both `seed` and `serve` apply pending migrations before accessing application
-tables. Running `seed` repeatedly is safe: existing baseline records are
-skipped. Migration SQL lives in `internal/platform/database/postgres/migrations/` and is
-embedded in the binary.
+`migrate up` is the explicit, idempotent schema step and serializes concurrent
+attempts with a PostgreSQL session advisory lock. `serve` leaves
+`database.auto-migrate` disabled by default; enable it only for deployments
+that deliberately choose startup migration. `seed` expects the schema to be
+current and remains idempotent: existing baseline records are skipped.
+Migration SQL lives in
+`internal/platform/database/postgres/migrations/` and is embedded in the
+binary.
 
 ## Troubleshooting
 

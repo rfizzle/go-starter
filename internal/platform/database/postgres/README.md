@@ -1,9 +1,10 @@
 # PostgreSQL infrastructure
 
 This package owns the service's PostgreSQL connection pool, ping and close
-lifecycle, Prometheus pool metrics, and embedded Goose migrations. Application
-and CLI composition roots construct the client and retain responsibility for
-closing it.
+lifecycle, Prometheus pool metrics, and embedded Goose migrations. Migration
+application holds Goose's PostgreSQL session advisory lock, so concurrent
+callers serialize. Application and CLI composition roots construct the client
+and retain responsibility for closing it.
 
 It does not own business models, repository behavior, authentication, or HTTP
 mapping. Those contracts live in `internal/domain`, and the example user
@@ -22,6 +23,8 @@ repository lives in `internal/modules/user`.
 Run `make migration name=<name>` to scaffold a migration. After changing
 migrations or queries, run `make generate` and commit the resulting `db/`
 output. `make generate-check` verifies that generated SQL remains current.
+Apply the embedded set explicitly with `go run . migrate up`; inspect it with
+`go run . migrate status`.
 
 See [the database development guide](../../../../docs/development/database.md)
 for transaction, sqlc-versus-squirrel, testing, and migration guidance.

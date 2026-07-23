@@ -26,6 +26,7 @@ func TestUnmarshalResolvesNestedKeys(t *testing.T) {
 	flags.String("logging.format", "", "")
 	flags.Int("webserver.port", 8080, "")
 	flags.String("database.uri", "", "")
+	flags.Bool("database.auto-migrate", false, "")
 	if err := v.BindPFlags(flags); err != nil {
 		t.Fatalf("BindPFlags() error: %v", err)
 	}
@@ -34,6 +35,7 @@ func TestUnmarshalResolvesNestedKeys(t *testing.T) {
 	t.Setenv("GOSTARTER_LOGGING_LEVEL", "debug")
 	t.Setenv("GOSTARTER_ENVIRONMENT", "development")
 	t.Setenv("GOSTARTER_WEBSERVER_PORT", "9090")
+	t.Setenv("GOSTARTER_DATABASE_AUTO_MIGRATE", "true")
 
 	var cfg Application
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -48,6 +50,9 @@ func TestUnmarshalResolvesNestedKeys(t *testing.T) {
 	}
 	if cfg.Webserver.Port != 9090 {
 		t.Errorf("Webserver.Port = %d, want %d (from env)", cfg.Webserver.Port, 9090)
+	}
+	if !cfg.Database.AutoMigrate {
+		t.Error("Database.AutoMigrate = false, want true (from env)")
 	}
 	// A key with only a flag default (no env/flag override) must fall back to it.
 	if cfg.Logging.Format != "" {

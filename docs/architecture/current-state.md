@@ -20,7 +20,8 @@ main.go
 
 `internal/app` owns runtime construction and shutdown ordering. The `seed`
 command is a smaller composition root that constructs the database and user
-repository, then calls `internal/cli/seed`.
+repository, then calls `internal/cli/seed`. The `migrate` command is a
+database-only composition root for locked `up` and `status` operations.
 
 ## Package groups
 
@@ -38,7 +39,10 @@ repository, then calls `internal/cli/seed`.
 ## Persistence
 
 The application owns one pgx pool. `platform/database/postgres` uses it for
-startup checks, metrics, and embedded Goose migrations.
+startup checks, metrics, and optional embedded Goose migrations. Migration
+application is context-aware and serialized with a PostgreSQL session advisory
+lock. Startup migration is disabled by default in favor of the one-shot
+`migrate up` command.
 `modules/user.Repository` uses the same pool through sqlc-generated fixed
 queries and squirrel-built dynamic queries. Driver rows are mapped to
 `domain.User`, which intentionally cannot carry a password hash.

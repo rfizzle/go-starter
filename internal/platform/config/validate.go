@@ -15,8 +15,9 @@ import (
 type ValidationScope string
 
 const (
-	ValidationScopeServe ValidationScope = "serve"
-	ValidationScopeSeed  ValidationScope = "seed"
+	ValidationScopeServe   ValidationScope = "serve"
+	ValidationScopeSeed    ValidationScope = "seed"
+	ValidationScopeMigrate ValidationScope = "migrate"
 )
 
 // Validate checks the application settings used by scope and returns all
@@ -26,7 +27,7 @@ func (application Application) Validate(scope ValidationScope) error {
 	var errs []error
 
 	switch scope {
-	case ValidationScopeServe, ValidationScopeSeed:
+	case ValidationScopeServe, ValidationScopeSeed, ValidationScopeMigrate:
 		errs = append(errs, application.validateShared(scope)...)
 	default:
 		return fmt.Errorf("unsupported configuration validation scope %q", scope)

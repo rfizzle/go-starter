@@ -8,7 +8,7 @@ repository-owned transaction boundaries.
 
 ```text
 internal/app
-  ├── platform/database/postgres.Client   startup ping and embedded Goose migrations
+  ├── platform/database/postgres.Client   startup ping and optional locked migrations
   └── modules/user.Repository             domain persistence adapter
         ├── db.Queries      sqlc-generated fixed queries
         └── db.DBTX         pgxpool.Pool or pgx.Tx for dynamic queries
@@ -197,10 +197,38 @@ transaction short and do not perform external network I/O inside it.
 
 ## Migrations and seeding
 
-Goose applies the embedded, forward-only migrations through
-`postgres.Client.Migrate`. `serve` and `seed` ping first and apply pending
-migrations before using repositories. Add schema changes as new sequential
-migration files; never rewrite a migration that may already have run.
+Goose applies the embedded, forward-only migrations through the context-aware
+`postgres.Client.Migrate`. Every application attempt holds a PostgreSQL
+session advisory lock for the complete Goose `up` operation, so concurrent
+commands or startup migrators serialize instead of racing.
+
+Use the explicit one-shot commands for normal development and production
+deployment:
+
+```sh
+go run . migrate status
+go run . migrate up
+go run . seed
+```
+
+`migrate up` is idempotent and applies only pending forward migrations.
+`migrate status` reports `none`, `partial`, or `complete`. Both commands return
+database and migration failures through Cobra's nonzero error path and stop
+when their context is cancelled.
+
+The `serve` command does not migrate by default. Set
+`database.auto-migrate=true` (or
+`GOSTARTER_DATABASE_AUTO_MIGRATE=true`) only when the deployment explicitly
+chooses startup migration; the same advisory lock serializes replicas and any
+failure returns before the HTTP listener is constructed. Prefer a deployment
+job or init container running `migrate up` before application replicas start.
+An init container runs once per pod and is safe because of locking, but a
+single deployment job avoids redundant attempts and gives schema rollout an
+independent success gate.
+
+The `seed` command assumes migrations are already complete. Add schema changes
+as new sequential migration files; never rewrite a migration that may already
+have run.
 
 `MigrationStatus` reports `database.StatusNone`, `database.StatusPartial`, or
 `database.StatusComplete`. Status lookup ensures Goose's version table exists,

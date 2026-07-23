@@ -30,6 +30,18 @@ func TestApplicationValidate(t *testing.T) {
 			},
 		},
 		{
+			name:  "valid migrate configuration ignores unused serve settings",
+			scope: ValidationScopeMigrate,
+			mutate: func(cfg *Application) {
+				cfg.Webserver.Port = -1
+				cfg.Auth.JWTSecret = ""
+				cfg.Auth.JWTTTL = -1
+				cfg.Observability.Endpoint = "https://collector.example.com:4317"
+				cfg.Observability.SampleRatio = 2
+				cfg.Database.CloseTimeout = -1
+			},
+		},
+		{
 			name:  "environment is restricted",
 			scope: ValidationScopeServe,
 			mutate: func(cfg *Application) {

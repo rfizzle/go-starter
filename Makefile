@@ -89,6 +89,7 @@ dev-down: ## Stop local services while preserving PostgreSQL data
 
 dev-run: dev-up ## Migrate, seed, and run the service using .env
 	@test -f .env || { echo "${RED}.env not found. Run: cp .env.example .env${RESET}"; exit 1; }
+	@set -a; . ./.env; set +a; $(GOCMD) run . migrate up
 	@set -a; . ./.env; set +a; $(GOCMD) run . seed
 	@set -a; . ./.env; set +a; exec $(GOCMD) run . serve
 

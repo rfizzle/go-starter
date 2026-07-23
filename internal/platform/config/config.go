@@ -93,6 +93,11 @@ type Database struct {
 	URI string `mapstructure:"uri"`
 	// PingTimeout is the timeout, in seconds, for database ping operations.
 	PingTimeout int `mapstructure:"ping-timeout"`
+	// AutoMigrate applies embedded forward-only migrations during serve
+	// startup. It is disabled by default; production deployments should
+	// normally run `migrate up` as a serialized one-shot job before starting
+	// application replicas.
+	AutoMigrate bool `mapstructure:"auto-migrate"`
 	// MaxConns caps the connection pool size. 0 uses the pgx default (the
 	// greater of 4 and runtime.NumCPU()).
 	MaxConns int `mapstructure:"max-conns"`

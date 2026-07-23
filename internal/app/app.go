@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"sync/atomic"
 	"time"
@@ -25,6 +26,10 @@ type App struct {
 	cfg    *config.Application
 	ready  *atomic.Bool
 	logger *zap.Logger
+}
+
+type migrator interface {
+	Migrate(context.Context, embed.FS) error
 }
 
 func New(cfg *config.Application) (*App, error) {
@@ -126,10 +131,13 @@ func (application *App) Run(ctx context.Context) error {
 		return fmt.Errorf("store.Ping(): %w", err)
 	}
 
-	// Apply embedded, forward-only migrations before serving traffic so the
-	// schema the user repository (and sqlc-generated queries) expect is present.
-	if err := store.Migrate(postgres.Migrations); err != nil {
-		return fmt.Errorf("store.Migrate(): %w", err)
+	// Startup migration is an explicit deployment policy. The safe default is
+	// disabled so multiple replicas do not all perform schema work during a
+	// rollout; deployments can run `migrate up` as a one-shot job instead.
+	// When explicitly enabled, migration still completes before the HTTP server
+	// is constructed, and the PostgreSQL advisory lock serializes replicas.
+	if err := migrateOnStartup(ctx, application.cfg.Database.AutoMigrate, store); err != nil {
+		return err
 	}
 
 	// The user domain shares the same pool: sqlc-generated queries and squirrel
@@ -230,6 +238,16 @@ func (application *App) Run(ctx context.Context) error {
 	application.logger.Info("application stopped")
 
 	return err
+}
+
+func migrateOnStartup(ctx context.Context, enabled bool, store migrator) error {
+	if !enabled {
+		return nil
+	}
+	if err := store.Migrate(ctx, postgres.Migrations); err != nil {
+		return fmt.Errorf("store.Migrate(): %w", err)
+	}
+	return nil
 }
 
 func (application *App) Ready() bool {

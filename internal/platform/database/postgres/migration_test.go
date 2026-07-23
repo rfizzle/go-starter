@@ -20,7 +20,7 @@ import (
 func TestMigrateRequiresPool(t *testing.T) {
 	client := &Client{logger: zaptest.NewLogger(t)}
 
-	err := client.Migrate(Migrations)
+	err := client.Migrate(t.Context(), Migrations)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "pool-backed client")
 }

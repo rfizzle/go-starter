@@ -158,6 +158,7 @@ func addServeFlags(command *cobra.Command) {
 	// Database options
 	command.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
 	command.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
+	command.Flags().Bool("database.auto-migrate", false, "apply embedded migrations before starting HTTP (disabled by default; prefer a migrate up deployment job)")
 	command.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
 	command.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
 	command.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")

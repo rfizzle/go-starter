@@ -18,11 +18,11 @@ The module currently requires Go 1.26.5. Its main stack is:
 
 The production-oriented foundations are implemented and wired into `serve`:
 early configuration validation, structured logging, graceful shutdown,
-PostgreSQL pooling and migrations, JWT validation, health endpoints, Prometheus
-metrics, request limits, configurable TLS, and optional OTLP export. This is a
-starter, not a production deployment you should ship unchanged: choose
-deployment-specific secrets, CORS origins, connection limits, TLS termination,
-monitoring, backup, and availability policies first.
+PostgreSQL pooling, explicit serialized migrations, JWT validation, health
+endpoints, Prometheus metrics, request limits, configurable TLS, and optional
+OTLP export. This is a starter, not a production deployment you should ship
+unchanged: choose deployment-specific secrets, CORS origins, connection limits,
+TLS termination, monitoring, backup, and availability policies first.
 
 The user domain, the `admin@example.com` seed record, and embedded static files
 are examples intended to be replaced or extended. The rate-limiter package is
@@ -116,7 +116,8 @@ are for development only; do not reuse them in a deployed environment.
 ## Configuration
 
 Each command accepts `--config PATH`, but no default configuration file or
-search path is configured. For values used by `serve` and `seed`, precedence is:
+search path is configured. For values used by `migrate`, `serve`, and `seed`,
+precedence is:
 
 1. command-line flags;
 2. `GOSTARTER_*` environment variables;
@@ -127,8 +128,9 @@ Nested keys replace dots and dashes with underscores. For example,
 `database.uri` maps to `GOSTARTER_DATABASE_URI`, and
 `webserver.read-header-timeout` maps to
 `GOSTARTER_WEBSERVER_READ_HEADER_TIMEOUT`. `--verbose` is a shortcut that
-forces debug logging. Run `./bin/gostarter serve --help` or
-`./bin/gostarter seed --help` for the complete command-specific settings.
+forces debug logging. Run `./bin/gostarter migrate --help`,
+`./bin/gostarter serve --help`, or `./bin/gostarter seed --help` for the
+complete command-specific settings.
 
 Configuration is validated before network or database resources are opened.
 In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
@@ -252,7 +254,14 @@ checks the Dockerfile weekly. Review a proposed tag and digest together, confirm
 that the Go builder version still agrees with `go.mod`, then run
 `make container-check` and `make docker` before merging the update.
 
-The service applies pending embedded migrations before accepting traffic.
+Run `/app migrate up` as a deployment job before starting application replicas.
+The command applies pending embedded migrations under a PostgreSQL session
+advisory lock, so concurrent attempts serialize. An init container is also
+safe, but runs once per pod; a single job provides a clearer independent schema
+gate. Startup migration is disabled by default. A deployment that deliberately
+chooses that mode can set `GOSTARTER_DATABASE_AUTO_MIGRATE=true`; migration
+still runs under the lock and any failure exits before the HTTP listener starts.
+
 Provide configuration through deployment-managed environment variables or an
 explicit config file, and supply PostgreSQL separately. Plain HTTP is the
 default because TLS is normally terminated by a trusted ingress or load
@@ -260,8 +269,8 @@ balancer; set both TLS file options only when the process terminates TLS itself.
 Profiling is disabled by default and should remain private when enabled.
 
 A production Compose stack and deployment manifests are not included. Validate
-the image, health probes, secret delivery, CORS policy, database migration
-concurrency, observability, and rollback strategy in your target platform.
+the image, health probes, secret delivery, CORS policy, migration job,
+observability, and rollback strategy in your target platform.
 
 ## Contributing and security
 

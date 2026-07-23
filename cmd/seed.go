@@ -30,9 +30,8 @@ var defaultSeedDependencies = seedDependencies{
 	run:           runSeed,
 }
 
-// seedCmd applies pending migrations and then inserts the baseline records (see
-// internal/cli/seed) into the configured database. Seeding is idempotent, so it is
-// safe to run repeatedly.
+// seedCmd inserts the baseline records (see internal/cli/seed) into an already
+// migrated database. Seeding is idempotent, so it is safe to run repeatedly.
 var seedCmd = newSeedCommand(defaultSeedDependencies)
 
 func newSeedCommand(deps seedDependencies) *cobra.Command {
@@ -41,9 +40,9 @@ func newSeedCommand(deps seedDependencies) *cobra.Command {
 		Short: "Seed the database with baseline records.",
 		Long: `Seed the database with baseline records.
 
-Applies any pending migrations, then inserts the baseline dataset (an example
-user). Seeding is idempotent: records that already exist are skipped, so it is
-safe to run more than once.
+Inserts the baseline dataset (an example user) into an already migrated
+database. Seeding is idempotent: records that already exist are skipped, so it
+is safe to run more than once.
 
 Example Command:
 go-starter seed --database.uri "$DATABASE_URI"`,
@@ -72,8 +71,8 @@ go-starter seed --database.uri "$DATABASE_URI"`,
 			}
 			logger = appLogger
 
-			// Cancel migration/seeding on Ctrl-C or SIGTERM so a long run
-			// against a remote database can be interrupted cleanly.
+			// Cancel seeding on Ctrl-C or SIGTERM so a long run against a
+			// remote database can be interrupted cleanly.
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
@@ -139,12 +138,6 @@ func runSeed(ctx context.Context, cfg *config.Application, appLogger *zap.Logger
 
 	if err := store.Ping(ctx); err != nil {
 		return fmt.Errorf("store.Ping(): %w", err)
-	}
-
-	// Apply migrations first so seeding always runs against the current schema,
-	// exactly as serve does before serving traffic.
-	if err := store.Migrate(postgres.Migrations); err != nil {
-		return fmt.Errorf("store.Migrate(): %w", err)
 	}
 
 	userRepo := user.NewRepository(pool)

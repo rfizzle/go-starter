@@ -8,6 +8,7 @@ import (
 
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
+	"github.com/pressly/goose/v3/lock"
 	"go.uber.org/zap"
 
 	"github.com/rfizzle/go-starter/internal/platform/database"
@@ -29,29 +30,39 @@ const gooseDialect = goose.DialectPostgres
 //
 // It returns the provider, a cleanup func that must be called to release the
 // wrapping *sql.DB, and any construction error.
-func (client *Client) newGooseProvider(migrationFs embed.FS) (*goose.Provider, func(), error) {
+func (client *Client) newGooseProvider(migrationFS fs.FS) (*goose.Provider, func(), error) {
 	if client.pool == nil {
 		return nil, nil, fmt.Errorf("migrations require a pool-backed client (use WithPool or WithURI)")
 	}
 
 	// goose globs "*.sql" at the FS root, so hand it the migrations sub-tree
 	// rather than the whole embed.FS (which nests files under "migrations/").
-	sub, err := fs.Sub(migrationFs, migrationsDir)
+	sub, err := fs.Sub(migrationFS, migrationsDir)
 	if err != nil {
 		return nil, nil, fmt.Errorf("fs.Sub(%q): %w", migrationsDir, err)
 	}
 
 	db := stdlib.OpenDBFromPool(client.pool)
 
-	// goose only emits progress output when verbose, which is left off: the
-	// applied-migration loop in Migrate logs results through zap instead, so no
-	// goose.WithLogger adapter is needed. Concurrency note: no SessionLocker is
-	// configured, so simultaneous startup of multiple instances against a
-	// pristine database can race on object creation. Each migration runs in its
-	// own transaction and the loser fails startup safely (no corruption); wire
-	// goose.WithSessionLocker (a Postgres advisory lock) if concurrent
-	// multi-instance migration is a requirement.
-	gp, err := goose.NewProvider(gooseDialect, db, sub)
+	// Hold one PostgreSQL session-level advisory lock for the entire Up
+	// operation. Competing commands or startup migrators therefore serialize on
+	// the database rather than racing to create the version table or schema.
+	// Goose's locker retries for a bounded five minutes by default and stops
+	// immediately when the operation context is cancelled.
+	sessionLocker, err := lock.NewPostgresSessionLocker()
+	if err != nil {
+		_ = db.Close()
+		return nil, nil, fmt.Errorf("lock.NewPostgresSessionLocker(): %w", err)
+	}
+
+	// Goose only emits progress output when verbose, which is left off: the
+	// applied-migration loop logs results through zap instead.
+	gp, err := goose.NewProvider(
+		gooseDialect,
+		db,
+		sub,
+		goose.WithSessionLocker(sessionLocker),
+	)
 	if err != nil {
 		_ = db.Close()
 		return nil, nil, fmt.Errorf("goose.NewProvider(): %w", err)
@@ -63,27 +74,31 @@ func (client *Client) newGooseProvider(migrationFs embed.FS) (*goose.Provider, f
 // Migrate applies all pending, forward-only migrations from the embedded
 // filesystem. goose tracks applied migrations by numeric version in its own
 // table and runs each inside its own transaction. It is safe to call on every
-// startup: already-applied versions are skipped and a fully-migrated database
-// is a no-op.
+// invocation: already-applied versions are skipped and a fully-migrated
+// database is a no-op. A PostgreSQL session advisory lock serializes concurrent
+// callers.
 //
 // goose keys purely on the version number and does not checksum migration
 // bodies, so editing an already-applied file is silently ignored — change the
 // schema by adding a new versioned migration, never by editing an applied one.
-func (client *Client) Migrate(migrationFs embed.FS) error {
-	// Migrate historically took no context; derive a background one so the
-	// public signature stays stable while goose gets a real context.
-	ctx := context.Background()
+func (client *Client) Migrate(ctx context.Context, migrationFS embed.FS) error {
+	return client.migrate(ctx, migrationFS)
+}
 
-	gp, cleanup, err := client.newGooseProvider(migrationFs)
+// migrate accepts fs.FS so integration tests can exercise PostgreSQL locking
+// with a deliberately slow disposable migration while the public contract
+// remains limited to the repository's embedded migration set.
+func (client *Client) migrate(ctx context.Context, migrationFS fs.FS) error {
+	gp, cleanup, err := client.newGooseProvider(migrationFS)
 	if err != nil {
-		client.logger.Error("issue constructing migration provider")
+		client.logger.Error("issue constructing migration provider", zap.Error(err))
 		return err
 	}
 	defer cleanup()
 
 	results, err := gp.Up(ctx)
 	if err != nil {
-		client.logger.Error("issue running migrations")
+		client.logger.Error("issue running migrations", zap.Error(err))
 		return fmt.Errorf("goose up: %w", err)
 	}
 
@@ -101,8 +116,8 @@ func (client *Client) Migrate(migrationFs embed.FS) error {
 // It is not strictly read-only: querying status ensures goose's version table
 // exists, so calling it against a pristine database creates that table (with no
 // migration rows). Keep this in mind before wiring it into a readiness probe.
-func (client *Client) MigrationStatus(ctx context.Context, migrationFs embed.FS) (database.MigrationStatus, error) {
-	gp, cleanup, err := client.newGooseProvider(migrationFs)
+func (client *Client) MigrationStatus(ctx context.Context, migrationFS embed.FS) (database.MigrationStatus, error) {
+	gp, cleanup, err := client.newGooseProvider(migrationFS)
 	if err != nil {
 		return database.StatusNone, err
 	}
