@@ -12,10 +12,17 @@
   },
   "scripts": {
     "build": "make build",
+    "check": "make check",
+    "ci": "make ci",
+    "cover": "make cover",
+    "generate": "make generate",
+    "generate-check": "make generate-check",
     "test": "make test",
     "fmt": "make fmt",
     "lint": "make lint",
+    "release-snapshot": "make release-snapshot",
     "tidy": "make tidy",
-    "vendor": "make vendor"
+    "vendor": "make vendor",
+    "vuln": "make vuln"
   }
 }

@@ -5,7 +5,8 @@ This file provides guidance to AI Agents when working with code in this reposito
 ## Development Commands
 
 ### Essential Commands
-- **Build**: `make build` - Build all binaries for multiple platforms (Linux, macOS, Windows)
+- **Build**: `make build` - Build the local binary in `bin/`
+- **Check**: `make check` - Run generation consistency, formatting, vet, lint, and tests
 - **Test**: `make test` - Run all Go tests in the project
 - **Lint**: `make lint` - Run go vet and golangci-lint for code quality checks
 - **Format**: `make fmt` - Format Go code with gofmt, goimports, and YAML files with yamlfmt
@@ -17,12 +18,17 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Dependencies**: `make tidy` (rebuild go.mod), `make vendor` (sync to vendor/)
 - **Environment check**: `make env` - Validate development environment setup
 - **Race condition testing**: `make race` - Run tests with race detector
-- **CI pipeline**: `make ci` - Run tests and linting suitable for CI environments
+- **Coverage**: `make cover` - Run tests and write a coverage profile
+- **Vulnerability scan**: `make vuln` - Scan dependencies with govulncheck
+- **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
+- **CI pipeline**: `make ci` - Run the read-only validation workflow
 - **Docker**: `make docker` - Build Docker container using build scripts
 
 ### NPM Scripts (Alternative)
-The project also supports npm-style commands via package.json:
-- `npm run build`, `npm run test`, `npm run fmt`, `npm run lint`, `npm run tidy`, `npm run vendor`
+The project also supports npm-style aliases via package.json, including:
+- `npm run build`, `npm run check`, `npm run test`, `npm run fmt`, `npm run lint`
+- `npm run generate`, `npm run generate-check`, `npm run cover`, `npm run vuln`
+- `npm run release-snapshot`, `npm run tidy`, `npm run vendor`
 
 ## Project Architecture
 
@@ -56,7 +62,7 @@ This project uses **ogen** for OpenAPI-first API development:
 3. **Implement handlers**: Update controllers in `internal/controller/` to implement new interfaces
 4. **Format and lint**: Run `make fmt lint` before committing
 5. **Test**: Run `make test` to ensure everything works
-6. **Build**: Use `make build` for multi-platform binaries
+6. **Build**: Use `make build` for a local binary or `make release-snapshot` for release archives
 
 ### Middleware Stack
 The web server includes these middleware layers (in order):

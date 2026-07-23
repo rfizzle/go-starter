@@ -5,15 +5,17 @@ GOMOD=$(GOCMD) mod
 GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
 GOGENERATE=$(GOCMD) generate
+GOVULNCHECK=govulncheck
 GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
 SQLC=sqlc
 GORELEASER=goreleaser
-PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*")
-PROJECT_PACKAGES=$(shell go list ./...)
-ROOT=$(shell pwd)
+PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./internal/api/*")
+PROJECT_PACKAGES=./...
+ROOT=$(CURDIR)
 YAMLFMT=yamlfmt -conf "${ROOT}/.yamlfmt"
+COVERAGE_PROFILE=coverage.out
 
 ifneq (,$(findstring 256color, ${TERM}))
 	RED     := $(shell tput -Txterm setaf 1)
@@ -36,7 +38,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test env generate generate-check sqlc migration sync-version docker check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker check-goreleaser
 
 all: help
 
@@ -44,12 +46,13 @@ all: help
 check-goreleaser:
 	@command -v $(GORELEASER) >/dev/null 2>&1 || { echo "${RED}goreleaser not found. Install: https://goreleaser.com/install/${RESET}"; exit 1; }
 
-build: generate fmt clean tidy check-goreleaser ## Build release archives for all platforms via goreleaser (dist/)
-	@echo "${MAGENTA}Building all distro packages...${RESET}"
-	@$(GORELEASER) release --clean --skip=publish,announce --auto-snapshot
+build: ## Build a local binary in bin/
+	@echo "${MAGENTA}Building local binary...${RESET}"
+	@mkdir -p bin
+	@$(GOCMD) build -o bin/$(APP_NAME) .
 
 # linux/osx/windows below are amd64-only local-dev conveniences (e.g. for the
-# Dockerfile's `make linux`); `make build` above is the full goreleaser matrix.
+# Dockerfile's `make linux`). Use release-snapshot for the full release matrix.
 linux: check-goreleaser ## Build your project and put the output binary in bin/linux/
 	@echo "${MAGENTA}Building package for Linux...${RESET}"
 	@mkdir -p bin/linux
@@ -65,9 +68,9 @@ windows: check-goreleaser ## Build your project and put the output binary in bin
 	@mkdir -p bin/windows
 	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/windows/starter.exe
 
-clean: ## Remove build related file (bin/ and vendor/)
+clean: ## Remove build outputs (bin/ and dist/)
 	@echo "${MAGENTA}Cleaning binaries...${RESET}"
-	@rm -fr ./bin/osx ./bin/linux ./bin/windows ./dist
+	@rm -fr ./bin ./dist
 
 clean_vendor: ## Remove built binaries
 	@echo "${MAGENTA}Cleaning vendor files...${RESET}"
@@ -85,11 +88,21 @@ fmt: ## Run gofmt on all source files
 	@# spec is covered. A *.yaml glob silently skipped the .yml spec.
 	@$(YAMLFMT) api
 
+fmt-check: ## Verify Go and YAML files are formatted
+	@echo "${MAGENTA}Checking gofmt...${RESET}"
+	@test -z "$$($(GOFMT) -e -s -l $(PROJECT_GOFILES))"
+	@echo "${MAGENTA}Checking goimports...${RESET}"
+	@test -z "$$($(GOIMPORTS) -e -format-only -l $(PROJECT_GOFILES))"
+	@echo "${MAGENTA}Checking YAML formatting...${RESET}"
+	@$(YAMLFMT) -lint api
+
 lint: ## Run go vet and golangci-lint
 	@echo "${MAGENTA}Running go vet...${RESET}"
 	@$(GOVET) $(PROJECT_PACKAGES)
 	@echo "${MAGENTA}Running golangci-lint...${RESET}"
 	@$(GOLANGCI_LINT) run
+
+check: generate-check fmt-check lint test ## Run all fast validation checks
 
 ## Dependencies:
 tidy: ## Rebuild go.mod with only required dependencies
@@ -113,13 +126,16 @@ race: ## Run the tests of the project with race conditions
 	@echo "${MAGENTA}Running golang tests...${RESET}"
 	@$(GOTEST) -v -race $(PROJECT_PACKAGES)
 
-ci: ## Run tests and lint in CI
-	@echo "${MAGENTA}Running golang tests...${RESET}"
-	@$(GOTEST) -v -failfast $(PROJECT_PACKAGES)
-	@echo "${MAGENTA}Running gofmt...${RESET}"
-	@test -z $($(GOFMT) -e -s -l $(PROJECT_GOFILES))
-	@echo "${MAGENTA}Running golangci-lint...${RESET}"
-	@$(GOLANGCI_LINT) run
+cover: ## Run tests and write a coverage profile
+	@echo "${MAGENTA}Running golang tests with coverage...${RESET}"
+	@$(GOTEST) -covermode=atomic -coverprofile=$(COVERAGE_PROFILE) $(PROJECT_PACKAGES)
+	@$(GOCMD) tool cover -func=$(COVERAGE_PROFILE)
+
+vuln: ## Scan dependencies for known vulnerabilities
+	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || { echo "${RED}govulncheck not found. Install: go install golang.org/x/vuln/cmd/govulncheck@latest${RESET}"; exit 1; }
+	@$(GOVULNCHECK) $(PROJECT_PACKAGES)
+
+ci: check ## Run the read-only validation workflow used by CI
 
 generate: sqlc ## Run go generate (ogen) and sqlc
 	@echo "${MAGENTA}Running golang generations...${RESET}"
@@ -149,6 +165,10 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 	@goose -s -dir internal/storage/postgres/migrations create $(name) sql
 
 ## Release:
+release-snapshot: check-goreleaser ## Build snapshot release archives in dist/
+	@echo "${MAGENTA}Building snapshot release archives...${RESET}"
+	@$(GORELEASER) release --clean --skip=publish,announce --auto-snapshot
+
 sync-version: ## Propagate the git tag version (single source of truth) into .version and api/openapi.yml
 	@echo "${MAGENTA}Syncing version from the latest git tag...${RESET}"
 	@./scripts/sync-version.bash
