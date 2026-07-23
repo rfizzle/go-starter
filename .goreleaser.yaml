@@ -1,11 +1,5 @@
-# goreleaser config for producing cross-platform release archives.
-# Local snapshot build: `goreleaser build --snapshot --clean`
-# Local snapshot release (binaries + archives, no publish): `goreleaser release --snapshot --clean`
-# Real releases are cut by pushing a `vX.Y.Z` tag (see scripts/version.bash for
-# how that tag is resolved as the single source of truth). GitHub Release
-# publishing, Docker image publishing, and changelog generation are
-# intentionally not configured here yet — they depend on CI/release workflows
-# that don't exist in this repo yet.
+# GoReleaser owns every tagged-release artifact. Local snapshots exercise the
+# same archive, checksum, SBOM, and image definitions without publishing.
 version: 2
 
 project_name: starter
@@ -36,21 +30,55 @@ builds:
 
 archives:
   - id: starter
+    ids:
+      - starter
     formats:
       - zip
     name_template: >-
       {{ .ProjectName }}-{{ .Version }}-{{ .Os }}_{{ .Arch }}
     files:
       - LICENSE
-      # Glob (not a literal filename) so archiving doesn't fail on a clone
-      # that doesn't have a CHANGELOG.md yet (see docs/reviews §3).
-      - CHANGELOG*
+      - README.md
 
 checksum:
   name_template: checksums.txt
+
+sboms:
+  - id: archive
+    artifacts: archive
+
+dockers_v2:
+  - id: starter
+    ids:
+      - starter
+    dockerfile: build/docker/Dockerfile.release
+    images:
+      - ghcr.io/rfizzle/go-starter
+    tags:
+      - "{{ .Tag }}"
+      - "{{ if not .Prerelease }}latest{{ end }}"
+    platforms:
+      - linux/amd64
+      - linux/arm64
+    labels:
+      org.opencontainers.image.created: "{{ .Date }}"
+      org.opencontainers.image.description: OpenAPI-first foundation for PostgreSQL-backed Go services
+      org.opencontainers.image.licenses: MIT
+      org.opencontainers.image.revision: "{{ .FullCommit }}"
+      org.opencontainers.image.source: "{{ .GitURL }}"
+      org.opencontainers.image.title: starter
+      org.opencontainers.image.version: "{{ .Version }}"
+    sbom: true
 
 snapshot:
   version_template: "{{ .Version }}-SNAPSHOT-{{ .ShortCommit }}"
 
 changelog:
-  disable: true
+  use: git
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+      - "^Merge "

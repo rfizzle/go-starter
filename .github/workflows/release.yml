@@ -1,0 +1,64 @@
+name: Release
+on:
+  push:
+    tags:
+      - "v*.*.*"
+permissions:
+  contents: read
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate release tag
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          source scripts/version.bash
+          if ! is_release_tag "${RELEASE_TAG}"; then
+            echo "::error::${RELEASE_TAG} is not a valid v-prefixed semantic version"
+            exit 1
+          fi
+          if [[ -z "$(git tag --points-at HEAD --list "${RELEASE_TAG}")" ]]; then
+            echo "::error::${RELEASE_TAG} does not point at the checked-out commit"
+            exit 1
+          fi
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Install pinned release tools
+        shell: bash
+        run: |
+          source scripts/tool-versions.env
+          mkdir -p "${RUNNER_TEMP}/go-tools"
+          GOBIN="${RUNNER_TEMP}/go-tools" \
+            go install "${GORELEASER_MODULE}@${GORELEASER_VERSION}"
+          GOBIN="${RUNNER_TEMP}/go-tools" \
+            go install "${SYFT_MODULE}@${SYFT_VERSION}"
+          echo "${RUNNER_TEMP}/go-tools" >> "${GITHUB_PATH}"
+      - name: Check GoReleaser configuration
+        run: goreleaser check
+      - name: Log in to the GitHub container registry
+        env:
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: echo "${REGISTRY_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin
+      - name: Publish release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: goreleaser release --clean

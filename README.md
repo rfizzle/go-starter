@@ -184,11 +184,21 @@ doubles; use a disposable PostgreSQL instance for end-to-end validation.
 ## Deployment notes
 
 `make release-snapshot` uses `.goreleaser.yaml` to produce explicit amd64 and
-arm64 archives. `make docker` builds the local architecture from
-`build/docker/Dockerfile`; the final image runs as a non-root user and invokes
-`/app serve`. The builder uses only the committed vendor tree, and the build
-script injects the version, revision, branch, commit date, and production
-environment into both the binary and OCI image labels.
+arm64 archives, checksums, archive SBOMs, and nonpublishing container images.
+It requires Docker with Buildx and the pinned Syft tool installed by
+`make tools`. `make docker` builds only the local architecture from
+`build/docker/Dockerfile`; both final images run as a non-root user and invoke
+`/app serve`.
+
+Pushing a valid `vX.Y.Z` semantic-version tag (optionally with a prerelease
+suffix) runs the least-privilege release workflow. Build metadata suffixes are
+not accepted because `+` is not valid in an OCI image tag. GoReleaser generates
+the changelog and GitHub Release assets and publishes the `linux/amd64` and
+`linux/arm64` image to
+`ghcr.io/rfizzle/go-starter` with the release tag. Stable releases also update
+the `latest` image tag. Git tags are the only release-version source; untagged
+local container builds use a commit-derived `0.0.0-dev.*` version. The OpenAPI
+`info.version` describes the API contract and is intentionally independent.
 
 The Docker build also accepts an explicit multi-platform output. For example,
 after creating `dist/`, this writes an OCI archive without publishing it:
@@ -211,10 +221,9 @@ default because TLS is normally terminated by a trusted ingress or load
 balancer; set both TLS file options only when the process terminates TLS itself.
 Profiling is disabled by default and should remain private when enabled.
 
-Release publication, a production Compose stack, and deployment manifests are
-not included. Validate the image, health probes, secret delivery, CORS policy,
-database migration concurrency, observability, and rollback strategy in your
-target platform.
+A production Compose stack and deployment manifests are not included. Validate
+the image, health probes, secret delivery, CORS policy, database migration
+concurrency, observability, and rollback strategy in your target platform.
 
 ## Contributing and security
 

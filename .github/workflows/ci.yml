@@ -39,3 +39,5 @@ jobs:
         run: make build
       - name: Check container configuration
         run: make container-check
+      - name: Build release snapshot
+        run: make release-snapshot

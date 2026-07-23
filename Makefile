@@ -39,7 +39,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker container-check check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -186,13 +186,9 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 	@goose -s -dir internal/storage/postgres/migrations create $(name) sql
 
 ## Release:
-release-snapshot: check-goreleaser ## Build snapshot release archives in dist/
+release-snapshot: check-goreleaser ## Build a nonpublishing release snapshot in dist/
 	@echo "${MAGENTA}Building snapshot release archives...${RESET}"
 	@$(GORELEASER) release --clean --skip=publish,announce --auto-snapshot
-
-sync-version: ## Propagate the git tag version (single source of truth) into .version and api/openapi.yml
-	@echo "${MAGENTA}Syncing version from the latest git tag...${RESET}"
-	@./scripts/sync-version.bash
 
 ## Docker:
 docker: ## Use the dockerfile to build the container

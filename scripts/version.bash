@@ -1,38 +1,54 @@
 #!/usr/bin/env bash
 
-# Shared version helper. A git tag (`vX.Y.Z`) is the single source of truth for
-# the release version; every script that needs the version sources this file and
-# calls read_version so the parse is identical everywhere (build ldflags, Docker
-# tags, and sync-version propagation).
-#
-# `.version` is a checked-in, derived fallback — not the source of truth. It
-# exists for contexts that can't see git history (a shallow clone, an exported
-# tarball, or a Docker build stage without a `.git` directory). `make
-# sync-version` writes the resolved git-tag version into it, so it should never
-# be hand-edited.
+# Shared version helper. A valid `vX.Y.Z` tag on the current commit is the only
+# source of a release version. Untagged local builds are identified explicitly
+# as development builds derived from the commit instead of inheriting an old
+# release number.
+
+is_release_tag() {
+  local tag="$1"
+  if [[ ! "${tag}" =~ ^v(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z]+([.-][0-9A-Za-z]+)*)?$ ]]; then
+    return 1
+  fi
+
+  local version="${tag#v}"
+  if [[ "${version}" != *-* ]]; then
+    return 0
+  fi
+
+  local prerelease="${version#*-}"
+  local identifier
+  while IFS= read -r identifier; do
+    if [[ "${identifier}" =~ ^[0-9]+$ && "${identifier}" == 0[0-9]* ]]; then
+      return 1
+    fi
+  done < <(tr '.' '\n' <<<"${prerelease}")
+}
 
 # read_version <project_path>
-# Prints the release version, preferring the most recent `vX.Y.Z`-style git tag
-# reachable from HEAD. Falls back to <project_path>/.version when no such tag
-# exists (or git/history isn't available). A leading "v" is stripped; internal
-# characters are preserved so prerelease/build metadata like "1.0.0-dev" survives.
+# Prints the release version when HEAD has a valid release tag. Otherwise prints
+# a deterministic development version based on HEAD.
 read_version() {
   local project_path="$1"
   local tag
-  if tag=$(git -C "${project_path}" describe --tags --abbrev=0 --match 'v[0-9]*' 2>/dev/null); then
+  if tag=$(git -C "${project_path}" describe --tags --exact-match --match 'v*' HEAD 2>/dev/null); then
+    if ! is_release_tag "${tag}"; then
+      echo "read_version: tag ${tag} is not a valid v-prefixed semantic version" >&2
+      return 1
+    fi
     printf '%s' "${tag#v}"
     return
   fi
-  if [[ ! -f "${project_path}/.version" ]]; then
-    echo "read_version: no vX.Y.Z git tag found and ${project_path}/.version does not exist" >&2
+
+  local revision
+  if ! revision=$(git -C "${project_path}" rev-parse --short=12 HEAD 2>/dev/null); then
+    echo "read_version: ${project_path} is not a Git worktree" >&2
     return 1
   fi
-  local raw
-  raw=$(tr -d '[:space:],' < "${project_path}/.version")
-  if [[ -z "${raw}" ]]; then
-    echo "read_version: ${project_path}/.version is empty" >&2
-    return 1
+
+  local dirty=""
+  if ! git -C "${project_path}" diff --quiet --ignore-submodules --; then
+    dirty=".dirty"
   fi
-  # Strip only a leading v, not every v in the string.
-  printf '%s' "${raw#v}"
+  printf '0.0.0-dev.%s%s' "${revision}" "${dirty}"
 }

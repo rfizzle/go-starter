@@ -123,6 +123,7 @@ if command -v go >/dev/null 2>&1; then
   check_go_tool golangci-lint "${GOLANGCI_LINT_MODULE}" "${GOLANGCI_LINT_VERSION}"
   check_go_tool yamlfmt "${YAMLFMT_MODULE}" "${YAMLFMT_VERSION}"
   check_go_tool goreleaser "${GORELEASER_MODULE}" "${GORELEASER_VERSION}"
+  check_go_tool syft "${SYFT_MODULE}" "${SYFT_VERSION}"
   check_go_tool sqlc "${SQLC_MODULE}" "${SQLC_VERSION}"
   check_go_tool goose "${GOOSE_MODULE}" "${GOOSE_VERSION}"
   check_go_tool govulncheck "${GOVULNCHECK_MODULE}" "${GOVULNCHECK_VERSION}"

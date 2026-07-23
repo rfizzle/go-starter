@@ -11,11 +11,9 @@ PROJECT_PATH=$(realpath "$DIR_PATH/../")
 source "${PROJECT_PATH}/scripts/colors.bash"
 source "${PROJECT_PATH}/scripts/version.bash"
 
-# Set up application variables. A git tag (vX.Y.Z) is the single source of truth
-# for the release version (see scripts/version.bash). `.version` and
-# api/openapi.yml are files derived from it for contexts that read them
-# directly; this script instead calls read_version itself, so no separate
-# `make sync-version` step is required for the Docker tag to be correct.
+# Set up application variables. A valid git tag on HEAD is the single source of
+# a release version; untagged local images receive a commit-derived development
+# version (see scripts/version.bash).
 GIT_COMMIT=$(git -C "${PROJECT_PATH}" rev-parse HEAD)
 GIT_BRANCH=$(git -C "${PROJECT_PATH}" symbolic-ref --short -q HEAD || printf 'detached')
 BUILD_DATE=$(git -C "${PROJECT_PATH}" show -s --format=%ct HEAD)
