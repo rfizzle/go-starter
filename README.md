@@ -30,6 +30,42 @@ also an optional example and is not installed in the active middleware stack.
 OpenTelemetry export is inactive unless explicitly enabled and given access to
 an OTLP collector.
 
+## Initialize a new project
+
+Run the initializer once in a clean clone before making application-specific
+changes. It updates the Go module and imports, command and release names,
+environment prefix, container metadata, OpenAPI metadata, package metadata,
+examples, and documentation:
+
+```sh
+go run ./tools/initialize \
+  --module example.com/acme/orders \
+  --app-name "Acme Orders" \
+  --binary orders-api \
+  --env-prefix ORDERS \
+  --image registry.example.com/acme/orders-api \
+  --description "Order processing API"
+```
+
+The module, application name, binary name, environment prefix, and untagged OCI
+image name are required; the description defaults to `<application name>
+service`. Inputs are validated before any file is changed. The initializer only
+rewrites Git-tracked, hand-written regular files: it skips `.git`, generated
+ogen and sqlc output, vendored dependencies, the license attribution, and
+untracked files.
+
+For safety, initialization fails when the worktree has staged, unstaged, or
+untracked changes, and a `.template-initialized` marker prevents a second run.
+There is intentionally no force flag. After a successful run, review the diff,
+regenerate from the OpenAPI and SQL sources, and validate the renamed project:
+
+```sh
+make generate-check
+make check
+make build
+make release-snapshot
+```
+
 ## Five-minute quickstart
 
 You need Git, Go 1.26.5, Make, and Docker (or another way to run PostgreSQL).
