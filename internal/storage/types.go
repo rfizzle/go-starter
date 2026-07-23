@@ -1,4 +1,5 @@
-// Package storage provides database abstraction interfaces and types.
+// Package storage provides the small persistence contracts shared across
+// repositories and their consumers.
 package storage
 
 // MigrationStatus represents the state of database migrations.

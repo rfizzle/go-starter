@@ -7,7 +7,6 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
-	"github.com/rfizzle/go-starter/internal/storage"
 	"github.com/rfizzle/go-starter/internal/user"
 )
 
@@ -29,7 +28,6 @@ type UserReader interface {
 
 type Options struct {
 	ReadyState *atomic.Bool
-	Store      storage.Client
 	// Users resolves the authenticated subject to a stored user record. It may
 	// be nil, in which case protected handlers fall back to the token subject
 	// alone without a database lookup.

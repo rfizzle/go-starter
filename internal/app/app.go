@@ -71,11 +71,11 @@ func (application *App) Run(ctx context.Context) error {
 	}()
 
 	// Create the connection pool explicitly so the application owns it and can
-	// share the exact same pool between the storage.Client (postgres.Client)
-	// and the user domain repository. The pool is sized from config rather than
-	// left at the pgx defaults (4 × NumCPU), which are frequently wrong under
-	// load. pgxpool connects lazily, so the explicit Ping below is what makes an
-	// unreachable database fail startup.
+	// share the exact same pool between migrations and the user repository. The
+	// pool is sized from config rather than left at the pgx defaults (4 ×
+	// NumCPU), which are frequently wrong under load. pgxpool connects lazily,
+	// so the explicit Ping below is what makes an unreachable database fail
+	// startup.
 	pool, err := postgres.NewPool(ctx, application.cfg.Database.URI, postgres.PoolConfig{
 		MaxConns:                 application.cfg.Database.MaxConns,
 		MinConns:                 application.cfg.Database.MinConns,
@@ -164,7 +164,6 @@ func (application *App) Run(ctx context.Context) error {
 	// Configure the controllers
 	controllerOpts := controller.Options{
 		ReadyState: application.ready,
-		Store:      store,
 		Users:      userRepo,
 		Validator:  validator,
 	}

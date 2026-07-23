@@ -6,53 +6,18 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/pashagolub/pgxmock/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/zap/zaptest"
 )
 
-// mockDBConn implements dbconn interface for testing
-type mockDBConn struct {
-	BeginFunc    func(ctx context.Context) (pgx.Tx, error)
-	ExecFunc     func(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
-	QueryFunc    func(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	QueryRowFunc func(ctx context.Context, sql string, args ...any) pgx.Row
-	PingFunc     func(ctx context.Context) error
+type mockPinger struct {
+	pingFunc func(context.Context) error
 }
 
-func (m *mockDBConn) Begin(ctx context.Context) (pgx.Tx, error) {
-	if m.BeginFunc != nil {
-		return m.BeginFunc(ctx)
-	}
-	return nil, nil
-}
-
-func (m *mockDBConn) Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error) {
-	if m.ExecFunc != nil {
-		return m.ExecFunc(ctx, sql, arguments...)
-	}
-	return pgconn.CommandTag{}, nil
-}
-
-func (m *mockDBConn) Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error) {
-	if m.QueryFunc != nil {
-		return m.QueryFunc(ctx, sql, args...)
-	}
-	return nil, nil
-}
-
-func (m *mockDBConn) QueryRow(ctx context.Context, sql string, args ...any) pgx.Row {
-	if m.QueryRowFunc != nil {
-		return m.QueryRowFunc(ctx, sql, args...)
-	}
-	return nil
-}
-
-func (m *mockDBConn) Ping(ctx context.Context) error {
-	if m.PingFunc != nil {
-		return m.PingFunc(ctx)
+func (m *mockPinger) Ping(ctx context.Context) error {
+	if m.pingFunc != nil {
+		return m.pingFunc(ctx)
 	}
 	return nil
 }
@@ -129,31 +94,19 @@ func TestOpen(t *testing.T) {
 	}
 }
 
-func TestClient_Name(t *testing.T) {
-	ctx := context.Background()
-	mock, err := pgxmock.NewPool()
-	assert.NoError(t, err)
-	defer mock.Close()
-
-	client, err := Open(ctx, WithMockPool(mock))
-	assert.NoError(t, err)
-
-	assert.Equal(t, "postgresql", client.Name())
-}
-
 func TestClient_Ping(t *testing.T) {
 	ctx := context.Background()
 
 	tests := []struct {
 		name     string
-		mockConn *mockDBConn
+		mockConn *mockPinger
 		timeout  int
 		wantErr  bool
 	}{
 		{
 			name: "successful ping",
-			mockConn: &mockDBConn{
-				PingFunc: func(ctx context.Context) error {
+			mockConn: &mockPinger{
+				pingFunc: func(ctx context.Context) error {
 					return nil
 				},
 			},
@@ -162,8 +115,8 @@ func TestClient_Ping(t *testing.T) {
 		},
 		{
 			name: "ping timeout",
-			mockConn: &mockDBConn{
-				PingFunc: func(ctx context.Context) error {
+			mockConn: &mockPinger{
+				pingFunc: func(ctx context.Context) error {
 					select {
 					case <-time.After(100 * time.Millisecond):
 						return nil
@@ -177,8 +130,8 @@ func TestClient_Ping(t *testing.T) {
 		},
 		{
 			name: "ping database error",
-			mockConn: &mockDBConn{
-				PingFunc: func(ctx context.Context) error {
+			mockConn: &mockPinger{
+				pingFunc: func(ctx context.Context) error {
 					return errors.New("connection refused")
 				},
 			},
@@ -239,7 +192,7 @@ func TestClient_Close(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			client := &Client{
 				logger:    zaptest.NewLogger(t),
-				db:        &mockDBConn{},
+				db:        &mockPinger{},
 				closeFunc: tt.closeFunc,
 			}
 
@@ -253,17 +206,6 @@ func TestClient_Close(t *testing.T) {
 	}
 }
 
-func TestClient_Logger(t *testing.T) {
-	logger := zaptest.NewLogger(t)
-
-	client := &Client{
-		logger: logger,
-	}
-
-	result := client.Logger()
-	assert.Equal(t, logger, result)
-}
-
 func TestClient_validate(t *testing.T) {
 	tests := []struct {
 		name      string
@@ -274,7 +216,7 @@ func TestClient_validate(t *testing.T) {
 		{
 			name: "valid client",
 			client: &Client{
-				db:        &mockDBConn{},
+				db:        &mockPinger{},
 				closeFunc: func(ctx context.Context) error { return nil },
 				logger:    zaptest.NewLogger(nil),
 			},
@@ -293,7 +235,7 @@ func TestClient_validate(t *testing.T) {
 		{
 			name: "nil closeFunc",
 			client: &Client{
-				db:        &mockDBConn{},
+				db:        &mockPinger{},
 				closeFunc: nil,
 				logger:    zaptest.NewLogger(nil),
 			},
@@ -303,7 +245,7 @@ func TestClient_validate(t *testing.T) {
 		{
 			name: "nil logger",
 			client: &Client{
-				db:        &mockDBConn{},
+				db:        &mockPinger{},
 				closeFunc: func(ctx context.Context) error { return nil },
 				logger:    nil,
 			},

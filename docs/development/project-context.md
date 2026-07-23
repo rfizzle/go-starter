@@ -91,8 +91,9 @@ Update project documentation when:
 - **Application core**: `internal/app/app.go` - Main application lifecycle management
 - **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
 - **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
-- **Storage interface**: `internal/storage` - Database abstraction driver
-- **Storage layer**: `internal/storage/postgres` - PostgreSQL implementation
+- **Storage contracts**: `internal/storage` - Shared persistence outcomes and migration status
+- **Storage layer**: `internal/storage/postgres` - PostgreSQL pool, migrations, metrics, and generated SQL
+- **User repository**: `internal/user` - sqlc plus squirrel access and transaction propagation
 - **Authentication**: `internal/auth/` - JWT-based auth system with middleware
 
 ### Key Patterns
@@ -107,7 +108,7 @@ Update project documentation when:
 - **Language**: Go 1.22+ (latest stable)
 - **Web Framework**: Chi v5 for HTTP routing and middleware
 - **API Generation**: ogen for OpenAPI code generation
-- **Database**: PostgreSQL with pgx/v5 driver and scany for scanning
+- **Database**: PostgreSQL with pgx/v5, sqlc, squirrel, and Goose
 - **Configuration**: Viper for config management, Cobra for CLI
 - **Logging**: Zap for structured logging
 - **Observability**: Prometheus metrics, OpenTelemetry tracing, pprof debugging

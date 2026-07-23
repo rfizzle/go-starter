@@ -6,12 +6,15 @@
 
 ## Overview
 
-We follow a pattern where **interfaces** are defined at the package level (e.g., `internal/auth`). For single implementations, place them directly in the package. For multiple implementations (e.g., different database drivers), use named subdirectories (e.g., `internal/storage/postgres`, `internal/storage/mysql`).
+Define interfaces where behavior is consumed and keep them as small as the
+consumer permits. Constructors accept those interfaces when a seam is needed
+and return concrete types. Do not mirror a concrete provider with a broad
+interface solely to make a hypothetical implementation swap possible.
 
 ## Purpose
 - Enforce consistent, predictable package structure across Go project
 - Enable clean separation between contract definition and implementation details
-- Support multiple implementations, versioning, and dependency inversion principles
+- Support real implementation seams and dependency inversion
 - Provide testability through interface-based design
 - Enable gradual migration between implementation versions
 
@@ -31,18 +34,18 @@ internal/
 ## Requirements
 
 ### Core Principles
-- **Interface Segregation**: Interfaces defined at top level of domain package, separate from implementation
+- **Interface Segregation**: Interfaces are owned by the package that consumes the behavior
 - **Implementation Isolation**: Single implementations in package root; multiple implementations in named subdirectories
 - **Dependency Inversion**: Higher-level packages depend on interfaces, not concrete implementations
 - **Single Responsibility**: Each interface defines cohesive set of related operations
 
 ### Specific Rules
-1. Domain interfaces defined in `internal/<domain>/interfaces.go`
+1. Define an interface only when a consumer needs a behavioral seam
 2. Supporting types and constants in `internal/<domain>/types.go`
 3. Domain-specific errors in `internal/<domain>/errors.go`
 4. For single implementation: directly in `internal/<domain>/`
-5. Constructor functions use pattern `New<InterfaceName>(dependencies...)`
-6. Implementation structs should not be exported unless necessary
+5. Constructors accept narrow dependencies and return concrete types
+6. Keep interfaces focused, normally one to three methods
 
 ## Implementation Guidelines
 
@@ -230,41 +233,28 @@ func TestService(t *testing.T) {
 }
 ```
 
-## Multiple Implementations
+## Provider boundaries
 
-### When to Use Subdirectories
-
-Use subdirectories only when you have multiple implementations:
-
-```go
-// internal/storage/postgres/client.go
-package postgres
-
-func NewClient(dsn string) storage.Client { ... }
-
-// internal/storage/mysql/client.go  
-package mysql
-
-func NewClient(dsn string) storage.Client { ... }
-```
-
-### Selection Strategy
-
-Use configuration or dependency injection to select implementation:
+Use provider subdirectories only when multiple implementations actually
+exist. A provider constructor returns its concrete client. The consuming
+package declares the behavior it needs:
 
 ```go
-// internal/app/app.go
-func (a *App) setupStorage() storage.Client {
-    switch a.config.DatabaseType {
-    case "postgres":
-        return postgres.NewClient(a.config.DatabaseURL)
-    case "mysql":
-        return mysql.NewClient(a.config.DatabaseURL)
-    default:
-        panic("unsupported database type")
-    }
+// internal/seed/seed.go
+type UserStore interface {
+    ByEmail(ctx context.Context, email string) (user.User, error)
+    Create(ctx context.Context, params user.CreateParams) (user.User, error)
 }
+
+func New(users UserStore) (*Seeder, error) { ... }
+
+// internal/app/app.go
+users := user.NewRepository(pool)
+seeder, err := seed.New(users)
 ```
+
+The PostgreSQL package does not implement or return a broad database interface.
+The concrete `*user.Repository` satisfies `seed.UserStore` structurally.
 
 ## Integration with Existing Architecture
 
@@ -341,15 +331,17 @@ func (a *App) setupServices() {
 ## Examples in Codebase
 
 Current examples of this pattern:
-- `internal/storage/` - Database abstraction with provider implementations
-- `internal/auth/` - Authentication services (following this pattern)
+- `internal/seed` - `UserStore` describes only the repository behavior seeding consumes
+- `internal/controller` - `UserReader` describes only the lookup used by the HTTP handler
+- `internal/cli` - lifecycle interfaces isolate command orchestration from the application
 
-This pattern should be used for all new domain packages and when refactoring existing code.
+Apply this pattern when a consumer needs a test or implementation seam. Do not
+add an interface to every exported concrete type.
 
 ## Success Metrics
-- **Interface Coverage**: >90% of public functionality exposed through interfaces—Target: 100%
-- **Package Compliance**: Package structure follows pattern—Target: 100%
-- **Test Coverage**: Interface-based tests vs implementation tests ratio—Target: 3:1
+- Interfaces remain small and consumer-owned.
+- Constructors return concrete types.
+- Unit tests substitute dependencies without mirroring provider internals.
 
 ## Related Documentation
 - [docs/development/foundations.md](../development/foundations.md) - Go interface design patterns and core principles

@@ -4,7 +4,6 @@ go 1.26.5
 
 require (
 	github.com/Masterminds/squirrel v1.5.4
-	github.com/georgysavva/scany/v2 v2.1.4
 	github.com/go-chi/chi/v5 v5.0.10
 	github.com/go-chi/cors v1.2.2
 	github.com/go-faster/errors v0.7.1

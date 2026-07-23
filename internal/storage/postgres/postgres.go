@@ -1,6 +1,5 @@
-// Package postgres provides a PostgreSQL implementation of the storage interfaces.
-// It uses pgx/v5 as the underlying database driver and supports connection pooling,
-// transactions, migrations, and comprehensive logging.
+// Package postgres provides PostgreSQL connection, migration, and metrics
+// infrastructure.
 package postgres
 
 import (
@@ -8,8 +7,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"go.uber.org/zap"
@@ -20,24 +17,17 @@ const (
 	DefaultPingTimeoutSeconds = 15
 )
 
-// dbconn interface defines the specific functions we use from the pxg library
-// allows us to bypass a specific type and use *pgx.Conn, *pgxpool.Pool, and a mocking struct
-// https://github.com/jackc/pgx/issues/616#issuecomment-535749087
-type dbconn interface {
-	Begin(ctx context.Context) (pgx.Tx, error)
-	Exec(ctx context.Context, sql string, arguments ...any) (pgconn.CommandTag, error)
-	Query(ctx context.Context, sql string, args ...any) (pgx.Rows, error)
-	QueryRow(ctx context.Context, sql string, args ...any) pgx.Row
-
+// pinger is the only database behavior the lifecycle client consumes.
+// *pgx.Conn, *pgxpool.Pool, and pgxmock pools satisfy it structurally.
+type pinger interface {
 	Ping(ctx context.Context) error
 }
 
-// Client implements the storage interfaces for PostgreSQL databases.
-// It manages database connections, transactions, and provides logging capabilities.
-// Use Open() to create and initialize a new Client instance.
+// Client provides the PostgreSQL lifecycle operations used by the application.
+// Domain queries live in repositories rather than on this type.
 type Client struct {
 	logger *zap.Logger
-	db     dbconn
+	db     pinger
 	// pool is the underlying pgx connection pool when the client was built
 	// with WithPool or WithURI. It is nil for connection- or mock-backed
 	// clients. Migrate needs a real pool because goose runs through a
@@ -74,10 +64,6 @@ func Open(ctx context.Context, options ...Option) (*Client, error) {
 	return client, nil
 }
 
-func (client *Client) Name() string {
-	return "postgresql"
-}
-
 func (client *Client) Ping(ctx context.Context) error {
 	ctx, cancelFunc := context.WithTimeout(ctx, client.pingTimeout)
 	defer cancelFunc()
@@ -86,10 +72,6 @@ func (client *Client) Ping(ctx context.Context) error {
 
 func (client *Client) Close() error {
 	return client.closeFunc(context.Background())
-}
-
-func (client *Client) Logger() *zap.Logger {
-	return client.logger
 }
 
 func (client *Client) validate() error {

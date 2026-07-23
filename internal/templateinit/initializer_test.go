@@ -198,7 +198,7 @@ func configure() { SetEnvPrefix("GOSTARTER") }
 import "github.com/rfizzle/go-starter/cmd"
 func main() { cmd.Execute() }
 `,
-		"internal/storage/postgres/transaction_test.go": `package postgres
+		"internal/user/repository_test.go": `package user
 import (
 	"github.com/jackc/pgx/v5"
 	"github.com/rfizzle/go-starter/internal/storage"

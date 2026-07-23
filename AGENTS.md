@@ -44,13 +44,14 @@ This project uses **ogen** for OpenAPI-first API development:
 - **Application core**: `internal/app/app.go` - Main application lifecycle management
 - **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
 - **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
-- **Storage interface**: `internal/storage` - Database abstraction
-- **Storage layer**: `internal/storage/postgres` - PostgreSQL implementation of the database abstraction
+- **Storage contracts**: `internal/storage` - Small shared persistence outcomes and migration status
+- **Storage layer**: `internal/storage/postgres` - PostgreSQL pool, migrations, metrics, and sqlc output
+- **User repository**: `internal/user` - sqlc plus squirrel repository and transaction boundary
 - **Authentication**: `internal/auth/` - JWT-based auth system with middleware
 
 ### Key Dependencies
 - **Web framework**: Chi v5 for HTTP routing and middleware
-- **Database**: PostgreSQL with pgx/v5 driver and scany for scanning
+- **Database**: PostgreSQL with pgx/v5, sqlc, squirrel, and Goose
 - **API generation**: ogen for OpenAPI code generation
 - **Configuration**: Viper for config management, Cobra for CLI
 - **Logging**: Zap for structured logging
