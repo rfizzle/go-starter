@@ -35,6 +35,30 @@ validate scope and severity, coordinate a fix and disclosure plan, and credit
 the reporter if requested. No response or remediation SLA is promised at this
 stage.
 
+## Triaging dependency vulnerabilities
+
+CI runs the pinned `govulncheck` version for every proposed change, and the
+scheduled Security workflow repeats the scan weekly. When a scan or Dependabot
+alert reports a vulnerability:
+
+1. Reproduce it from the affected revision with `make vuln`.
+2. Record the vulnerability ID, affected module and version, fixed version,
+   reported symbol, and whether `govulncheck` found a reachable call path.
+3. Confirm the advisory and fix in the Go vulnerability database or the
+   upstream project's security notice. Assess realistic prerequisites, exposed
+   boundaries, and impact; do not dismiss an unreachable finding without a
+   recorded rationale.
+4. Prefer the smallest compatible dependency update that fixes the issue.
+   Treat major-version updates as separate reviewed changes rather than
+   combining them with routine minor and patch updates.
+5. Run `make vuln`, `make check`, and any focused or race tests for affected
+   code before merging. Keep reachable vulnerabilities out of releases until
+   they are fixed or a time-bounded mitigation and follow-up are documented.
+
+If no fix is available, document the affected deployments, compensating
+controls, owner, review date, and the condition that will remove the
+exception. Do not suppress a scanner result globally to handle one finding.
+
 ## Security expectations
 
 The repository includes security controls and examples, but downstream

@@ -31,6 +31,8 @@ jobs:
           make tools TOOL_BIN="${RUNNER_TEMP}/go-tools"
       - name: Check
         run: make check
+      - name: Scan for known vulnerabilities
+        run: make vuln
       - name: Test with race detector
         run: make race
       - name: Build
