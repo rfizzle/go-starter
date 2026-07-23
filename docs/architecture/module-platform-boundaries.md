@@ -28,10 +28,11 @@ internal/
   platform/               technical infrastructure
     config/
     database/postgres/
-    middleware/
+    http/
+      middleware/
+      server/
     observability/
     ratelimiter/
-    web/
   templateinit/           repository-initializer implementation
 ```
 
@@ -99,7 +100,8 @@ are the only places that construct `user.Repository`.
 | Business model or shared repository contract | `internal/domain/` |
 | Business repository, validation, or orchestration | `internal/modules/<capability>/` |
 | PostgreSQL lifecycle, migrations, or generated SQL | `internal/platform/database/` |
-| Config, logging, telemetry, middleware, rate limiting, HTTP serving | matching `internal/platform/<capability>/` package |
+| HTTP server construction and middleware | `internal/platform/http/` |
+| Config, logging, telemetry, or rate limiting | matching `internal/platform/<capability>/` package |
 | OpenAPI request/response mapping | `internal/controller/` |
 | Dependency construction or lifecycle ordering | `internal/app/` or a CLI composition root |
 | Generated ogen code | `internal/api/v1/` via `make generate` |

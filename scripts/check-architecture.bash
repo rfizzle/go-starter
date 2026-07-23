@@ -90,8 +90,8 @@ while IFS=' ' read -r package dependencies; do
           "${module_path}/internal/app" | \
             "${module_path}/internal/auth" | \
             "${module_path}/internal/controller" | \
-            "${module_path}/internal/platform/web" | \
-            "${module_path}/internal/platform/web/"*)
+            "${module_path}/internal/platform/http/server" | \
+            "${module_path}/internal/platform/http/server/"*)
             ;;
           *)
             report "${package} imports generated transport ${dependency} outside an approved edge package"

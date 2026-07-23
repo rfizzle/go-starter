@@ -1,4 +1,4 @@
-package web
+package server
 
 type ListResponse struct {
 	TotalResults int         `json:"total"`

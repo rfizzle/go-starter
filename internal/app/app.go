@@ -16,8 +16,8 @@ import (
 	"github.com/rfizzle/go-starter/internal/modules/user"
 	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
+	httpserver "github.com/rfizzle/go-starter/internal/platform/http/server"
 	"github.com/rfizzle/go-starter/internal/platform/observability"
-	"github.com/rfizzle/go-starter/internal/platform/web"
 	staticweb "github.com/rfizzle/go-starter/web"
 )
 
@@ -183,25 +183,25 @@ func (application *App) Run(ctx context.Context) error {
 	staticFs := staticweb.AssetHandler("/", "")
 
 	// Configure application webserver
-	webServer, err := web.New(
+	webServer, err := httpserver.New(
 		appServer,
-		web.WithHost(application.cfg.Webserver.Address),
-		web.WithPort(application.cfg.Webserver.Port),
-		web.WithReadHeaderTimeout(time.Duration(application.cfg.Webserver.ReadHeaderTimeout)*time.Second),
-		web.WithReadTimeout(time.Duration(application.cfg.Webserver.ReadTimeout)*time.Second),
-		web.WithWriteTimeout(time.Duration(application.cfg.Webserver.WriteTimeout)*time.Second),
-		web.WithIdleTimeout(time.Duration(application.cfg.Webserver.IdleTimeout)*time.Second),
-		web.WithRequestTimeout(time.Duration(application.cfg.Webserver.RequestTimeout)*time.Second),
-		web.WithShutdownTimeout(time.Duration(application.cfg.Webserver.ShutdownTimeout)*time.Second),
-		web.WithMaxHeaderBytes(application.cfg.Webserver.MaxHeaderBytes),
-		web.WithMaxBodyBytes(application.cfg.Webserver.MaxBodyBytes),
-		web.WithLogger(application.logger),
-		web.WithFileServer(staticFs),
-		web.WithPprof(application.cfg.Webserver.PprofEnabled),
-		web.WithCORSOrigins(application.cfg.Webserver.CORSAllowedOrigins),
+		httpserver.WithHost(application.cfg.Webserver.Address),
+		httpserver.WithPort(application.cfg.Webserver.Port),
+		httpserver.WithReadHeaderTimeout(time.Duration(application.cfg.Webserver.ReadHeaderTimeout)*time.Second),
+		httpserver.WithReadTimeout(time.Duration(application.cfg.Webserver.ReadTimeout)*time.Second),
+		httpserver.WithWriteTimeout(time.Duration(application.cfg.Webserver.WriteTimeout)*time.Second),
+		httpserver.WithIdleTimeout(time.Duration(application.cfg.Webserver.IdleTimeout)*time.Second),
+		httpserver.WithRequestTimeout(time.Duration(application.cfg.Webserver.RequestTimeout)*time.Second),
+		httpserver.WithShutdownTimeout(time.Duration(application.cfg.Webserver.ShutdownTimeout)*time.Second),
+		httpserver.WithMaxHeaderBytes(application.cfg.Webserver.MaxHeaderBytes),
+		httpserver.WithMaxBodyBytes(application.cfg.Webserver.MaxBodyBytes),
+		httpserver.WithLogger(application.logger),
+		httpserver.WithFileServer(staticFs),
+		httpserver.WithPprof(application.cfg.Webserver.PprofEnabled),
+		httpserver.WithCORSOrigins(application.cfg.Webserver.CORSAllowedOrigins),
 		// No-op unless both paths are set; otherwise TLS is assumed to be
 		// terminated upstream by a reverse proxy.
-		web.WithTLS(application.cfg.Webserver.TLSCertFile, application.cfg.Webserver.TLSKeyFile),
+		httpserver.WithTLS(application.cfg.Webserver.TLSCertFile, application.cfg.Webserver.TLSKeyFile),
 	)
 	if err != nil {
 		return fmt.Errorf("server.New(): %w", err)

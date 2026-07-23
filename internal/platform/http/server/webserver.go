@@ -1,4 +1,4 @@
-// Package web implements the application's HTTP server: middleware stack,
+// Package server implements the application's HTTP server: middleware stack,
 // route mounting, and graceful lifecycle management.
 //
 // # TLS
@@ -14,7 +14,7 @@
 // the full *tls.Config for advanced setups (mutual TLS, a raised MinVersion, a
 // pinned cipher-suite list). When TLS is enabled the server calls
 // ListenAndServeTLS; otherwise it calls ListenAndServe.
-package web
+package server
 
 import (
 	"context"
@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rfizzle/go-starter/internal/platform/middleware"
+	"github.com/rfizzle/go-starter/internal/platform/http/middleware"
 
 	"go.uber.org/zap"
 

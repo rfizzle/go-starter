@@ -34,7 +34,10 @@ cmd/<app>/main.go            # thin entrypoint → cli.Execute()
 internal/
   api/<gen>/                 # generated transport code (ogen, oapi-codegen) — isolated, DO NOT EDIT
   platform/                  # technical infrastructure (no business meaning)
-    config/  database/  metrics/  middleware/  health/  web/  worker/
+    config/  database/  metrics/  health/  worker/
+    http/
+      middleware/
+      server/
     database/sqlbuilder/     # DB utilities nest under the capability they serve
   modules/                   # business domains (the product surface)
     accounts/  orders/  billing/  reporting/  ...
@@ -54,8 +57,8 @@ internal/
 | Config loading, secrets, env | `platform/config/` |
 | DB pool, transactions, migrations, query builders | `platform/database/` (+ nested `sqlbuilder/`) |
 | Prometheus, tracing, log setup | `platform/metrics/` (or `platform/observability/`) |
-| HTTP middleware (cors, logging, recovery, rate limit) | `platform/middleware/` |
-| HTTP server construction + routing | `platform/web/` |
+| HTTP middleware (cors, logging, recovery, rate limit) | `platform/http/middleware/` |
+| HTTP server construction + routing | `platform/http/server/` |
 | Background queue / job worker infrastructure | `platform/worker/` |
 | A business entity's model + its repository impl + its business logic | `modules/<domain>/` |
 | A model struct or repository **interface** shared across domains | `domain/` |
@@ -115,7 +118,7 @@ type OrderRepository interface {
 
 Generated API code (ogen, oapi-codegen) typically exposes a **single large `Handler` interface**. Go interface satisfaction is all-or-nothing on one type, so that interface has exactly one implementer — keep it that way.
 
-- Only approved edge packages (`controller/`, `auth/`, and `platform/web/`) plus the
+- Only approved edge packages (`controller/`, `auth/`, and `platform/http/server/`) plus the
   composition root import `internal/api/<gen>`.
 - No `modules/*` package imports generated transport types.
 - The controller's job is **mapping**: generated request → domain call → generated response. That mapping code is verbose and generator-specific; concentrating it means regenerating the API has a blast radius of one package.

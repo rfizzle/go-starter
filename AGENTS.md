@@ -45,7 +45,7 @@ This project uses **ogen** for OpenAPI-first API development:
 - **Composition root**: `internal/app/` - dependency assembly and application lifecycle
 - **Domain contracts**: `internal/domain/` - business data, shared repository interfaces, and business-facing errors
 - **Business modules**: `internal/modules/` - product capabilities; the example user repository lives in `internal/modules/user/`
-- **Platform**: `internal/platform/` - configuration, database, middleware, observability, rate limiting, and web infrastructure
+- **Platform**: `internal/platform/` - configuration, database, HTTP server and middleware, observability, and rate limiting
 - **Controllers**: `internal/controller/` - generated transport-to-domain mapping; not a business-logic home
 - **Authentication**: `internal/auth/` - JWT validation and generated security-handler integration
 - **Generated transport**: `internal/api/v1/` - ogen output; never edit directly
@@ -56,7 +56,7 @@ This project uses **ogen** for OpenAPI-first API development:
 - `internal/modules/` may import domain contracts and selected platform capabilities. It must never import `internal/api/`.
 - Business orchestration depends on small consumer-side interfaces. Concrete infrastructure is constructed in `internal/app/` or a CLI composition root and injected.
 - Repository adapters may use the established platform database boundary, but domain data and errors exposed to consumers come from `internal/domain/`.
-- Generated transport is quarantined to edge packages (`internal/controller/`, `internal/auth/`, `internal/platform/web/`) and the composition root.
+- Generated transport is quarantined to edge packages (`internal/controller/`, `internal/auth/`, `internal/platform/http/server/`) and the composition root.
 - Do not add `utils`, `helpers`, `common`, or `shared` grab-bag packages. Name a package for the business capability or platform service it owns.
 - `make architecture-check` verifies these rules and is part of `make check`.
 

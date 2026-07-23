@@ -1,4 +1,4 @@
-package web
+package server
 
 func ignorePathsLogging() []string {
 	return []string{
