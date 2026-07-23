@@ -43,7 +43,7 @@ type Webserver struct {
 	// RequestTimeout bounds total request-processing time, in seconds, via chi's
 	// Timeout middleware. It cancels the request context once the deadline
 	// elapses so a slow handler or stalled client can't hold a connection
-	// indefinitely. 0 or less disables the middleware (unbounded processing).
+	// indefinitely. 0 disables the middleware (unbounded processing).
 	// Default 60s.
 	RequestTimeout int `mapstructure:"request-timeout"`
 	// ShutdownTimeout bounds, in seconds, how long a graceful shutdown waits for
@@ -59,7 +59,7 @@ type Webserver struct {
 	// MaxBodyBytes caps the size, in bytes, of each request body the server will
 	// read. It bounds the memory a single POST/PUT can force the server to
 	// buffer; reading past it fails the request (413 or 400 depending on the
-	// handler). 0 or less disables the limit (unbounded bodies). Default 10 MiB.
+	// handler). 0 disables the limit (unbounded bodies). Default 10 MiB.
 	MaxBodyBytes int64 `mapstructure:"max-body-bytes"`
 	// PprofEnabled mounts the /debug/pprof/* profiling endpoints on the public
 	// mux. Disabled by default: the endpoints are unauthenticated and expose
@@ -105,7 +105,7 @@ type Database struct {
 	// CloseTimeout bounds, in seconds, how long shutdown waits for the pool to
 	// close. pgxpool.Close blocks until every connection is returned and closed,
 	// so a connection wedged mid-query would otherwise hang shutdown
-	// indefinitely. 0 or less waits indefinitely (the raw pgxpool behaviour).
+	// indefinitely. 0 waits indefinitely (the raw pgxpool behaviour).
 	CloseTimeout int `mapstructure:"close-timeout"`
 }
 

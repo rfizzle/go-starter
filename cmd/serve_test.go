@@ -19,6 +19,25 @@ type fakeServeApplication struct {
 	runCalls int
 }
 
+func validServeCommandConfig() *config.Application {
+	return &config.Application{
+		Environment: "production",
+		Webserver: config.Webserver{
+			Port: 8080,
+		},
+		Database: config.Database{
+			URI: "postgres://localhost:5432/example",
+		},
+		Auth: config.Auth{
+			JWTSecret: strings.Repeat("s", 32),
+			JWTTTL:    3600,
+		},
+		Logging: config.Logging{
+			Level: "info",
+		},
+	}
+}
+
 func (application *fakeServeApplication) Run(ctx context.Context) error {
 	application.runCalls++
 	return application.run(ctx)
@@ -93,7 +112,7 @@ func TestServeCommand_PropagatesStartupFailures(t *testing.T) {
 			}
 			deps := serveDependencies{
 				resolveConfig: func() (*config.Application, error) {
-					return &config.Application{}, tt.configErr
+					return validServeCommandConfig(), tt.configErr
 				},
 				newLogger: func(*config.Application) (*zap.Logger, error) {
 					return zap.NewNop(), tt.loggerErr
@@ -130,7 +149,7 @@ func TestServeCommand_CleanContextShutdownSucceeds(t *testing.T) {
 	syncCalls := 0
 	deps := serveDependencies{
 		resolveConfig: func() (*config.Application, error) {
-			return &config.Application{}, nil
+			return validServeCommandConfig(), nil
 		},
 		newLogger: func(*config.Application) (*zap.Logger, error) {
 			return zap.NewNop(), nil
@@ -154,6 +173,37 @@ func TestServeCommand_CleanContextShutdownSucceeds(t *testing.T) {
 	}
 	if syncCalls != 1 {
 		t.Errorf("logger Sync() calls = %d, want 1", syncCalls)
+	}
+}
+
+func TestServeCommand_ValidatesBeforeStartup(t *testing.T) {
+	cfg := validServeCommandConfig()
+	cfg.Database.URI = ""
+
+	deps := serveDependencies{
+		resolveConfig: func() (*config.Application, error) {
+			return cfg, nil
+		},
+		newLogger: func(*config.Application) (*zap.Logger, error) {
+			t.Fatal("newLogger() called before configuration validation")
+			return nil, nil
+		},
+		newApplication: func(*config.Application) (serveApplication, error) {
+			t.Fatal("newApplication() called before configuration validation")
+			return nil, nil
+		},
+		syncLogger: func(*zap.Logger) error {
+			t.Fatal("syncLogger() called before logger construction")
+			return nil
+		},
+	}
+
+	err := newServeCommand(deps).Execute()
+	if err == nil {
+		t.Fatal("Execute() error = nil, want validation error")
+	}
+	if !strings.Contains(err.Error(), "validate config: database.uri") {
+		t.Errorf("Execute() error = %q, want database URI validation context", err)
 	}
 }
 
@@ -200,7 +250,7 @@ func TestServeCommand_LoggerCleanupPreservesRunError(t *testing.T) {
 	}
 	deps := serveDependencies{
 		resolveConfig: func() (*config.Application, error) {
-			return &config.Application{}, nil
+			return validServeCommandConfig(), nil
 		},
 		newLogger: func(*config.Application) (*zap.Logger, error) {
 			return zap.NewNop(), nil

@@ -71,6 +71,9 @@ go-starter serve --config /etc/crypt/config.json`,
 			if err != nil {
 				return fmt.Errorf("resolve config: %w", err)
 			}
+			if err := cfg.Validate(config.ValidationScopeServe); err != nil {
+				return fmt.Errorf("validate config: %w", err)
+			}
 
 			// Replace the bootstrap logger with one driven by config (level,
 			// format, environment) now that config is resolved.
@@ -143,10 +146,10 @@ func addServeFlags(command *cobra.Command) {
 	command.Flags().Int("webserver.read-timeout", 60, "timeout for webserver read requests")
 	command.Flags().Int("webserver.write-timeout", 60, "timeout for webserver write requests")
 	command.Flags().Int("webserver.idle-timeout", 60, "timeout for webserver idle requests")
-	command.Flags().Int("webserver.request-timeout", 60, "seconds allowed for total request processing before the request context is cancelled (0 or less disables the limit)")
+	command.Flags().Int("webserver.request-timeout", 60, "seconds allowed for total request processing before the request context is cancelled (0 disables the limit)")
 	command.Flags().Int("webserver.shutdown-timeout", 15, "seconds a graceful shutdown waits for in-flight requests to drain before forcing close (0 keeps this server's safe 15s default)")
 	command.Flags().Int("webserver.max-header-bytes", 1<<20, "maximum size in bytes of request headers the server will read (bounds memory per request; 0 keeps this server's safe 1 MiB default)")
-	command.Flags().Int64("webserver.max-body-bytes", 10<<20, "maximum size in bytes of each request body the server will read (bounds memory per request; 0 or less disables the limit)")
+	command.Flags().Int64("webserver.max-body-bytes", 10<<20, "maximum size in bytes of each request body the server will read (bounds memory per request; 0 disables the limit)")
 	command.Flags().Bool("webserver.pprof-enabled", false, "expose /debug/pprof/* profiling endpoints on the public mux (unauthenticated; enable only in trusted environments)")
 	command.Flags().StringSlice("webserver.cors-allowed-origins", []string{"https://*", "http://*"}, "origins permitted by CORS (supports '*' wildcards); the default allows any origin — restrict to your front-end origins for production")
 	command.Flags().String("webserver.tls-cert-file", "", "path to a PEM-encoded TLS certificate; set with tls-key-file to terminate TLS in-process (leave unset when a reverse proxy terminates TLS)")
