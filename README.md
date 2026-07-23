@@ -148,6 +148,7 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | `make cover` | Write `coverage.out` and print statement coverage. |
 | `make generate` | Regenerate ogen and sqlc output. |
 | `make generate-check` | Fail if committed generated code is stale. |
+| `make architecture-check` | Verify module, domain, platform, and transport boundaries. |
 | `make dev-up` | Start local PostgreSQL and wait for health. |
 | `make dev-run` | Start PostgreSQL, migrate, seed, and serve using `.env`. |
 | `make dev-down` | Stop local services without deleting database data. |
@@ -170,18 +171,19 @@ and `make vendor` are intentionally explicit.
 | Path | Responsibility |
 | --- | --- |
 | `main.go`, `cmd/` | Process entrypoint and Cobra commands. |
-| `pkg/config/` | Application settings and command-scoped validation. |
 | `api/openapi.yml` | Source of truth for the HTTP API. |
 | `internal/api/v1/` | ogen-generated transport code; never edit directly. |
-| `internal/controller/` | Hand-written implementations of generated handlers. |
-| `internal/app/` | Dependency assembly and application lifecycle. |
-| `internal/web/` | Chi server, middleware ordering, metrics, and profiling routes. |
-| `internal/auth/`, `internal/user/` | Authentication and the example user domain. |
-| `internal/storage/postgres/` | pgx storage, sqlc queries, and embedded migrations. |
-| `internal/observability/` | Logging and optional OpenTelemetry providers. |
+| `internal/app/` | Composition root, dependency assembly, and application lifecycle. |
+| `internal/domain/` | Infrastructure-free business data, repository contracts, and business errors. |
+| `internal/modules/` | Business capabilities; `user/` is the example PostgreSQL-backed module. |
+| `internal/platform/` | Technical infrastructure: config, database, middleware, observability, rate limiting, and web serving. |
+| `internal/controller/` | Hand-written generated-transport-to-domain mapping. |
+| `internal/auth/` | Authentication and generated security-handler integration. |
+| `internal/cli/` | Shared CLI lifecycle and seed support. |
 | `web/` | Embedded static assets. |
 
 See the [documentation index](docs/README.md), the
+[module/platform boundary decision](docs/architecture/module-platform-boundaries.md),
 [current architecture notes](docs/architecture/current-state.md), and the
 [development foundations](docs/development/foundations.md) for deeper context.
 
@@ -189,9 +191,9 @@ See the [documentation index](docs/README.md), the
 
 API changes start in `api/openapi.yml`. Run `make generate`, then implement any
 changed generated interfaces in `internal/controller/`. SQL changes start in
-`internal/storage/postgres/queries/` or a new sequential migration, followed by
+`internal/platform/database/postgres/queries/` or a new sequential migration, followed by
 `make generate`. Never hand-edit `internal/api/v1/oas_*_gen.go` or the
-sqlc-generated files in `internal/storage/postgres/db/`.
+sqlc-generated files in `internal/platform/database/postgres/db/`.
 
 Before committing generator inputs, run:
 

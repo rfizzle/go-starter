@@ -10,7 +10,7 @@ import (
 	"github.com/pressly/goose/v3"
 	"go.uber.org/zap"
 
-	"github.com/rfizzle/go-starter/internal/storage"
+	"github.com/rfizzle/go-starter/internal/platform/database"
 )
 
 // migrationsDir is the sub-directory inside the embedded filesystem that holds
@@ -95,22 +95,22 @@ func (client *Client) Migrate(migrationFs embed.FS) error {
 }
 
 // MigrationStatus reports whether all, some, or none of the embedded
-// migrations have been applied. It derives the coarse storage.MigrationStatus
+// migrations have been applied. It derives the coarse database.MigrationStatus
 // from goose's per-migration status list.
 //
 // It is not strictly read-only: querying status ensures goose's version table
 // exists, so calling it against a pristine database creates that table (with no
 // migration rows). Keep this in mind before wiring it into a readiness probe.
-func (client *Client) MigrationStatus(ctx context.Context, migrationFs embed.FS) (storage.MigrationStatus, error) {
+func (client *Client) MigrationStatus(ctx context.Context, migrationFs embed.FS) (database.MigrationStatus, error) {
 	gp, cleanup, err := client.newGooseProvider(migrationFs)
 	if err != nil {
-		return storage.StatusNone, err
+		return database.StatusNone, err
 	}
 	defer cleanup()
 
 	statuses, err := gp.Status(ctx)
 	if err != nil {
-		return storage.StatusNone, fmt.Errorf("goose status: %w", err)
+		return database.StatusNone, fmt.Errorf("goose status: %w", err)
 	}
 
 	total := len(statuses)
@@ -123,10 +123,10 @@ func (client *Client) MigrationStatus(ctx context.Context, migrationFs embed.FS)
 
 	switch applied {
 	case 0:
-		return storage.StatusNone, nil
+		return database.StatusNone, nil
 	case total:
-		return storage.StatusComplete, nil
+		return database.StatusComplete, nil
 	default:
-		return storage.StatusPartial, nil
+		return database.StatusPartial, nil
 	}
 }

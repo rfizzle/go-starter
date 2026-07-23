@@ -9,40 +9,39 @@ import (
 	"github.com/stretchr/testify/require"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/rfizzle/go-starter/internal/storage"
-	"github.com/rfizzle/go-starter/internal/user"
+	"github.com/rfizzle/go-starter/internal/domain"
 )
 
 // fakeUserStore is an in-memory UserStore keyed by email. It records Create
 // calls so tests can assert both the resulting state and what was inserted.
 type fakeUserStore struct {
-	byEmail    map[string]user.User
-	created    []user.CreateParams
+	byEmail    map[string]domain.User
+	created    []domain.CreateUserParams
 	byEmailErr error
 	createErr  error
 }
 
 func newFakeUserStore() *fakeUserStore {
-	return &fakeUserStore{byEmail: map[string]user.User{}}
+	return &fakeUserStore{byEmail: map[string]domain.User{}}
 }
 
-func (f *fakeUserStore) ByEmail(_ context.Context, email string) (user.User, error) {
+func (f *fakeUserStore) ByEmail(_ context.Context, email string) (domain.User, error) {
 	if f.byEmailErr != nil {
-		return user.User{}, f.byEmailErr
+		return domain.User{}, f.byEmailErr
 	}
 	u, ok := f.byEmail[email]
 	if !ok {
-		return user.User{}, storage.ErrNotFound
+		return domain.User{}, domain.ErrNotFound
 	}
 	return u, nil
 }
 
-func (f *fakeUserStore) Create(_ context.Context, params user.CreateParams) (user.User, error) {
+func (f *fakeUserStore) Create(_ context.Context, params domain.CreateUserParams) (domain.User, error) {
 	if f.createErr != nil {
-		return user.User{}, f.createErr
+		return domain.User{}, f.createErr
 	}
 	f.created = append(f.created, params)
-	u := user.User{Email: params.Email, FirstName: params.FirstName, LastName: params.LastName}
+	u := domain.User{Email: params.Email, FirstName: params.FirstName, LastName: params.LastName}
 	f.byEmail[params.Email] = u
 	return u, nil
 }
@@ -90,7 +89,7 @@ func TestSeeder_Run_Idempotent(t *testing.T) {
 
 func TestSeeder_Run_SkipsExisting(t *testing.T) {
 	store := newFakeUserStore()
-	store.byEmail["a@example.com"] = user.User{Email: "a@example.com"}
+	store.byEmail["a@example.com"] = domain.User{Email: "a@example.com"}
 
 	seeds := []UserSeed{
 		{Email: "a@example.com", Password: "pw-a"},

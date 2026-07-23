@@ -240,10 +240,10 @@ exist. A provider constructor returns its concrete client. The consuming
 package declares the behavior it needs:
 
 ```go
-// internal/seed/seed.go
+// internal/cli/seed/seed.go
 type UserStore interface {
-    ByEmail(ctx context.Context, email string) (user.User, error)
-    Create(ctx context.Context, params user.CreateParams) (user.User, error)
+    ByEmail(ctx context.Context, email string) (domain.User, error)
+    Create(ctx context.Context, params domain.CreateUserParams) (domain.User, error)
 }
 
 func New(users UserStore) (*Seeder, error) { ... }
@@ -331,7 +331,7 @@ func (a *App) setupServices() {
 ## Examples in Codebase
 
 Current examples of this pattern:
-- `internal/seed` - `UserStore` describes only the repository behavior seeding consumes
+- `internal/cli/seed` - `UserStore` describes only the repository behavior seeding consumes
 - `internal/controller` - `UserReader` describes only the lookup used by the HTTP handler
 - `internal/cli` - lifecycle interfaces isolate command orchestration from the application
 

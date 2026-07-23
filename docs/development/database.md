@@ -8,17 +8,18 @@ repository-owned transaction boundaries.
 
 ```text
 internal/app
-  ├── postgres.Client       startup ping and embedded Goose migrations
-  └── user.Repository       domain persistence
+  ├── platform/database/postgres.Client   startup ping and embedded Goose migrations
+  └── modules/user.Repository             domain persistence adapter
         ├── db.Queries      sqlc-generated fixed queries
         └── db.DBTX         pgxpool.Pool or pgx.Tx for dynamic queries
 ```
 
-`internal/storage` is deliberately small. It contains the shared
-`ErrNotFound` persistence outcome and migration-status values; it does not
-expose a generic database client. Consumers define narrow behavioral
-interfaces where they need a test seam. For example, the seeder accepts only
-the two user operations it calls.
+`internal/platform/database` contains technical migration-status contracts and
+the PostgreSQL implementation. Business-facing user data, the
+`domain.UserRepository` contract, and `domain.ErrNotFound` live in
+`internal/domain`, so controllers and CLI workflows do not depend on database
+infrastructure. Consumers define narrower behavioral interfaces where they
+need a test seam; the seeder accepts only the two user operations it calls.
 
 The application creates the concrete PostgreSQL pool in
 `internal/app/app.go`. The pool is shared by migration infrastructure and the
@@ -67,10 +68,10 @@ abstraction for domain code. Repositories receive the pool directly.
 
 ## Fixed queries with sqlc
 
-Migration SQL under `internal/storage/postgres/migrations/` is the schema
+Migration SQL under `internal/platform/database/postgres/migrations/` is the schema
 source for sqlc. Fixed queries live under
-`internal/storage/postgres/queries/`; `make generate` writes their Go
-implementation to `internal/storage/postgres/db/`.
+`internal/platform/database/postgres/queries/`; `make generate` writes their Go
+implementation to `internal/platform/database/postgres/db/`.
 
 Generated files are never edited directly. Change a migration or query source,
 then run:
@@ -104,14 +105,14 @@ compile checked. Translate driver-specific outcomes at the repository edge:
 ```go
 row, err := r.queries.GetUserByEmail(ctx, email)
 if errors.Is(err, pgx.ErrNoRows) {
-    return user.User{}, storage.ErrNotFound
+    return domain.User{}, domain.ErrNotFound
 }
 if err != nil {
-    return user.User{}, fmt.Errorf("get user by email: %w", err)
+    return domain.User{}, fmt.Errorf("get user by email: %w", err)
 }
 ```
 
-`storage.ErrNotFound` is the intentionally shared persistence contract. Other
+`domain.ErrNotFound` is the shared business-facing absence contract. Other
 database failures retain their wrapped pgx error so the layer that owns a
 specific policy can inspect it with `errors.Is` or `errors.As`.
 
@@ -201,17 +202,17 @@ Goose applies the embedded, forward-only migrations through
 migrations before using repositories. Add schema changes as new sequential
 migration files; never rewrite a migration that may already have run.
 
-`MigrationStatus` reports `storage.StatusNone`, `storage.StatusPartial`, or
-`storage.StatusComplete`. Status lookup ensures Goose's version table exists,
+`MigrationStatus` reports `database.StatusNone`, `database.StatusPartial`, or
+`database.StatusComplete`. Status lookup ensures Goose's version table exists,
 so it is not a strictly read-only operation on a pristine database.
 
 The `seed` command constructs `user.Repository` over the same pool and passes
-it to `internal/seed` through a narrow `UserStore` interface. Seed records are
+it to `internal/cli/seed` through a narrow `UserStore` interface. Seed records are
 matched by natural key and skipped when already present.
 
 ## Testing
 
-- Test repository mappings and query behavior in the owning domain package.
+- Test repository mappings and query behavior in the owning module package.
 - Use pgxmock for query arguments, row scanning, failures, and transaction
   boundaries.
 - Use a real disposable PostgreSQL instance for constraints, migrations,
@@ -223,7 +224,7 @@ Run generation before tests:
 
 ```sh
 make generate
-go test ./internal/storage/... ./internal/user ./internal/seed
+go test ./internal/platform/database/... ./internal/modules/user ./internal/cli/seed
 make check
 make race
 ```
@@ -231,6 +232,7 @@ make race
 ## Related documentation
 
 - [Project context](project-context.md)
+- [Module and platform boundaries](../architecture/module-platform-boundaries.md)
 - [Development foundations](foundations.md)
 - [Interface patterns](../guidelines/interface-pattern.md)
 - [Testing strategy](../guidelines/testing-strategy.md)

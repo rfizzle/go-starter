@@ -21,13 +21,13 @@ change.
 3. Change SQL query sources or add a new migration before regenerating sqlc.
 4. Run `make generate` after generator inputs change.
 5. Run `make fmt` for changed Go or YAML files.
-6. Run focused package tests, then `make check`.
+6. Run `make architecture-check` and focused package tests, then `make check`.
 7. Run `make race` for concurrency, lifecycle, middleware, storage, or test
    infrastructure changes.
 8. Confirm `git diff --check` is clean and review the staged diff.
 
 Never edit ogen files under `internal/api/v1/` or sqlc files under
-`internal/storage/postgres/db/` directly. The
+`internal/platform/database/postgres/db/` directly. The
 [ogen workflow](docs/development/ogen-workflow.md),
 [database guide](docs/development/database.md), and
 [Go standards](docs/guidelines/go-standards.md) provide more detail.

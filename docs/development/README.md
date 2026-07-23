@@ -12,6 +12,7 @@ Core development documentation for engineers working on the Go Starter project. 
 ### Key Commands
 ```bash
 make generate    # Regenerate API code from OpenAPI spec
+make architecture-check # Verify package placement and import direction
 make fmt         # Format all Go and YAML files
 make lint        # Run code quality checks
 make test        # Run all tests
@@ -52,12 +53,12 @@ make ci          # Full CI pipeline (generate, fmt, lint, test)
 
 ### Standard Development Cycle
 
-1. **Plan**: Review requirements and create implementation plan
-2. **API First**: Update `api/openapi.yml` if API changes needed
+1. **Plan**: Review requirements, package placement, and the applicable module spec
+2. **API First**: Update `api/openapi.yml` if API changes are needed
 3. **Generate**: Run `make generate` to update generated code
 4. **Verify**: Select tests for acceptance criteria and significant risks
 5. **Implement**: Make the smallest change that satisfies the approved contract
-6. **Quality**: Run `make fmt lint test`
+6. **Quality**: Run `make architecture-check`, then `make fmt lint test`
 7. **Review**: Submit for code review
 8. **Deploy**: Build and deploy
 
@@ -75,7 +76,7 @@ Reference [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern
 contract-first package and consumer-owned interface guidance.
 
 #### Database Changes
-1. Create migration in `migrations/`
+1. Create a sequential migration in `internal/platform/database/postgres/migrations/`
 2. Update repository interfaces
 3. Implement repository methods
 4. Add repository tests

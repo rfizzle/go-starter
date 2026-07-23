@@ -27,6 +27,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 ### NPM Scripts (Alternative)
 The project also supports npm-style aliases via package.json, including:
 - `npm run build`, `npm run check`, `npm run test`, `npm run fmt`, `npm run lint`
+- `npm run architecture-check`
 - `npm run generate`, `npm run generate-check`, `npm run cover`, `npm run vuln`
 - `npm run release-snapshot`, `npm run tidy`, `npm run vendor`
 
@@ -40,14 +41,27 @@ This project uses **ogen** for OpenAPI-first API development:
 - **Never edit generated files directly** - all API changes must be made in the OpenAPI spec
 
 ### Application Structure
-- **Entry point**: `main.go` → `cmd/serve.go` - CLI-based application using Cobra
-- **Application core**: `internal/app/app.go` - Main application lifecycle management
-- **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
-- **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
-- **Storage contracts**: `internal/storage` - Small shared persistence outcomes and migration status
-- **Storage layer**: `internal/storage/postgres` - PostgreSQL pool, migrations, metrics, and sqlc output
-- **User repository**: `internal/user` - sqlc plus squirrel repository and transaction boundary
-- **Authentication**: `internal/auth/` - JWT-based auth system with middleware
+- **Entry point**: `main.go` → `cmd/` - Cobra commands and process-level concerns
+- **Composition root**: `internal/app/` - dependency assembly and application lifecycle
+- **Domain contracts**: `internal/domain/` - business data, shared repository interfaces, and business-facing errors
+- **Business modules**: `internal/modules/` - product capabilities; the example user repository lives in `internal/modules/user/`
+- **Platform**: `internal/platform/` - configuration, database, middleware, observability, rate limiting, and web infrastructure
+- **Controllers**: `internal/controller/` - generated transport-to-domain mapping; not a business-logic home
+- **Authentication**: `internal/auth/` - JWT validation and generated security-handler integration
+- **Generated transport**: `internal/api/v1/` - ogen output; never edit directly
+
+### Dependency Boundaries
+- `internal/domain/` is an internal leaf and must not import application, module, platform, controller, or generated transport packages.
+- `internal/platform/` contains technical infrastructure with no business meaning. It must not import `internal/domain/` or `internal/modules/`.
+- `internal/modules/` may import domain contracts and selected platform capabilities. It must never import `internal/api/`.
+- Business orchestration depends on small consumer-side interfaces. Concrete infrastructure is constructed in `internal/app/` or a CLI composition root and injected.
+- Repository adapters may use the established platform database boundary, but domain data and errors exposed to consumers come from `internal/domain/`.
+- Generated transport is quarantined to edge packages (`internal/controller/`, `internal/auth/`, `internal/platform/web/`) and the composition root.
+- Do not add `utils`, `helpers`, `common`, or `shared` grab-bag packages. Name a package for the business capability or platform service it owns.
+- `make architecture-check` verifies these rules and is part of `make check`.
+
+See [docs/architecture/module-platform-boundaries.md](docs/architecture/module-platform-boundaries.md)
+and the `go-project-layout` skill for the complete placement and review rules.
 
 ### Key Dependencies
 - **Web framework**: Chi v5 for HTTP routing and middleware
@@ -58,12 +72,13 @@ This project uses **ogen** for OpenAPI-first API development:
 - **Observability**: Prometheus metrics, OpenTelemetry tracing, pprof debugging
 
 ### Development Workflow
-1. **API changes**: Modify `api/openapi.yml` first
-2. **Generate code**: Run `make generate` to update generated API files
-3. **Implement handlers**: Update controllers in `internal/controller/` to implement new interfaces
-4. **Format and lint**: Run `make fmt lint` before committing
-5. **Test**: Run `make test` to ensure everything works
-6. **Build**: Use `make build` for a local binary or `make release-snapshot` for release archives
+1. **Place the change**: use `go-project-layout`; new business capabilities go under `internal/modules/`
+2. **Specify business behavior**: use `backend-spec` for a new or behaviorally changed module
+3. **API changes**: modify `api/openapi.yml` first
+4. **Generate code**: run `make generate` to update generated API and SQL code
+5. **Implement transport mapping**: update `internal/controller/` without moving business logic into it
+6. **Verify boundaries and behavior**: run focused tests, then `make check`
+7. **Build**: use `make build` for a local binary or `make release-snapshot` for release archives
 
 ### Middleware Stack
 The web server includes these middleware layers (in order):
@@ -75,7 +90,7 @@ The web server includes these middleware layers (in order):
 
 ### Configuration
 - CLI flags and environment variables supported via Viper
-- Configuration structure defined in `pkg/config/config.go`
+- Configuration structure defined in `internal/platform/config/config.go`
 - Webserver settings: address, port, timeouts configurable via flags or env vars
 
 ## Engineering Policy

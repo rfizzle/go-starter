@@ -12,6 +12,7 @@
   },
   "scripts": {
     "build": "make build",
+    "architecture-check": "make architecture-check",
     "check": "make check",
     "ci": "make ci",
     "cover": "make cover",

@@ -88,18 +88,20 @@ Update project documentation when:
 
 ### Application Structure
 - **Entry point**: `main.go` → `cmd/serve.go` (Cobra CLI)
-- **Application core**: `internal/app/app.go` - Main application lifecycle management
-- **Web server**: `internal/web/webserver.go` - Chi-based HTTP server with middleware stack
-- **Controllers**: `internal/controller/` - Business logic handlers that implement generated interfaces
-- **Storage contracts**: `internal/storage` - Shared persistence outcomes and migration status
-- **Storage layer**: `internal/storage/postgres` - PostgreSQL pool, migrations, metrics, and generated SQL
-- **User repository**: `internal/user` - sqlc plus squirrel access and transaction propagation
-- **Authentication**: `internal/auth/` - JWT-based auth system with middleware
+- **Composition root**: `internal/app/` - Dependency assembly and application lifecycle
+- **Domain contracts**: `internal/domain/` - Infrastructure-free business data, interfaces, and errors
+- **Business modules**: `internal/modules/` - Business capabilities and their adapters
+- **Platform**: `internal/platform/` - Configuration, database, middleware, observability, rate limiting, and web infrastructure
+- **Controllers**: `internal/controller/` - Generated transport-to-domain mapping
+- **Authentication**: `internal/auth/` - JWT validation and generated security integration
 
 ### Key Patterns
-* **Interface-Implementation Pattern** - Standard pattern with interfaces in domain packages and implementations directly in the same package (single impl) or in named subdirectories (multiple impls)
+* **Module/Platform Boundaries** - Modules may depend on domain contracts and selected platform capabilities; domain and platform do not depend on modules
+* **Consumer-Owned Interfaces** - Business orchestration and edges accept the narrow behavior they consume
 * **OpenAPI-First Development** - API definitions drive code generation
-* **Standard Go Project Layout** - Consistent directory structure and organization
+* **Explicit Composition** - Concrete dependencies are assembled in `internal/app/` or a CLI composition root
+
+See [the accepted boundary decision](../architecture/module-platform-boundaries.md).
 
 ---
 

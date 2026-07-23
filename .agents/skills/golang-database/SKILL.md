@@ -1,6 +1,6 @@
 ---
 name: golang-database
-description: Write, review, test, and troubleshoot Go database code for PostgreSQL using pgx/v5, pgxpool, scany/pgxscan, parameterized SQL, transactions, queue locking, migrations, and repository patterns. Use for repository methods, SQL queries, connection pools, pgxmock tests, integration tests, migration changes, and database error translation. Follow the repository's database abstractions and approved backend specs.
+description: Write, review, test, and troubleshoot Go database code for PostgreSQL using pgx/v5, pgxpool, sqlc, squirrel, Goose, parameterized SQL, transactions, migrations, and repository patterns. Use for repository methods, SQL queries, connection pools, pgxmock tests, integration tests, migration changes, and database-to-domain error translation. Follow the repository's module/platform boundaries and approved backend specs.
 license: MIT
 ---
 
@@ -14,45 +14,41 @@ architectural approval.
 
 - PostgreSQL 16
 - `github.com/jackc/pgx/v5` and `pgxpool`
-- `github.com/georgysavva/scany/v2/pgxscan`
-- `internal/platform/database` abstractions and error translation
+- sqlc-generated fixed queries under `internal/platform/database/postgres/db`
+- `github.com/Masterminds/squirrel` for genuinely dynamic query shapes
+- Goose with sequential SQL migrations under `internal/platform/database/postgres/migrations`
+- `internal/domain` business-facing models, repository contracts, and sentinel errors
 - `github.com/pashagolub/pgxmock/v4` for repository unit tests
-- `golang-migrate` and sequential reversible SQL files under `migrations/`
 
 Read the relevant module spec, repository implementation, migration history, and
-`internal/platform/database` contracts before changing code.
+platform database code before changing behavior.
 
 ## Repository rules
 
 1. Keep repository implementations in the owning business module.
-2. Accept the narrow query interface established by `internal/platform/database` so the
-   same repository works with a pool, transaction, or mock.
+2. Use sqlc's generated `db.DBTX` seam so fixed queries work with a pool, transaction,
+   or mock. Keep pool ownership and lifecycle in the composition root.
 3. Use explicit column lists and `db` tags. Never rely on `SELECT *`.
 4. Pass `context.Context` to every query and transaction operation.
 5. Parameterize every value. PostgreSQL placeholders are `$1`, `$2`, and so on.
-6. Build dynamic filters through the existing `WhereBuilder` or an equally parameterized
-   local pattern. Allowlist identifiers such as sort columns; identifiers cannot be bound.
-7. Translate pgx/constraint outcomes through the platform sentinel helpers. Preserve
-   error chains with `%w`.
-8. Close rows and check iteration errors when using row iterators. Prefer the platform
-   scanning helpers for ordinary one/all-result queries.
+6. Use sqlc for fixed statements. Build genuinely dynamic filters with a local
+   PostgreSQL-configured squirrel builder. Allowlist identifiers; they cannot be bound.
+7. Map generated database rows to `domain` values inside the repository. Persistence-only
+   fields must not escape the adapter.
+8. Translate `pgx.ErrNoRows` to the module's documented domain sentinel and preserve
+   other error chains with `%w`.
+9. Close rows and check iteration errors when using raw pgx row iterators.
 
 ```go
-func (r *Repository) GetByID(
-    ctx context.Context,
-    id uuid.UUID,
-) (*domain.Session, error) {
-    const query = `
-        SELECT id, status, started_at, ended_at
-        FROM sessions
-        WHERE id = $1
-    `
-
-    var session domain.Session
-    if err := database.ScanOne(ctx, r.db, &session, query, id); err != nil {
-        return nil, fmt.Errorf("sessions.GetByID: %w", err)
+func (r *Repository) ByEmail(ctx context.Context, email string) (domain.User, error) {
+    row, err := r.queries.GetUserByEmail(ctx, email)
+    if errors.Is(err, pgx.ErrNoRows) {
+        return domain.User{}, domain.ErrNotFound
     }
-    return &session, nil
+    if err != nil {
+        return domain.User{}, fmt.Errorf("get user by email: %w", err)
+    }
+    return fromDB(row), nil
 }
 ```
 
@@ -62,8 +58,8 @@ shape, not a substitute API.
 ## Transactions and locking
 
 - Use a transaction when multiple statements must commit or roll back as one invariant.
-- Pass the transaction's query interface into the same repository code instead of
-  duplicating transactional methods.
+- Build a transaction-scoped repository whose sqlc queries and dynamic executor both
+  use the same `pgx.Tx`; do not duplicate transactional query methods.
 - Prefer a single atomic `UPDATE ... RETURNING` when it expresses the invariant.
 - Use `SELECT ... FOR UPDATE` only when a read-then-write sequence genuinely requires a
   row lock.
@@ -80,8 +76,8 @@ Migration SQL is allowed when the user requested the schema change and the relev
 approved spec defines the behavior. Before writing it:
 
 1. Inspect adjacent migrations and the current schema.
-2. Choose the next sequential version.
-3. Write both `up` and `down` paths unless irreversibility is explicitly approved.
+2. Use `make migration name=<name>` to choose the next sequential version.
+3. Write both Goose `Up` and `Down` paths unless irreversibility is explicitly approved.
 4. Consider existing row count, lock duration, defaults, backfills, indexes, and rollout
    compatibility.
 5. Keep secrets and environment-specific data out of migrations.
@@ -100,9 +96,9 @@ rollback risk before implementation.
 
 ```bash
 make generate
-make go-test
-make go-test-integration
-make lint
+go test ./internal/platform/database/... ./internal/modules/...
+make race
+make check
 ```
 
 Use focused `go test` commands only after `make generate`, and preserve the race detector

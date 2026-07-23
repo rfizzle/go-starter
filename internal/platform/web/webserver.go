@@ -25,7 +25,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/rfizzle/go-starter/internal/middleware"
+	"github.com/rfizzle/go-starter/internal/platform/middleware"
 
 	"go.uber.org/zap"
 

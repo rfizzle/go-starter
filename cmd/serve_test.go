@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"testing"
 
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"

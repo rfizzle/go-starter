@@ -1,66 +1,54 @@
 # Scanning PostgreSQL Results
 
-Use `db` tags with the repository's scany/pgxscan helpers. Keep column lists explicit and
-match aliases to field tags.
+Use sqlc-generated row and parameter types for fixed statements. Keep the generated code
+inside `internal/platform/database/postgres/db` and map rows to business-facing
+`internal/domain` types in the owning module.
+
+## Fixed queries
+
+Change query source under `internal/platform/database/postgres/queries`, run
+`make generate`, and call the generated method through `*db.Queries`.
 
 ```go
-type User struct {
-    ID        uuid.UUID  `db:"id"`
-    Name      string     `db:"name"`
-    Bio       *string    `db:"bio"`
-    DeletedAt *time.Time `db:"deleted_at"`
-}
-```
-
-## One row
-
-`database.ScanOne` maps scany/pgx no-row results to `database.ErrNotFound`.
-
-```go
-func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*User, error) {
-    const query = `
-        SELECT id, name, bio, deleted_at
-        FROM users
-        WHERE id = $1
-    `
-
-    var user User
-    if err := database.ScanOne(ctx, r.db, &user, query, id); err != nil {
-        return nil, fmt.Errorf("users.Get: %w", err)
+func (r *Repository) ByEmail(ctx context.Context, email string) (domain.User, error) {
+    row, err := r.queries.GetUserByEmail(ctx, email)
+    if errors.Is(err, pgx.ErrNoRows) {
+        return domain.User{}, domain.ErrNotFound
     }
-    return &user, nil
-}
-```
-
-Use `errors.Is(err, database.ErrNotFound)` at the layer that translates persistence
-outcomes into the module's documented domain error.
-
-## Many rows
-
-`database.ScanAll` returns an empty non-nil slice when no rows match.
-
-```go
-func (r *Repository) ListActive(ctx context.Context) ([]*User, error) {
-    const query = `
-        SELECT id, name, bio, deleted_at
-        FROM users
-        WHERE active = $1
-        ORDER BY name, id
-    `
-    users, err := database.ScanAll[User](ctx, r.db, query, true)
     if err != nil {
-        return nil, fmt.Errorf("users.ListActive: %w", err)
+        return domain.User{}, fmt.Errorf("get user by email: %w", err)
     }
-    return users, nil
+    return fromDB(row), nil
 }
 ```
 
-Use raw `pgx.Rows` only when streaming or custom row handling is necessary. In that case,
-close rows, scan every selected column, and check `rows.Err()` after iteration.
+The mapping function is the persistence boundary. Do not expose generated `db` types,
+`pgtype` values, or persistence-only fields such as password hashes to controllers or
+business orchestration.
 
-## NULL and JSON
+## Dynamic queries
 
-Use pointers when the application meaningfully distinguishes SQL `NULL` from the type's
-zero value. Keep database and JSON concerns separate: `db` tags control scanning; `json`
-tags control transport. Use pgtype values only when their richer status semantics are
-actually required.
+Use squirrel only when the statement shape varies. Keep every value bound, select an
+explicit column list, and scan into a local or generated row type whose fields match that
+list.
+
+```go
+rows, err := r.exec.Query(ctx, query, args...)
+if err != nil {
+    return nil, fmt.Errorf("list users: %w", err)
+}
+defer rows.Close()
+
+for rows.Next() {
+    var row db.User
+    if err := rows.Scan(&row.ID, &row.Email, &row.FirstName, &row.LastName); err != nil {
+        return nil, fmt.Errorf("scan user: %w", err)
+    }
+}
+if err := rows.Err(); err != nil {
+    return nil, fmt.Errorf("iterate users: %w", err)
+}
+```
+
+Use pointers or pgtype values only when SQL `NULL` semantics require them. Translate to
+plain domain values at the adapter boundary.

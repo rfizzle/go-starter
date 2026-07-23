@@ -1,5 +1,5 @@
 -- 00002_create_users.sql
--- Creates the users table backing the example user domain (internal/user).
+-- Creates the users table backing the example user module (internal/modules/user).
 -- Applied forward-only at startup by Client.Migrate via goose.
 
 -- +goose Up

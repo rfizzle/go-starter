@@ -3,20 +3,20 @@ sql:
   - engine: "postgresql"
     # Schema is derived from the same embedded migrations applied at runtime, so
     # generated types never drift from the live schema.
-    schema: "internal/storage/postgres/migrations"
-    queries: "internal/storage/postgres/queries"
+    schema: "internal/platform/database/postgres/migrations"
+    queries: "internal/platform/database/postgres/queries"
     gen:
       go:
         package: "db"
-        out: "internal/storage/postgres/db"
+        out: "internal/platform/database/postgres/db"
         sql_package: "pgx/v5"
         # Emit an interface so both *pgxpool.Pool and pgx.Tx satisfy the same
-        # Querier, enabling transaction propagation (see internal/user).
+        # Querier, enabling transaction propagation (see internal/modules/user).
         emit_interface: true
         emit_json_tags: true
         # timestamptz maps cleanly to time.Time (pgx scans it natively). uuid is
         # left as the default pgtype.UUID at the storage edge and mapped to a
-        # string in the internal/user domain, avoiding a custom pgx codec.
+        # domain.User string in the internal/modules/user adapter, avoiding a custom pgx codec.
         overrides:
           - db_type: "timestamptz"
             go_type: "time.Time"

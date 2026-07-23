@@ -5,7 +5,7 @@ import (
 
 	"go.uber.org/zap/zapcore"
 
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
 )
 
 func TestParseLevel(t *testing.T) {

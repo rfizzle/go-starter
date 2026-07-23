@@ -1,36 +1,21 @@
-// Package user is an example domain wired end to end through the starter's SQL
-// stack: sqlc-generated typed queries for the fixed ~90% of access
-// (internal/storage/postgres/db), squirrel for the dynamic ~10% (filtered
-// listing), and a Querier interface so the connection pool and a pgx.Tx are
-// interchangeable for transaction propagation.
+// Package user implements PostgreSQL persistence for the example user business
+// module. Shared user data and repository contracts live in internal/domain;
+// SQL and pgx types remain inside this adapter.
 //
 // It is intentionally small: copy it as the template for real domains.
 package user
 
 import (
-	"time"
-
 	"github.com/jackc/pgx/v5/pgtype"
 
-	"github.com/rfizzle/go-starter/internal/storage/postgres/db"
+	"github.com/rfizzle/go-starter/internal/domain"
+	"github.com/rfizzle/go-starter/internal/platform/database/postgres/db"
 )
-
-// User is the domain representation of a user. It is decoupled from the
-// sqlc-generated db.User (which exposes pgtype values) so handlers and business
-// logic work with plain Go types.
-type User struct {
-	ID        string    `json:"id"`
-	Email     string    `json:"email"`
-	FirstName string    `json:"first_name"`
-	LastName  string    `json:"last_name"`
-	CreatedAt time.Time `json:"created_at"`
-	UpdatedAt time.Time `json:"updated_at"`
-}
 
 // fromDB maps a sqlc row to the domain type. The password hash is deliberately
 // dropped here so it never escapes the storage boundary.
-func fromDB(row db.User) User {
-	return User{
+func fromDB(row db.User) domain.User {
+	return domain.User{
 		ID:        uuidToString(row.ID),
 		Email:     row.Email,
 		FirstName: row.FirstName,

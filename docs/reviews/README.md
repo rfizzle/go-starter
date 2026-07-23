@@ -24,10 +24,10 @@ Review entire packages as cohesive units:
 internal/auth
 
 # Review the config package  
-pkg/config
+internal/platform/config
 
 # Review the storage package
-internal/storage
+internal/platform/database
 ```
 
 **Usage**: Provide a specific package path to focus the review on that package's design and implementation.

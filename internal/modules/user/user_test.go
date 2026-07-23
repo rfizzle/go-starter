@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/rfizzle/go-starter/internal/storage/postgres/db"
+	"github.com/rfizzle/go-starter/internal/platform/database/postgres/db"
 )
 
 func TestUUIDToString(t *testing.T) {

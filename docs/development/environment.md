@@ -119,7 +119,7 @@ make dev-reset
 
 Both `seed` and `serve` apply pending migrations before accessing application
 tables. Running `seed` repeatedly is safe: existing baseline records are
-skipped. Migration SQL lives in `internal/storage/postgres/migrations/` and is
+skipped. Migration SQL lives in `internal/platform/database/postgres/migrations/` and is
 embedded in the binary.
 
 ## Troubleshooting

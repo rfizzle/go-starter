@@ -7,7 +7,7 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
-	"github.com/rfizzle/go-starter/internal/user"
+	"github.com/rfizzle/go-starter/internal/domain"
 )
 
 // subjectContextKey is the key under which the authenticated subject is stored
@@ -21,9 +21,10 @@ type Controller struct {
 
 // UserReader looks up users for request handlers. It is the read subset of the
 // user domain the controller needs, kept as an interface so handlers can be
-// tested without a database. *user.Repository satisfies it.
+// tested without a database. *user.Repository satisfies it without coupling
+// this transport edge to the concrete module.
 type UserReader interface {
-	ByEmail(ctx context.Context, email string) (user.User, error)
+	ByEmail(ctx context.Context, email string) (domain.User, error)
 }
 
 type Options struct {

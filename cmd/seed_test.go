@@ -5,7 +5,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
 	"go.uber.org/zap"
 )
 

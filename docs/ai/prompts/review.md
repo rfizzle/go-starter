@@ -22,14 +22,14 @@ For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/a
 ### 1. Package Review Mode
 **Use when**: User specifies a package path or reviewing package stage completion
 
-When given a specific package path (e.g., "internal/auth", "pkg/config"):
+When given a specific package path (e.g., "internal/auth", "internal/platform/config"):
 - Review all Go files within the specified package directory
 - Analyze the package as a cohesive unit for design and implementation
 - Check package-level consistency and patterns
 - **PACKAGE STAGE REVIEW**: Review package implementation stage completion (see DEFINITIONS.md)
 - **COMMIT READINESS CHECK**: Validate package stage meets completion criteria
 
-**Usage**: Provide a package path like `internal/auth` or `pkg/config`
+**Usage**: Provide a package path like `internal/auth` or `internal/platform/config`
 
 ### 2. Git Changes Mode (Default)
 **Use when**: No specific package provided or reviewing cross-package changes
@@ -246,10 +246,10 @@ Before starting work, perform Level 2 validation (see [DEFINITIONS.md](/docs/ai/
 internal/auth
 
 # Review the config package
-pkg/config
+internal/platform/config
 
 # Review the storage package
-internal/storage
+internal/platform/database
 ```
 
 ### Git Changes Mode Examples

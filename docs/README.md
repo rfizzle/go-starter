@@ -28,8 +28,8 @@ Specific development guidelines and standards for consistent code quality.
 ### 📁 architecture/
 Architectural decisions, patterns, and system design documentation.
 
-- *Currently being populated with architectural decision records (ADRs)*
-- Future: `current-state.md` - Current implementation status
+- **[module-platform-boundaries.md](architecture/module-platform-boundaries.md)** - Accepted package placement, dependency direction, and enforcement
+- **[current-state.md](architecture/current-state.md)** - Implemented runtime and package map
 
 ### 📁 features/
 Feature specifications and requirements documentation.
@@ -79,14 +79,11 @@ substitution boundary or a consumer that needs a narrower seam:
 - Keep multiple real implementations in named subpackages
 - Prefer small consumer-owned interfaces and concrete constructor returns
 
-### Standard Go Project Layout
-The codebase follows the Standard Go Project Layout:
-- `/cmd` - Main applications
-- `/internal` - Private application code
-- `/pkg` - Public libraries
-- `/api` - OpenAPI specifications
-- `/scripts` - Build and utility scripts
-- `/docs` - Documentation (this directory)
+### Module and Platform Layout
+Application code is divided into `internal/modules` for business capabilities,
+`internal/platform` for technical infrastructure, and `internal/domain` for
+shared infrastructure-free contracts. The composition root lives in
+`internal/app`; generated transport remains quarantined under `internal/api`.
 
 ## Development Workflow
 
@@ -95,7 +92,7 @@ The codebase follows the Standard Go Project Layout:
 2. **Generate Code**: Run `make generate`
 3. **Select Verification**: Map requirements and risks to the narrowest effective checks
 4. **Implement**: Make the smallest change that satisfies the approved contract
-5. **Quality Checks**: Run `make fmt lint test`
+5. **Quality Checks**: Run `make architecture-check`, then `make fmt lint test`
 6. **Build**: Run `make build`
 
 ### Key Commands

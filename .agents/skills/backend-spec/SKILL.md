@@ -1,6 +1,6 @@
 ---
 name: backend-spec
-description: "Author and review contract-first Go backend module and cross-module flow specs. Use before implementing, reimplementing, or behaviorally refactoring a business module; when documenting exported contracts, invariants, errors, collaborators, recovery, and tests; or when checking code against its approved spec. Follow the host repository's naming and placement conventions. Not for frontend specs or file-placement decisions."
+description: "Author and review contract-first Go backend module specs under internal/modules and cross-module flow specs under docs/flows. Use before implementing, reimplementing, or behaviorally refactoring a business module; when documenting exported contracts, invariants, errors, collaborators, recovery, and tests; or when checking code against its approved spec. Not for frontend specs or file-placement decisions."
 license: MIT
 ---
 
@@ -29,7 +29,7 @@ Go backends benefit from two levels of behavioral contract:
 
 ## When this applies
 
-- Creating a **new business package** → approve its module spec before writing
+- Creating a new **`internal/modules/*` business package** → approve its module spec before writing
   implementation code.
 - **Reimplementing or refactoring** an existing package → the spec is the source of truth for what must still hold; update it in the same change if behavior changes.
 - Documenting a **capability that spans packages** → write a flow spec.
@@ -53,8 +53,8 @@ This skill is **not** about where a file lives (see `go-project-layout`), naming
 
 ## Template A — Module Spec
 
-Filename: `<package>.spec.md`, in or next to the package according to repository
-conventions (for example, `internal/orders/orders.spec.md`).
+Filename: `<package>.spec.md`, co-located with the package (for example,
+`internal/modules/orders/orders.spec.md`).
 
 ````markdown
 # `<package>` Module Spec
@@ -148,8 +148,8 @@ Same template, different weight:
 
 ## Template B — Flow Spec
 
-Filename: `<name>.flow.spec.md` in the repository's documentation area. Use it for a
-capability that spans packages and has no single owner.
+Filename: `<name>.flow.spec.md` under `docs/flows/`. Use it for a capability that spans
+packages and has no single owner.
 
 ````markdown
 # Flow Spec: `<name>`
@@ -167,7 +167,7 @@ module spec.
 
 | Package | Role in this flow | Module spec |
 |---|---|---|
-| `orders` | ... | `internal/orders/orders.spec.md` |
+| `modules/orders` | ... | `internal/modules/orders/orders.spec.md` |
 
 ## 3. Sequence
 The end-to-end path as ordered steps or a diagram. Where each step happens

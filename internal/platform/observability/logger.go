@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
 )
 
 // NewLogger builds a *zap.Logger from the application's logging and environment

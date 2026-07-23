@@ -111,11 +111,12 @@ type OrderRepository interface {
 }
 ```
 
-### Rule 3 — Quarantine generated transport in ONE package
+### Rule 3 — Quarantine generated transport at the edge
 
 Generated API code (ogen, oapi-codegen) typically exposes a **single large `Handler` interface**. Go interface satisfaction is all-or-nothing on one type, so that interface has exactly one implementer — keep it that way.
 
-- Only `controller/` (or `api/handler/`) imports `internal/api/<gen>`.
+- Only approved edge packages (`controller/`, `auth/`, and `platform/web/`) plus the
+  composition root import `internal/api/<gen>`.
 - No `modules/*` package imports generated transport types.
 - The controller's job is **mapping**: generated request → domain call → generated response. That mapping code is verbose and generator-specific; concentrating it means regenerating the API has a blast radius of one package.
 
@@ -238,14 +239,15 @@ Use this when planning a new module (enumerate the seams up front) and when revi
 
 Run these after any structural change — a clean refactor is behavior-preserving.
 
-Run the repository's generation, build, test, and lint commands, then inspect the import
-graph:
+Run the repository's automated boundary check, then its generation, build, test, and lint
+commands:
 
 ```bash
-go list -deps ./internal/modules/...
+make architecture-check
+make check
 ```
 
-Quick rule-1 spot-checks:
+Use these only as diagnostic spot-checks when the automated target reports a violation:
 
 ```bash
 # informational: review each sibling-module import; established reviewed edges are allowed

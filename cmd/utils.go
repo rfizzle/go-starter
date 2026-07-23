@@ -7,7 +7,7 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
 )
 
 // resolveConfig unmarshals every viper layer (flag > env > file > default) into

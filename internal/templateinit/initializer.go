@@ -297,7 +297,7 @@ func skipTrackedPath(path string) bool {
 	return path == "LICENSE" ||
 		strings.HasPrefix(path, "vendor/") ||
 		strings.HasPrefix(path, "internal/api/v1/") ||
-		strings.HasPrefix(path, "internal/storage/postgres/db/")
+		strings.HasPrefix(path, "internal/platform/database/postgres/db/")
 }
 
 func planChanges(root string, paths []string, cfg Config) ([]fileChange, error) {

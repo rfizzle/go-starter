@@ -11,8 +11,8 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/app"
 	"github.com/rfizzle/go-starter/internal/cli"
-	"github.com/rfizzle/go-starter/internal/observability"
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
+	"github.com/rfizzle/go-starter/internal/platform/observability"
 	"go.uber.org/zap"
 
 	"github.com/spf13/cobra"

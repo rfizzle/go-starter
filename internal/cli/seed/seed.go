@@ -16,8 +16,7 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
-	"github.com/rfizzle/go-starter/internal/storage"
-	"github.com/rfizzle/go-starter/internal/user"
+	"github.com/rfizzle/go-starter/internal/domain"
 )
 
 // UserStore is the slice of the user repository the seeder needs. Depending on
@@ -25,11 +24,11 @@ import (
 // seeder trivially testable with a fake and documents exactly what seeding
 // touches.
 type UserStore interface {
-	// ByEmail returns the user with the given email, or storage.ErrNotFound when
+	// ByEmail returns the user with the given email, or domain.ErrNotFound when
 	// none exists.
-	ByEmail(ctx context.Context, email string) (user.User, error)
+	ByEmail(ctx context.Context, email string) (domain.User, error)
 	// Create inserts a user and returns the stored row.
-	Create(ctx context.Context, params user.CreateParams) (user.User, error)
+	Create(ctx context.Context, params domain.CreateUserParams) (domain.User, error)
 }
 
 // UserSeed is a single baseline user to seed. Password is plaintext and is
@@ -131,7 +130,7 @@ func (s *Seeder) seedUsers(ctx context.Context) error {
 			// Already present; seeding is idempotent, so skip.
 			s.logger.Debug("seed user already exists, skipping", zap.String("email", u.Email))
 			continue
-		case errors.Is(err, storage.ErrNotFound):
+		case errors.Is(err, domain.ErrNotFound):
 			// Fall through to create below.
 		default:
 			return fmt.Errorf("lookup seed user %q: %w", u.Email, err)
@@ -142,7 +141,7 @@ func (s *Seeder) seedUsers(ctx context.Context) error {
 			return fmt.Errorf("hash seed user %q password: %w", u.Email, err)
 		}
 
-		if _, err := s.users.Create(ctx, user.CreateParams{
+		if _, err := s.users.Create(ctx, domain.CreateUserParams{
 			Email:        u.Email,
 			PasswordHash: string(hash),
 			FirstName:    u.FirstName,

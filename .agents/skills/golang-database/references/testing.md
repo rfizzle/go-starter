@@ -13,7 +13,7 @@ Use `github.com/pashagolub/pgxmock/v4` against the repository's query abstractio
 
 - parameterized SQL and arguments
 - scan results and NULL behavior
-- `pgx.ErrNoRows`/platform not-found translation
+- `pgx.ErrNoRows` to documented domain not-found translation
 - constraint and database errors
 - transaction begin/commit/rollback expectations where the repository owns them
 
@@ -27,8 +27,8 @@ Use a small hand-written function-field fake; do not mock pgx underneath busines
 
 ## Integration tests
 
-Use the `integration` build tag and the repository's Docker Compose PostgreSQL service.
-Run real migrations and test behavior pgxmock cannot prove:
+Use the repository's Docker Compose PostgreSQL service for integration coverage. Run real
+migrations and test behavior pgxmock cannot prove:
 
 - constraints and indexes
 - `FOR UPDATE SKIP LOCKED`
@@ -38,8 +38,8 @@ Run real migrations and test behavior pgxmock cannot prove:
 
 ```bash
 make generate
-make docker-up
-make go-test-integration
+make dev-up
+go test -tags integration ./internal/platform/database/... ./internal/modules/...
 ```
 
 ## Coverage matrix

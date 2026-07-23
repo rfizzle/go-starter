@@ -13,11 +13,11 @@ import (
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/rfizzle/go-starter/internal/controller"
-	"github.com/rfizzle/go-starter/internal/observability"
-	"github.com/rfizzle/go-starter/internal/storage/postgres"
-	"github.com/rfizzle/go-starter/internal/user"
-	"github.com/rfizzle/go-starter/internal/web"
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/modules/user"
+	"github.com/rfizzle/go-starter/internal/platform/config"
+	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
+	"github.com/rfizzle/go-starter/internal/platform/observability"
+	"github.com/rfizzle/go-starter/internal/platform/web"
 	staticweb "github.com/rfizzle/go-starter/web"
 )
 

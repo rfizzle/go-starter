@@ -38,7 +38,7 @@ import (
 	// and does not report a conflict.
 	semconv "go.opentelemetry.io/otel/semconv/v1.41.0"
 
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/platform/config"
 )
 
 // Init installs OpenTelemetry SDK providers for traces and metrics, wired to an

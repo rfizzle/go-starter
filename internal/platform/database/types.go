@@ -1,6 +1,6 @@
-// Package storage provides the small persistence contracts shared across
-// repositories and their consumers.
-package storage
+// Package database defines technical database lifecycle contracts shared by
+// PostgreSQL infrastructure. Business-facing models and errors live in domain.
+package database
 
 // MigrationStatus represents the state of database migrations.
 // It indicates how many of the available migration files have been

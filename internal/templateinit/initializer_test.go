@@ -47,7 +47,7 @@ func TestInitialize(t *testing.T) {
 	assertFileEquals(t, gitSentinel, defaultModulePath)
 	assertFileEquals(t, filepath.Join(root, "LICENSE"), "historical attribution: "+defaultModulePath+"\n")
 	assertFileEquals(t, filepath.Join(root, "internal", "api", "v1", "oas_cfg_gen.go"), "package v1\n")
-	assertFileEquals(t, filepath.Join(root, "internal", "storage", "postgres", "db", "db.go"), "package db\n")
+	assertFileEquals(t, filepath.Join(root, "internal", "platform", "database", "postgres", "db", "db.go"), "package db\n")
 
 	for _, path := range trackedPaths(t, root) {
 		if skipTrackedPath(filepath.ToSlash(path)) {
@@ -198,14 +198,14 @@ func configure() { SetEnvPrefix("GOSTARTER") }
 import "github.com/rfizzle/go-starter/cmd"
 func main() { cmd.Execute() }
 `,
-		"internal/user/repository_test.go": `package user
+		"internal/modules/user/repository_test.go": `package user
 import (
 	"github.com/jackc/pgx/v5"
-	"github.com/rfizzle/go-starter/internal/storage"
+	"github.com/rfizzle/go-starter/internal/platform/database"
 	"github.com/stretchr/testify/assert"
 )
 var _ = pgx.ErrNoRows
-var _ = storage.ErrNotFound
+var _ = database.StatusNone
 var _ = assert.Equal
 `,
 		"package.json": `{
@@ -218,15 +218,15 @@ var _ = assert.Equal
 Go Starter is a starter for services.
 Run ./bin/gostarter or use ghcr.io/rfizzle/go-starter.
 `,
-		"LICENSE":                                      "historical attribution: " + defaultModulePath + "\n",
-		"internal/api/v1/oas_cfg_gen.go":               "package v1\n",
-		"internal/storage/postgres/db/db.go":           "package db\n",
-		"scripts/docker-build.bash":                    `APPLICATION_NAME="${APPLICATION_NAME:-starter}"` + "\n",
-		"docs/development/environment.md":              "Use GOSTARTER_DATABASE_URI for gostarter.\n",
-		"docs/development/ogen-workflow.md":            "Import github.com/rfizzle/go-starter/internal/api/v1.\n",
-		"internal/observability/observability.go":      `const serviceName = "go-starter"` + "\n",
-		"internal/observability/observability_test.go": `const wantServiceName = "go-starter"` + "\n",
-		"web/build/index.html":                         "<h1>Go Starter</h1>\n",
+		"LICENSE":                        "historical attribution: " + defaultModulePath + "\n",
+		"internal/api/v1/oas_cfg_gen.go": "package v1\n",
+		"internal/platform/database/postgres/db/db.go":          "package db\n",
+		"scripts/docker-build.bash":                             `APPLICATION_NAME="${APPLICATION_NAME:-starter}"` + "\n",
+		"docs/development/environment.md":                       "Use GOSTARTER_DATABASE_URI for gostarter.\n",
+		"docs/development/ogen-workflow.md":                     "Import github.com/rfizzle/go-starter/internal/api/v1.\n",
+		"internal/platform/observability/observability.go":      `const serviceName = "go-starter"` + "\n",
+		"internal/platform/observability/observability_test.go": `const wantServiceName = "go-starter"` + "\n",
+		"web/build/index.html":                                  "<h1>Go Starter</h1>\n",
 	}
 
 	for path, contents := range files {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
-	"github.com/rfizzle/go-starter/internal/storage"
+	"github.com/rfizzle/go-starter/internal/domain"
 )
 
 // GetCurrentUser returns the subject encoded in the caller's bearer token,
@@ -32,7 +32,7 @@ func (c *Controller) GetCurrentUser(ctx context.Context) (api.GetCurrentUserRes,
 			resp.Email = api.NewOptString(u.Email)
 			resp.FirstName = api.NewOptString(u.FirstName)
 			resp.LastName = api.NewOptString(u.LastName)
-		case errors.Is(lookupErr, storage.ErrNotFound):
+		case errors.Is(lookupErr, domain.ErrNotFound):
 			// No stored user for this subject yet; return the subject alone.
 		default:
 			return nil, lookupErr

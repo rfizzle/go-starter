@@ -121,23 +121,29 @@ package controller
 
 import (
     "context"
+    "errors"
+
     "github.com/rfizzle/go-starter/internal/api/v1"
-    "github.com/rfizzle/go-starter/internal/storage"
+    "github.com/rfizzle/go-starter/internal/domain"
 )
 
-type UserController struct {
-    db storage.DB
+type userReader interface {
+    ByID(ctx context.Context, id string) (domain.User, error)
 }
 
-func NewUserController(db storage.DB) *UserController {
-    return &UserController{db: db}
+type UserController struct {
+    users userReader
+}
+
+func NewUserController(users userReader) *UserController {
+    return &UserController{users: users}
 }
 
 // GetUser implements the generated interface method
 func (c *UserController) GetUser(ctx context.Context, params api.GetUserParams) (api.GetUserRes, error) {
-    user, err := c.db.GetUser(ctx, params.ID)
+    user, err := c.users.ByID(ctx, params.ID)
     if err != nil {
-        if errors.Is(err, storage.ErrNotFound) {
+        if errors.Is(err, domain.ErrNotFound) {
             return &api.GetUserNotFound{
                 Message: "User not found",
             }, nil

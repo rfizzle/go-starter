@@ -11,11 +11,11 @@ import (
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 
-	"github.com/rfizzle/go-starter/internal/observability"
-	"github.com/rfizzle/go-starter/internal/seed"
-	"github.com/rfizzle/go-starter/internal/storage/postgres"
-	"github.com/rfizzle/go-starter/internal/user"
-	"github.com/rfizzle/go-starter/pkg/config"
+	"github.com/rfizzle/go-starter/internal/cli/seed"
+	"github.com/rfizzle/go-starter/internal/modules/user"
+	"github.com/rfizzle/go-starter/internal/platform/config"
+	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
+	"github.com/rfizzle/go-starter/internal/platform/observability"
 )
 
 type seedDependencies struct {
@@ -31,7 +31,7 @@ var defaultSeedDependencies = seedDependencies{
 }
 
 // seedCmd applies pending migrations and then inserts the baseline records (see
-// internal/seed) into the configured database. Seeding is idempotent, so it is
+// internal/cli/seed) into the configured database. Seeding is idempotent, so it is
 // safe to run repeatedly.
 var seedCmd = newSeedCommand(defaultSeedDependencies)
 

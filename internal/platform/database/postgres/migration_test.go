@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zaptest"
 
-	"github.com/rfizzle/go-starter/internal/storage"
+	"github.com/rfizzle/go-starter/internal/platform/database"
 )
 
 // TestMigrateRequiresPool verifies migrations fail fast on a client that has
@@ -32,7 +32,7 @@ func TestMigrationStatusRequiresPool(t *testing.T) {
 
 	status, err := client.MigrationStatus(context.Background(), Migrations)
 	require.Error(t, err)
-	assert.Equal(t, storage.StatusNone, status)
+	assert.Equal(t, database.StatusNone, status)
 }
 
 // TestEmbeddedMigrationsAreValidGoose ensures every embedded migration lives in

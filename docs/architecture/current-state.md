@@ -1,267 +1,71 @@
 # Current Architecture State
 
-Overview of the current implementation status, components, and technical state of the Go Starter project as of the latest updates.
+Go Starter is an OpenAPI-first HTTP service with explicit composition,
+PostgreSQL persistence, JWT authentication, and a module/platform package
+boundary.
 
-## Implementation Status
+## Runtime flow
 
-### ✅ Completed Components
-
-#### Core Infrastructure
-- **Application Bootstrap** (`internal/app/`) - Complete application lifecycle management
-- **CLI Interface** (`internal/cli/`) - Cobra-based command line interface 
-- **Web Server** (`internal/web/`) - Chi-based HTTP server with middleware
-- **Configuration** - Viper-based configuration management
-
-#### API Layer
-- **OpenAPI Generation** (`internal/api/v1/`) - Complete ogen-generated API layer
-  - Server interfaces and handlers
-  - Request/response types and validation
-  - Router and middleware integration
-  - Client implementation
-- **Controllers** (`internal/controller/`) - HTTP request handlers
-- **Health Checks** - Basic health monitoring endpoints
-
-#### Authentication & Authorization
-- **Auth Service** (`internal/auth/`) - JWT-based authentication following the [interface pattern](../guidelines/interface-pattern.md)
-  - Interface definition (`interfaces.go`)
-  - Core types and errors (`types.go`, `error.go`)
-  - Implementation (`service.go`)
-  - Middleware integration (`middleware.go`)
-  - Context management (`context.go`)
-  - Audit logging (`audit.go`)
-- **Helper Functions** - Token validation and utility functions
-
-#### Storage Layer
-- **Driver Abstraction** (`internal/storage/`) - Database interface layer
-  - Scanner interface for query results
-  - Client interface for database operations
-  - Transaction management
-  - Migration support
-- **PostgreSQL Implementation** (`internal/storage/postgres/`)
-  - Connection management and pooling
-  - Query execution and scanning
-  - Transaction handling
-  - Migration runner
-  - Generic database operations
-
-#### Middleware & Utilities
-- **Middleware Chain** (`internal/middleware/`) - Composable middleware stack
-- **Rate Limiting** (`internal/ratelimiter/`) - Request rate limiting with documentation
-- **Static File Serving** - Integrated static file middleware
-- **Logging Middleware** - Structured request/response logging
-- **Array Utilities** (`internal/utils/`) - Helper functions
-
-#### Testing Infrastructure
-- **Integration Tests** - Database integration testing setup
-- **Test Utilities** (`internal/storage/testutil/`) - Testing helpers
-- **Comprehensive Test Coverage** - Unit tests across major components
-
-### 🔄 In Progress Components
-
-#### Database Layer Refinement
-- **Transaction Error Handling** - TODOs identified in `internal/storage/postgres/transaction.go:57,77`
-  - Need to implement proper error handling for transaction operations
-  - Consider rollback strategies and error wrapping
-
-#### Documentation
-- **Rate Limiting Documentation** - `internal/ratelimiter/RATELIMITING.md` exists but needs integration
-- **Architecture Decision Records** - Framework established, content needed
-
-### ❌ Missing/Planned Components
-
-#### User Management
-- **User Domain** (`internal/user`) - `User` model plus a sqlc/squirrel-backed repository
-- **User Controllers** - HTTP endpoints for user operations beyond the current-user lookup
-
-#### Advanced Features
-- **Event System** - Domain events and handlers
-- **Background Jobs** - Async job processing
-- **Email Service** - Notification system
-- **File Upload** - File handling and storage
-- **Search** - Full-text search capabilities
-
-#### Observability Enhancements
-- **Metrics Collection** - Prometheus metrics beyond basic health
-- **Distributed Tracing** - OpenTelemetry implementation
-- **Error Tracking** - Centralized error monitoring
-- **Performance Monitoring** - APM integration
-
-#### Security Enhancements
-- **RBAC (Role-Based Access Control)** - Authorization beyond authentication
-- **API Key Management** - Service-to-service authentication
-- **Input Sanitization** - XSS and injection prevention
-- **Security Headers** - CORS, CSP, and security middleware
-
-## Technology Stack Status
-
-### Core Technologies ✅
-- **Go 1.22+** - Latest stable version
-- **Chi v5** - HTTP router and middleware
-- **ogen** - OpenAPI code generation
-- **pgx/v5** - PostgreSQL driver
-- **Viper** - Configuration management
-- **Cobra** - CLI framework
-
-### Development Tools ✅
-- **golangci-lint** - Code quality and linting
-- **testify** - Testing framework
-- **Make** - Build automation
-- **Docker** - Containerization support
-
-### Database ✅
-- **PostgreSQL** - Primary database
-- **Migration Support** - Schema versioning
-- **Connection Pooling** - Optimized connections
-- **Transaction Management** - ACID compliance
-
-### Missing/Planned Technologies
-- **Redis** - Caching and session storage
-- **Message Queue** - RabbitMQ or Apache Kafka
-- **Monitoring** - Prometheus + Grafana
-- **Tracing** - Jaeger or similar
-- **CI/CD** - GitHub Actions or GitLab CI
-
-## Package Organization Assessment
-
-### ✅ Well-Organized Packages
-
-#### `internal/auth/`
+```text
+main.go
+  └── cmd (Cobra)
+        └── internal/app
+              ├── platform/config
+              ├── platform/observability
+              ├── platform/database/postgres
+              ├── modules/user
+              ├── auth + controller + api/v1
+              └── platform/web
 ```
-auth/
-├── auth.go           # Package documentation
-├── interfaces.go     # Core interfaces
-├── types.go         # Domain types
-├── error.go         # Domain errors
-├── helpers.go       # Utility functions
-├── service.go       # Business logic
-├── middleware.go    # HTTP middleware
-├── context.go       # Context management
-└── audit.go         # Audit logging
+
+`internal/app` owns runtime construction and shutdown ordering. The `seed`
+command is a smaller composition root that constructs the database and user
+repository, then calls `internal/cli/seed`.
+
+## Package groups
+
+| Group | Current contents | Contract |
+| --- | --- | --- |
+| `internal/domain` | `User`, user persistence inputs/filter, `UserRepository`, `ErrNotFound` | Business-facing leaf with no application-package imports |
+| `internal/modules` | `user` repository, sqlc mapping, dynamic list query, transaction boundary | Business capability; no generated transport imports |
+| `internal/platform` | config, PostgreSQL, middleware, observability, rate limiting, web server | Technical infrastructure; no domain or module imports |
+| `internal/controller` | health, authentication security handling, current-user response mapping | Transport mapping against domain/consumer contracts |
+| `internal/api/v1` | ogen-generated server/client/types | Generated from `api/openapi.yml`; never edited |
+| `internal/app` | dependency construction, readiness, coordinated runtime | Composition root |
+| `internal/auth` | JWT and request authentication | Cross-cutting edge package |
+| `internal/cli` | graceful shutdown and idempotent development seeding | CLI support |
+
+## Persistence
+
+The application owns one pgx pool. `platform/database/postgres` uses it for
+startup checks, metrics, and embedded Goose migrations.
+`modules/user.Repository` uses the same pool through sqlc-generated fixed
+queries and squirrel-built dynamic queries. Driver rows are mapped to
+`domain.User`, which intentionally cannot carry a password hash.
+
+SQL sources and generated output are:
+
+```text
+internal/platform/database/postgres/migrations/
+internal/platform/database/postgres/queries/
+internal/platform/database/postgres/db/          generated by sqlc
 ```
-**Status**: Follows interface-implementation pattern correctly with single implementation
 
-#### `internal/storage/`
-```
-storage/
-├── storage.go       # Core interfaces
-├── migration.go     # Migration support
-├── transaction.go   # Transaction management
-└── postgres/        # Implementation
-    ├── postgres.go  # Main implementation
-    ├── scanner.go   # Result scanning
-    └── transaction.go # Transaction handling
-```
-**Status**: Clean abstraction with concrete implementation
+## Transport and observability
 
-#### `internal/web/`
-```
-web/
-├── webserver.go     # Server implementation
-├── contract.go      # Interface definitions
-├── middleware/      # Middleware components
-├── errors.go        # HTTP error handling
-└── response.go      # Response utilities
-```
-**Status**: Well-structured HTTP layer
+`api/openapi.yml` generates `internal/api/v1`. The controller implements the
+generated handler and maps only at the transport edge. `platform/web` builds
+the Chi server and installs middleware. Prometheus, pprof, Zap, and optional
+OpenTelemetry providers are platform concerns.
 
-### ⚠️ Needs Attention
+## Verification
 
-#### `internal/user/`
-- Example domain slice wired end to end (sqlc + squirrel); copy it as the
-  template for new domains
+- `make architecture-check` verifies package placement and import direction.
+- `make generate-check` detects stale ogen and sqlc output.
+- `make test`, `make lint`, and `make check` cover behavior and static quality.
+- `make race` is required for concurrency, lifecycle, middleware, or database
+  changes.
 
-## Code Quality Status
-
-### Strengths ✅
-- **Comprehensive Testing** - Good test coverage across components
-- **Clear Separation of Concerns** - Proper layering and abstraction
-- **Interface-Driven Design** - Consistent use of interfaces
-- **Error Handling** - Explicit error handling throughout
-- **Documentation** - Good inline documentation
-
-### Areas for Improvement ⚠️
-- **Transaction Error Handling** - TODOs in transaction.go need resolution
-- **Package Consolidation** - models/ and entity/ packages need clarification
-- **Rate Limiting Integration** - Documentation exists but needs better integration
-- **Monitoring Coverage** - Basic health checks need expansion
-
-## Security Assessment
-
-### Current Security Features ✅
-- **JWT Authentication** - Token-based authentication
-- **Password Hashing** - Secure password storage (assumed)
-- **Input Validation** - ogen-generated validation
-- **CORS Support** - Cross-origin request handling
-
-### Security Gaps ❌
-- **RBAC Implementation** - Role-based authorization
-- **API Rate Limiting** - DoS protection
-- **Input Sanitization** - XSS prevention
-- **Security Headers** - OWASP recommendations
-- **Audit Logging** - Security event tracking (partially implemented)
-
-## Performance Characteristics
-
-### Optimizations ✅
-- **Connection Pooling** - PostgreSQL connection management
-- **Middleware Composition** - Efficient request processing
-- **Generated Code** - Type-safe, optimized API layer
-
-### Performance Considerations ❌
-- **Caching Layer** - No Redis or in-memory caching
-- **Database Indexing** - Limited index strategy
-- **Response Compression** - Not implemented
-- **Static Asset Optimization** - Basic implementation
-
-## Migration Readiness
-
-### Production Readiness ✅
-- **Structured Logging** - JSON-formatted logs
-- **Health Checks** - Basic monitoring endpoints
-- **Configuration Management** - Environment-based config
-- **Graceful Shutdown** - Application lifecycle management
-- **Database Migrations** - Schema version control
-
-### Missing for Production ❌
-- **Comprehensive Monitoring** - Metrics and alerting
-- **Load Balancer Support** - Health check endpoints
-- **Backup Strategy** - Database backup automation
-- **Rolling Deployments** - Zero-downtime deployments
-- **Security Scanning** - Vulnerability assessment
-
-## Next Steps
-
-### Immediate (Phase 1)
-1. Resolve transaction error handling TODOs
-2. Clarify models/ and entity/ package purposes
-3. Integrate rate limiting documentation
-4. Expand health check coverage
-
-### Short-term (Phase 2)
-1. Implement comprehensive user management
-2. Add RBAC authorization system
-3. Integrate monitoring and metrics
-4. Enhance security headers and validation
-
-### Long-term (Phase 3)
-1. Add caching layer (Redis)
-2. Implement event-driven architecture
-3. Add background job processing
-4. Comprehensive observability stack
-
-## Conclusion
-
-The Go Starter project has a solid foundation with well-implemented core components following Go best practices. The architecture demonstrates:
-
-- **Strong adherence to interface-implementation patterns**
-- **Clean separation of concerns across layers**
-- **Comprehensive testing infrastructure**
-- **Production-ready application lifecycle management**
-
-Key areas requiring attention include completing the transaction error handling, expanding user management capabilities, and implementing comprehensive security and monitoring features.
-
-The codebase is well-positioned for both continued development and production deployment with minimal additional work on the immediate issues identified.
-
----
-
-*Last updated: Based on current codebase analysis as of latest commit*
+See [module-platform-boundaries.md](module-platform-boundaries.md) for the
+accepted boundary decision and [../development/database.md](../development/database.md)
+for persistence details.

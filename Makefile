@@ -39,7 +39,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint architecture-check check test race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -123,7 +123,10 @@ lint: ## Run go vet and golangci-lint
 	@echo "${MAGENTA}Running golangci-lint...${RESET}"
 	@$(GOLANGCI_LINT) run
 
-check: generate-check fmt-check lint test ## Run all fast validation checks
+architecture-check: ## Verify module, domain, platform, and generated-transport import boundaries
+	@./scripts/check-architecture.bash
+
+check: architecture-check generate-check fmt-check lint test ## Run all fast validation checks
 
 ## Dependencies:
 tidy: ## Rebuild go.mod with only required dependencies
@@ -164,10 +167,10 @@ generate: sqlc ## Run go generate (ogen) and sqlc
 
 generate-check: generate ## Verify generated code is current
 	@echo "${MAGENTA}Checking generated code...${RESET}"
-	@git diff --exit-code -- internal/api/v1 internal/storage/postgres/db
-	@test -z "$$(git ls-files --others --exclude-standard -- internal/api/v1 internal/storage/postgres/db)" || { \
+	@git diff --exit-code -- internal/api/v1 internal/platform/database/postgres/db
+	@test -z "$$(git ls-files --others --exclude-standard -- internal/api/v1 internal/platform/database/postgres/db)" || { \
 		echo "${RED}Untracked generated files found:${RESET}"; \
-		git ls-files --others --exclude-standard -- internal/api/v1 internal/storage/postgres/db; \
+		git ls-files --others --exclude-standard -- internal/api/v1 internal/platform/database/postgres/db; \
 		exit 1; \
 	}
 
@@ -183,7 +186,7 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 	@# -s keeps the 00001/00002 sequential scheme. Always use this target rather
 	@# than bare `goose create`: a timestamped file would sort after the padded
 	@# sequential ones and break the ordering.
-	@goose -s -dir internal/storage/postgres/migrations create $(name) sql
+	@goose -s -dir internal/platform/database/postgres/migrations create $(name) sql
 
 ## Release:
 release-snapshot: check-goreleaser ## Build a nonpublishing release snapshot in dist/
