@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"fmt"
-	"sync/atomic"
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
@@ -27,8 +26,14 @@ type UserReader interface {
 	ByEmail(ctx context.Context, email string) (domain.User, error)
 }
 
+// ReadinessChecker evaluates whether the application's lifecycle and required
+// dependencies can currently serve traffic.
+type ReadinessChecker interface {
+	Ready(ctx context.Context) bool
+}
+
 type Options struct {
-	ReadyState *atomic.Bool
+	Readiness ReadinessChecker
 	// Users resolves the authenticated subject to a stored user record. It may
 	// be nil, in which case protected handlers fall back to the token subject
 	// alone without a database lookup.

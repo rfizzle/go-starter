@@ -13,6 +13,7 @@ main.go
               ├── platform/config
               ├── platform/observability
               ├── platform/database/postgres
+              ├── platform/health
               ├── modules/user
               ├── auth + controller + api/v1
               └── platform/http/server
@@ -29,7 +30,7 @@ database-only composition root for locked `up` and `status` operations.
 | --- | --- | --- |
 | `internal/domain` | `User`, user persistence inputs/filter, `UserRepository`, `ErrNotFound` | Business-facing leaf with no application-package imports |
 | `internal/modules` | `user` repository, sqlc mapping, dynamic list query, transaction boundary | Business capability; no generated transport imports |
-| `internal/platform` | config, PostgreSQL, HTTP server and middleware, observability, rate limiting | Technical infrastructure; no domain or module imports |
+| `internal/platform` | config, PostgreSQL, dependency health, HTTP server and middleware, observability, rate limiting | Technical infrastructure; no domain or module imports |
 | `internal/controller` | health, authentication security handling, current-user response mapping | Transport mapping against domain/consumer contracts |
 | `internal/api/v1` | ogen-generated server/client/types | Generated from `api/openapi.yml`; never edited |
 | `internal/app` | dependency construction, readiness, coordinated runtime | Composition root |
@@ -65,6 +66,11 @@ settings and validation; command composition roots own Viper I/O.
 `platform/observability` constructs Zap and optional OpenTelemetry providers.
 Business and domain packages do not construct loggers or exporters. Prometheus
 and pprof remain HTTP/database platform concerns.
+
+`platform/health` runs named required-dependency checks within a single bounded
+budget. The composition root combines those checks with application lifecycle
+state for readiness; liveness remains process-oriented and never calls
+PostgreSQL.
 
 ## Verification
 

@@ -65,6 +65,10 @@ func Open(ctx context.Context, options ...Option) (*Client, error) {
 }
 
 func (client *Client) Ping(ctx context.Context) error {
+	if client.pingTimeout <= 0 {
+		return client.db.Ping(ctx)
+	}
+
 	ctx, cancelFunc := context.WithTimeout(ctx, client.pingTimeout)
 	defer cancelFunc()
 	return client.db.Ping(ctx)

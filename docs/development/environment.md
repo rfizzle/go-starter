@@ -57,6 +57,11 @@ curl --fail http://localhost:8080/api/v1/healthz/liveness
 curl --fail http://localhost:8080/api/v1/healthz/readiness
 ```
 
+Liveness reports only whether the process can answer HTTP. Readiness also pings
+PostgreSQL within `database.ping-timeout`; it returns `503` during startup,
+shutdown, or a database outage and recovers after PostgreSQL can serve again.
+The response does not include connection details or raw database errors.
+
 Stop the Go process with Ctrl-C. PostgreSQL continues running until you stop it:
 
 ```sh

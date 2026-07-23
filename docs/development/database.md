@@ -58,13 +58,13 @@ store, err := postgres.Open(
 if err != nil {
     return fmt.Errorf("open postgres lifecycle client: %w", err)
 }
-if err := store.Ping(ctx); err != nil {
-    return fmt.Errorf("ping postgres: %w", err)
-}
 ```
 
 `postgres.Client` is lifecycle and migration infrastructure, not a query
-abstraction for domain code. Repositories receive the pool directly.
+abstraction for domain code. The application registers its `Ping` method as a
+named required-dependency check: startup verifies it once, and every readiness
+request reevaluates it within the configured ping budget. Repositories receive
+the pool directly.
 
 ## Fixed queries with sqlc
 

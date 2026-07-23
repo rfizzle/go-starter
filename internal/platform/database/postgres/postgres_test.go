@@ -138,6 +138,19 @@ func TestClient_Ping(t *testing.T) {
 			timeout: 15,
 			wantErr: true,
 		},
+		{
+			name: "zero timeout defers to caller context",
+			mockConn: &mockPinger{
+				pingFunc: func(ctx context.Context) error {
+					if _, ok := ctx.Deadline(); ok {
+						return errors.New("unexpected client deadline")
+					}
+					return nil
+				},
+			},
+			timeout: 0,
+			wantErr: false,
+		},
 	}
 
 	for _, tt := range tests {

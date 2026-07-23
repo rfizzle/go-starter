@@ -17,6 +17,7 @@ import (
 	"github.com/rfizzle/go-starter/internal/modules/user"
 	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
+	"github.com/rfizzle/go-starter/internal/platform/health"
 	httpserver "github.com/rfizzle/go-starter/internal/platform/http/server"
 	"github.com/rfizzle/go-starter/internal/platform/observability"
 	staticweb "github.com/rfizzle/go-starter/web"
@@ -30,6 +31,20 @@ type App struct {
 
 type migrator interface {
 	Migrate(context.Context, embed.FS) error
+}
+
+type appReadiness struct {
+	lifecycle    *atomic.Bool
+	dependencies controller.ReadinessChecker
+}
+
+var _ controller.ReadinessChecker = (*appReadiness)(nil)
+
+func (readiness *appReadiness) Ready(ctx context.Context) bool {
+	if readiness == nil || readiness.lifecycle == nil || !readiness.lifecycle.Load() {
+		return false
+	}
+	return readiness.dependencies != nil && readiness.dependencies.Ready(ctx)
 }
 
 func New(cfg *config.Application) (*App, error) {
@@ -127,8 +142,20 @@ func (application *App) Run(ctx context.Context) error {
 		return fmt.Errorf("postgres.Open(): %w", err)
 	}
 
-	if err := store.Ping(ctx); err != nil {
-		return fmt.Errorf("store.Ping(): %w", err)
+	readinessTimeout := time.Duration(application.cfg.Database.PingTimeout) * time.Second
+	if readinessTimeout <= 0 {
+		readinessTimeout = postgres.DefaultPingTimeoutSeconds * time.Second
+	}
+	dependencyReadiness, err := health.New(
+		readinessTimeout,
+		application.logger,
+		health.Check{Name: "postgres", Run: store.Ping},
+	)
+	if err != nil {
+		return fmt.Errorf("health.New(): %w", err)
+	}
+	if err := dependencyReadiness.Check(ctx); err != nil {
+		return fmt.Errorf("dependency readiness: %w", err)
 	}
 
 	// Startup migration is an explicit deployment policy. The safe default is
@@ -171,9 +198,12 @@ func (application *App) Run(ctx context.Context) error {
 
 	// Configure the controllers
 	controllerOpts := controller.Options{
-		ReadyState: application.ready,
-		Users:      userRepo,
-		Validator:  validator,
+		Readiness: &appReadiness{
+			lifecycle:    application.ready,
+			dependencies: dependencyReadiness,
+		},
+		Users:     userRepo,
+		Validator: validator,
 	}
 	appController, err := controller.NewController(&controllerOpts)
 	if err != nil {
