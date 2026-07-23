@@ -121,10 +121,10 @@ func (client *Client) MigrationStatus(ctx context.Context, migrationFs embed.FS)
 		}
 	}
 
-	switch {
-	case applied == 0:
+	switch applied {
+	case 0:
 		return storage.StatusNone, nil
-	case applied == total:
+	case total:
 		return storage.StatusComplete, nil
 	default:
 		return storage.StatusPartial, nil

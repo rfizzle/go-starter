@@ -50,9 +50,6 @@ func TestServiceInterface(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotNil(t, service)
 
-	// Test that service implements Service interface
-	var _ Service = service
-
 	// Test that service has all required methods
 	assert.NotNil(t, service.Middleware())
 	assert.NotNil(t, service.RequireAuthentication())

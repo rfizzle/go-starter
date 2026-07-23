@@ -74,13 +74,17 @@ func TestWebserverStartAndStop(t *testing.T) {
 	}()
 
 	url := fmt.Sprintf("http://%s:%d/api/v1/test", host, port)
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		t.Fatalf("Failed to create readiness request: %v", err)
+	}
 
 	// Poll until the server accepts connections rather than sleeping a fixed
 	// duration, so the test is neither flaky nor unnecessarily slow.
 	var resp *http.Response
 	deadline := time.Now().Add(5 * time.Second)
 	for {
-		resp, err = http.Get(url)
+		resp, err = http.DefaultClient.Do(request.Clone(ctx))
 		if err == nil {
 			break
 		}

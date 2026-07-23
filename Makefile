@@ -36,7 +36,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor test env generate sqlc migration sync-version docker check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor test env generate generate-check sqlc migration sync-version docker check-goreleaser
 
 all: help
 
@@ -124,6 +124,15 @@ ci: ## Run tests and lint in CI
 generate: sqlc ## Run go generate (ogen) and sqlc
 	@echo "${MAGENTA}Running golang generations...${RESET}"
 	@$(GOGENERATE)
+
+generate-check: generate ## Verify generated code is current
+	@echo "${MAGENTA}Checking generated code...${RESET}"
+	@git diff --exit-code -- internal/api/v1 internal/storage/postgres/db
+	@test -z "$$(git ls-files --others --exclude-standard -- internal/api/v1 internal/storage/postgres/db)" || { \
+		echo "${RED}Untracked generated files found:${RESET}"; \
+		git ls-files --others --exclude-standard -- internal/api/v1 internal/storage/postgres/db; \
+		exit 1; \
+	}
 
 sqlc: ## Generate typed SQL access code from sqlc.yaml
 	@echo "${MAGENTA}Running sqlc generate...${RESET}"
