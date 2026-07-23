@@ -20,7 +20,7 @@ GIT_COMMIT=$(git rev-list -1 HEAD)
 VERSION=$(read_version "$PROJECT_PATH")
 
 # Derive the Go version from go.mod so the image compiles against the same
-# toolchain the module requires (e.g. "go 1.25.7" -> "1.25.7").
+# toolchain the module requires (e.g. "go 1.26.5" -> "1.26.5").
 GO_VERSION=$(awk '/^go [0-9]/ { print $2; exit }' "${PROJECT_PATH}/go.mod")
 if [[ -z "${GO_VERSION}" ]]; then
   echo -e "${RED}Could not derive Go version from go.mod${RESET}" >&2

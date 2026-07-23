@@ -5,7 +5,7 @@ It provides a small example domain and the operational plumbing that most Go
 services need, while keeping the API contract, generated transport code, domain
 logic, and storage implementation separate.
 
-The module currently requires Go 1.25.7. Its main stack is:
+The module currently requires Go 1.26.5. Its main stack is:
 
 - Cobra and Viper for commands and layered configuration
 - Chi and ogen for HTTP routing and generated OpenAPI types
@@ -32,7 +32,7 @@ an OTLP collector.
 
 ## Five-minute quickstart
 
-You need Git, Go 1.25.7, Make, and Docker (or another way to run PostgreSQL).
+You need Git, Go 1.26.5, Make, and Docker (or another way to run PostgreSQL).
 
 Clone the repository, verify the toolchain, build the binary, and inspect the
 available commands:
@@ -41,6 +41,8 @@ available commands:
 git clone https://github.com/rfizzle/go-starter.git
 cd go-starter
 go version
+make tools
+make env
 make build
 ./bin/gostarter --help
 ```
@@ -101,6 +103,8 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | Command | Purpose |
 | --- | --- |
 | `make help` | List supported targets. |
+| `make tools` | Install the repository-pinned development tools. |
+| `make env` | Report installed and required tool versions. |
 | `make build` | Build `bin/gostarter` without changing source files. |
 | `make check` | Run generation drift, formatting, vet, lint, and test checks. |
 | `make test` | Run all Go tests. |
@@ -116,9 +120,13 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | `make docker` | Build the current container image. |
 | `make vuln` | Scan Go dependencies with `govulncheck`. |
 
-`make env` reports whether the tools used by the standard workflows are
-installed. Mutating maintenance commands such as `make fmt`, `make generate`,
-`make tidy`, and `make vendor` are intentionally explicit.
+`make tools` reads exact versions from `scripts/tool-versions.env`. Set
+`TOOL_BIN` to install into an isolated directory; otherwise tools are installed
+to `GOBIN` or the first `GOPATH` bin directory. It is the shared entrypoint for
+local and CI setup, and `make env` compares the binaries on `PATH` with the same
+declarations.
+Mutating maintenance commands such as `make fmt`, `make generate`, `make tidy`,
+and `make vendor` are intentionally explicit.
 
 ## Architecture map
 

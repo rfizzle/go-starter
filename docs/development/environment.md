@@ -6,13 +6,30 @@ This guide covers the supported local service workflow. See the root
 
 ## Prerequisites
 
-- Go 1.25.7 (the version declared in `go.mod`)
+- Go 1.26.5 (the version declared in `go.mod`)
 - Make
 - Docker with the Compose plugin
 
-Run `make env` to inspect the additional tools used by generation, formatting,
-linting, and release tasks. Tool version pinning and bootstrap automation are
-handled separately from the local database workflow.
+Install and validate the additional tools used by generation, formatting,
+linting, release, migrations, and vulnerability scanning:
+
+```sh
+make tools
+make env
+```
+
+The bootstrap and validation targets both read exact module versions from
+`scripts/tool-versions.env`; `make tools` is also the supported CI setup
+entrypoint. The bootstrap uses `GOBIN` or the first `GOPATH` bin directory by
+default. To keep tools isolated, choose a directory and put it first on `PATH`:
+
+```sh
+TOOL_BIN=/absolute/path/to/project-tools make tools
+PATH="/absolute/path/to/project-tools:${PATH}" make env
+```
+
+ogen remains pinned as a module dependency in `go.mod` and is run through
+`go generate`, so it is not installed as a separate binary.
 
 ## First run
 

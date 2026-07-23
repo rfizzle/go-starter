@@ -7,8 +7,8 @@ and consistent with the OpenAPI-first workflow.
 
 Read [AGENTS.md](AGENTS.md) for repository rules and the
 [README quickstart](README.md#five-minute-quickstart) for prerequisites. Run
-`make env` to identify missing development tools and `make help` to inspect the
-supported workflows.
+`make tools` to install the pinned development toolchain, `make env` to verify
+its versions, and `make help` to inspect the supported workflows.
 
 Create a topic branch and avoid mixing generated output, dependency updates,
 format-only edits, and behavioral changes unless they are part of the same

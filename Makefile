@@ -16,6 +16,7 @@ PROJECT_PACKAGES=./...
 ROOT=$(CURDIR)
 YAMLFMT=yamlfmt -conf "${ROOT}/.yamlfmt"
 COVERAGE_PROFILE=coverage.out
+TOOL_BIN?=
 
 ifneq (,$(findstring 256color, ${TERM}))
 	RED     := $(shell tput -Txterm setaf 1)
@@ -38,13 +39,13 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint check test race cover vuln ci env generate generate-check sqlc migration sync-version release-snapshot docker check-goreleaser
 
 all: help
 
 ## Build:
 check-goreleaser:
-	@command -v $(GORELEASER) >/dev/null 2>&1 || { echo "${RED}goreleaser not found. Install: https://goreleaser.com/install/${RESET}"; exit 1; }
+	@command -v $(GORELEASER) >/dev/null 2>&1 || { echo "${RED}goreleaser not found. Run: make tools${RESET}"; exit 1; }
 
 build: ## Build a local binary in bin/
 	@echo "${MAGENTA}Building local binary...${RESET}"
@@ -77,6 +78,9 @@ clean_vendor: ## Remove built binaries
 	@rm -fr ./vendor/*
 
 ## Development:
+tools: ## Install the exact development tool versions (set TOOL_BIN to isolate)
+	@TOOL_BIN="$(TOOL_BIN)" ./scripts/bootstrap-tools.bash
+
 dev-up: ## Start local PostgreSQL and wait until it is healthy
 	@docker compose up --detach --wait postgres
 
@@ -149,7 +153,7 @@ cover: ## Run tests and write a coverage profile
 	@$(GOCMD) tool cover -func=$(COVERAGE_PROFILE)
 
 vuln: ## Scan dependencies for known vulnerabilities
-	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || { echo "${RED}govulncheck not found. Install: go install golang.org/x/vuln/cmd/govulncheck@latest${RESET}"; exit 1; }
+	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || { echo "${RED}govulncheck not found. Run: make tools${RESET}"; exit 1; }
 	@$(GOVULNCHECK) $(PROJECT_PACKAGES)
 
 ci: check ## Run the read-only validation workflow used by CI
@@ -169,12 +173,12 @@ generate-check: generate ## Verify generated code is current
 
 sqlc: ## Generate typed SQL access code from sqlc.yaml
 	@echo "${MAGENTA}Running sqlc generate...${RESET}"
-	@command -v $(SQLC) >/dev/null 2>&1 || { echo "${RED}sqlc not found. Install: go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest${RESET}"; exit 1; }
+	@command -v $(SQLC) >/dev/null 2>&1 || { echo "${RED}sqlc not found. Run: make tools${RESET}"; exit 1; }
 	@$(SQLC) generate
 
 migration: ## Scaffold a sequential goose SQL migration (usage: make migration name=add_widgets)
 	@test -n "$(name)" || { echo "${RED}name is required. Usage: make migration name=add_widgets${RESET}"; exit 1; }
-	@command -v goose >/dev/null 2>&1 || { echo "${RED}goose not found. Install: go install github.com/pressly/goose/v3/cmd/goose@latest${RESET}"; exit 1; }
+	@command -v goose >/dev/null 2>&1 || { echo "${RED}goose not found. Run: make tools${RESET}"; exit 1; }
 	@echo "${MAGENTA}Creating migration $(name)...${RESET}"
 	@# -s keeps the 00001/00002 sequential scheme. Always use this target rather
 	@# than bare `goose create`: a timestamped file would sort after the padded
