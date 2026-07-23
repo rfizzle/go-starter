@@ -63,11 +63,6 @@ func init() {
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
 	if cfgFile != "" {
-		// Check if file exists
-		if !fileExists(cfgFile) {
-			logger.Fatal("config file not found")
-		}
-
 		// Use config file from the flag.
 		viper.SetConfigFile(cfgFile)
 	}
@@ -76,9 +71,4 @@ func initConfig() {
 	viper.SetEnvPrefix("GOSTARTER")
 	viper.SetEnvKeyReplacer(replacer)
 	viper.AutomaticEnv() // read in environment variables that match
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		logger.Info(fmt.Sprintf("using config file: %s", viper.ConfigFileUsed()))
-	}
 }

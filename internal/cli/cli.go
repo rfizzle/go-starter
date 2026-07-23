@@ -5,9 +5,12 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-
-	"github.com/rfizzle/go-starter/internal/app"
 )
+
+type gracefulApplication interface {
+	Logger() *zap.Logger
+	SetReady(bool)
+}
 
 // WithGracefulShutdown derives an application context from parent (typically a
 // signal.NotifyContext). When parent is cancelled — e.g. on SIGINT/SIGTERM — it
@@ -20,7 +23,7 @@ import (
 // the goroutine, so the helper does not leak when the app exits on its own
 // (e.g. a component fails before any signal arrives). The CancelFunc must be
 // called to release resources.
-func WithGracefulShutdown(parent context.Context, application *app.App, delay time.Duration) (context.Context, context.CancelFunc) {
+func WithGracefulShutdown(parent context.Context, application gracefulApplication, delay time.Duration) (context.Context, context.CancelFunc) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	go func() {

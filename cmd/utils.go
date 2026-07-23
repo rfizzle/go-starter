@@ -1,7 +1,8 @@
 package cmd
 
 import (
-	"os"
+	"errors"
+	"fmt"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -9,23 +10,22 @@ import (
 	"github.com/rfizzle/go-starter/pkg/config"
 )
 
-func fileExists(filename string) bool {
-	info, err := os.Stat(filename)
-	if os.IsNotExist(err) {
-		return false
-	}
-	return !info.IsDir()
-}
-
 // resolveConfig unmarshals every viper layer (flag > env > file > default) into
 // a config.Application, stamps the build metadata that lives in ldflags rather
 // than config, and applies the --verbose debug shortcut. It is the shared
 // front-half of every long-running subcommand (serve, seed) so config handling
 // stays identical across them.
 func resolveConfig() (*config.Application, error) {
+	if err := viper.ReadInConfig(); err != nil {
+		var notFound viper.ConfigFileNotFoundError
+		if cfgFile != "" || !errors.As(err, &notFound) {
+			return nil, fmt.Errorf("read config: %w", err)
+		}
+	}
+
 	cfg := &config.Application{}
 	if err := viper.Unmarshal(cfg); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unmarshal config: %w", err)
 	}
 
 	// Build-time metadata is stamped via ldflags, not config layers, so set it
@@ -55,5 +55,24 @@ func persistentPreRunHook(fn func(cmd *cobra.Command, args []string)) func(cmd *
 		if fn != nil {
 			fn(cmd, args)
 		}
+	}
+}
+
+func persistentPreRunEHook(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) error {
+	return func(cmd *cobra.Command, args []string) error {
+		if cmd.HasParent() {
+			parent := cmd.Parent()
+			if parent.PersistentPreRunE != nil {
+				if err := parent.PersistentPreRunE(parent, args); err != nil {
+					return err
+				}
+			} else if parent.PersistentPreRun != nil {
+				parent.PersistentPreRun(parent, args)
+			}
+		}
+		if fn != nil {
+			return fn(cmd, args)
+		}
+		return nil
 	}
 }
