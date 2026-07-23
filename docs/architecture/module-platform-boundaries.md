@@ -117,6 +117,8 @@ enforce:
 - no internal dependency from domain;
 - no generated API dependency from modules;
 - generated API imports only at approved edges;
+- generated PostgreSQL imports only in PostgreSQL infrastructure and the owning
+  user module;
 - no Go package outside the approved top-level `internal/` groups; and
 - no forbidden grab-bag package directory.
 

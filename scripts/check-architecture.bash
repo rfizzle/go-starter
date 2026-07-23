@@ -99,6 +99,21 @@ while IFS=' ' read -r package dependencies; do
         esac
         ;;
     esac
+
+    case "${dependency}" in
+      "${module_path}/internal/platform/database/postgres/db")
+        case "${package}" in
+          "${module_path}/internal/modules/user" | \
+            "${module_path}/internal/modules/user/"* | \
+            "${module_path}/internal/platform/database/postgres" | \
+            "${module_path}/internal/platform/database/postgres/"*)
+            ;;
+          *)
+            report "${package} imports generated PostgreSQL queries outside the owning user module or PostgreSQL infrastructure"
+            ;;
+        esac
+        ;;
+    esac
   done
 done <"${architecture_graph}"
 
