@@ -52,6 +52,30 @@ paths:
                 $ref: "#/components/schemas/currentUserResponse"
         "401":
           description: unauthorized
+  /login:
+    post:
+      tags:
+        - auth
+      summary: Authenticate with an email and password and receive a bearer token
+      operationId: Login
+      description: "Verifies the supplied email and password and, on success, returns a signed JWT bearer token to send as the Authorization header on subsequent requests. Unknown emails, wrong passwords, and a server with login disabled (no JWT secret configured) all return the same 401 so a client cannot distinguish them."
+      security:
+        - {}
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/loginRequest"
+      responses:
+        "200":
+          description: success
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/loginResponse"
+        "401":
+          description: unauthorized
 components:
   securitySchemes:
     bearerAuth:
@@ -76,6 +100,27 @@ components:
         firstName:
           type: string
         lastName:
+          type: string
+    loginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          minLength: 1
+          maxLength: 320
+        password:
+          type: string
+          minLength: 1
+          maxLength: 72
+    loginResponse:
+      type: object
+      required:
+        - token
+      properties:
+        token:
           type: string
     genericResponse:
       type: object

@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"embed"
+	"errors"
 	"fmt"
 	"net"
 	"sync/atomic"
@@ -15,6 +16,7 @@ import (
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
 	"github.com/rfizzle/go-starter/internal/controller"
+	"github.com/rfizzle/go-starter/internal/modules/credential"
 	"github.com/rfizzle/go-starter/internal/modules/user"
 	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
@@ -47,6 +49,29 @@ func (readiness *appReadiness) Ready(ctx context.Context) bool {
 		return false
 	}
 	return readiness.dependencies != nil && readiness.dependencies.Ready(ctx)
+}
+
+// credentialAuthenticator adapts internal/modules/credential.Service to
+// controller.Authenticator, translating its ErrInvalidCredentials sentinel to
+// the controller's own bounded sentinel so controller does not import a
+// concrete business module (module-platform-boundaries.md, rule 6). It always
+// returns the user's email as the subject, matching the convention
+// GetCurrentUser uses to resolve a token subject back to a stored user.
+type credentialAuthenticator struct {
+	service *credential.Service
+}
+
+var _ controller.Authenticator = (*credentialAuthenticator)(nil)
+
+func (a *credentialAuthenticator) Authenticate(ctx context.Context, email, password string) (string, error) {
+	authenticated, err := a.service.Authenticate(ctx, email, password)
+	if err != nil {
+		if errors.Is(err, credential.ErrInvalidCredentials) {
+			return "", controller.ErrInvalidCredentials
+		}
+		return "", err
+	}
+	return authenticated.Email, nil
 }
 
 func New(cfg *config.Application) (*App, error) {
@@ -176,10 +201,21 @@ func (application *App) Run(ctx context.Context) error {
 	// both execute against it, and WithinTx swaps in a pgx.Tx for atomic work.
 	userRepo := user.NewRepository(pool)
 
+	// The credential service verifies login passwords against the user
+	// repository's authentication-only projection; it has no JWT dependency of
+	// its own. userRepo satisfies its package-private credentialReader port
+	// structurally (CredentialByEmail) without this package importing that
+	// interface.
+	credentialService, err := credential.NewService(userRepo)
+	if err != nil {
+		return fmt.Errorf("credential.NewService(): %w", err)
+	}
+
 	// Build the JWT validator that authenticates protected operations. When no
 	// secret is configured the validator is nil, and the SecurityHandler fails
 	// protected requests closed rather than accepting forged tokens.
 	var validator auth.TokenValidator
+	var tokenGenerator auth.Generator
 	if application.cfg.Auth.JWTSecret != "" {
 		jwtOpts := []auth.JWTOption{}
 		if application.cfg.Auth.JWTIssuer != "" {
@@ -197,6 +233,7 @@ func (application *App) Run(ctx context.Context) error {
 			return fmt.Errorf("auth.NewJWT(): %w", err)
 		}
 		validator = jwtValidator
+		tokenGenerator = jwtValidator
 	} else {
 		application.logger.Warn("no auth.jwt-secret configured; protected endpoints will reject all requests")
 	}
@@ -207,8 +244,10 @@ func (application *App) Run(ctx context.Context) error {
 			lifecycle:    application.ready,
 			dependencies: dependencyReadiness,
 		},
-		Users:     userRepo,
-		Validator: validator,
+		Users:         userRepo,
+		Validator:     validator,
+		Authenticator: &credentialAuthenticator{service: credentialService},
+		Tokens:        tokenGenerator,
 	}
 	appController, err := controller.NewController(&controllerOpts)
 	if err != nil {

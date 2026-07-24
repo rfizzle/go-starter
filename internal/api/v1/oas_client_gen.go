@@ -47,6 +47,15 @@ type Invoker interface {
 	//
 	// GET /healthz/readiness
 	HealthReadiness(ctx context.Context) (HealthReadinessRes, error)
+	// Login invokes Login operation.
+	//
+	// Verifies the supplied email and password and, on success, returns a signed JWT bearer token to
+	// send as the Authorization header on subsequent requests. Unknown emails, wrong passwords, and a
+	// server with login disabled (no JWT secret configured) all return the same 401 so a client cannot
+	// distinguish them.
+	//
+	// POST /login
+	Login(ctx context.Context, request *LoginRequest) (LoginRes, error)
 }
 
 // Client implements OAS client.
@@ -337,6 +346,84 @@ func (c *Client) sendHealthReadiness(ctx context.Context) (res HealthReadinessRe
 
 	stage = "DecodeResponse"
 	result, err := decodeHealthReadinessResponse(resp)
+	if err != nil {
+		return res, errors.Wrap(err, "decode response")
+	}
+
+	return result, nil
+}
+
+// Login invokes Login operation.
+//
+// Verifies the supplied email and password and, on success, returns a signed JWT bearer token to
+// send as the Authorization header on subsequent requests. Unknown emails, wrong passwords, and a
+// server with login disabled (no JWT secret configured) all return the same 401 so a client cannot
+// distinguish them.
+//
+// POST /login
+func (c *Client) Login(ctx context.Context, request *LoginRequest) (LoginRes, error) {
+	res, err := c.sendLogin(ctx, request)
+	return res, err
+}
+
+func (c *Client) sendLogin(ctx context.Context, request *LoginRequest) (res LoginRes, err error) {
+	otelAttrs := []attribute.KeyValue{
+		otelogen.OperationID("Login"),
+		semconv.HTTPRequestMethodKey.String("POST"),
+		semconv.HTTPRouteKey.String("/login"),
+	}
+
+	// Run stopwatch.
+	startTime := time.Now()
+	defer func() {
+		// Use floating point division here for higher precision (instead of Millisecond method).
+		elapsedDuration := time.Since(startTime)
+		c.duration.Record(ctx, float64(elapsedDuration)/float64(time.Millisecond), metric.WithAttributes(otelAttrs...))
+	}()
+
+	// Increment request counter.
+	c.requests.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+
+	// Start a span for this request.
+	ctx, span := c.cfg.Tracer.Start(ctx, LoginOperation,
+		trace.WithAttributes(otelAttrs...),
+		clientSpanKind,
+	)
+	// Track stage for error reporting.
+	var stage string
+	defer func() {
+		if err != nil {
+			span.RecordError(err)
+			span.SetStatus(codes.Error, stage)
+			c.errors.Add(ctx, 1, metric.WithAttributes(otelAttrs...))
+		}
+		span.End()
+	}()
+
+	stage = "BuildURL"
+	u := uri.Clone(c.requestURL(ctx))
+	var pathParts [1]string
+	pathParts[0] = "/login"
+	uri.AddPathParts(u, pathParts[:]...)
+
+	stage = "EncodeRequest"
+	r, err := ht.NewRequest(ctx, "POST", u)
+	if err != nil {
+		return res, errors.Wrap(err, "create request")
+	}
+	if err := encodeLoginRequest(request, r); err != nil {
+		return res, errors.Wrap(err, "encode request")
+	}
+
+	stage = "SendRequest"
+	resp, err := c.cfg.Client.Do(r)
+	if err != nil {
+		return res, errors.Wrap(err, "do request")
+	}
+	defer resp.Body.Close()
+
+	stage = "DecodeResponse"
+	result, err := decodeLoginResponse(resp)
 	if err != nil {
 		return res, errors.Wrap(err, "decode response")
 	}

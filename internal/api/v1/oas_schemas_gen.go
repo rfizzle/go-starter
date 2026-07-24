@@ -95,6 +95,54 @@ type HealthReadinessServiceUnavailable struct{}
 
 func (*HealthReadinessServiceUnavailable) healthReadinessRes() {}
 
+// Ref: #/components/schemas/loginRequest
+type LoginRequest struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
+
+// GetEmail returns the value of Email.
+func (s *LoginRequest) GetEmail() string {
+	return s.Email
+}
+
+// GetPassword returns the value of Password.
+func (s *LoginRequest) GetPassword() string {
+	return s.Password
+}
+
+// SetEmail sets the value of Email.
+func (s *LoginRequest) SetEmail(val string) {
+	s.Email = val
+}
+
+// SetPassword sets the value of Password.
+func (s *LoginRequest) SetPassword(val string) {
+	s.Password = val
+}
+
+// Ref: #/components/schemas/loginResponse
+type LoginResponse struct {
+	Token string `json:"token"`
+}
+
+// GetToken returns the value of Token.
+func (s *LoginResponse) GetToken() string {
+	return s.Token
+}
+
+// SetToken sets the value of Token.
+func (s *LoginResponse) SetToken(val string) {
+	s.Token = val
+}
+
+func (*LoginResponse) loginRes() {}
+
+// LoginUnauthorized is response for Login operation.
+type LoginUnauthorized struct{}
+
+func (*LoginUnauthorized) loginRes() {}
+
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {
 	return OptString{

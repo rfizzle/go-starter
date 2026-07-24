@@ -8,3 +8,7 @@ type GetCurrentUserRes interface {
 type HealthReadinessRes interface {
 	healthReadinessRes()
 }
+
+type LoginRes interface {
+	loginRes()
+}

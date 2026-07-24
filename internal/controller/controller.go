@@ -42,6 +42,16 @@ type Options struct {
 	// nil when the API exposes no protected operations; requests to protected
 	// operations then fail closed with an unauthorized error.
 	Validator auth.TokenValidator
+	// Authenticator verifies login credentials and returns the subject to embed
+	// in an issued token. It may be nil, in which case Login fails closed with
+	// the same bounded response as invalid credentials.
+	Authenticator Authenticator
+	// Tokens issues signed bearer tokens for successful logins. It may be nil
+	// when no JWT secret is configured, in which case Login fails closed. It is
+	// the same auth.Generator implementation (currently *auth.JWT) used to
+	// build Validator, so tokens Login issues validate against this server's
+	// own /me.
+	Tokens auth.Generator
 }
 
 func NewController(options *Options) (*Controller, error) {

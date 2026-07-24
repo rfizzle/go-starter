@@ -40,3 +40,15 @@ func (UnimplementedHandler) HealthLiveness(ctx context.Context) error {
 func (UnimplementedHandler) HealthReadiness(ctx context.Context) (r HealthReadinessRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
+
+// Login implements Login operation.
+//
+// Verifies the supplied email and password and, on success, returns a signed JWT bearer token to
+// send as the Authorization header on subsequent requests. Unknown emails, wrong passwords, and a
+// server with login disabled (no JWT secret configured) all return the same 401 so a client cannot
+// distinguish them.
+//
+// POST /login
+func (UnimplementedHandler) Login(ctx context.Context, req *LoginRequest) (r LoginRes, _ error) {
+	return r, ht.ErrNotImplemented
+}

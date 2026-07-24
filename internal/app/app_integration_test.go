@@ -4,6 +4,7 @@ package app
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"net"
 	"net/http"
@@ -11,6 +12,10 @@ import (
 	"testing"
 	"time"
 
+	"golang.org/x/crypto/bcrypt"
+
+	"github.com/rfizzle/go-starter/internal/domain"
+	"github.com/rfizzle/go-starter/internal/modules/user"
 	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 )
@@ -54,6 +59,98 @@ func TestApplicationLifecycle(t *testing.T) {
 		if response, err := fixture.client.Do(request); err == nil {
 			_ = response.Body.Close()
 			t.Fatal("liveness request succeeded after graceful shutdown")
+		}
+	})
+
+	t.Run("authenticates credentials and authorizes issued token", func(t *testing.T) {
+		const (
+			email           = "login@example.com"
+			correctPassword = "correct-password"
+		)
+		database := harness.Database(t)
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(correctPassword), bcrypt.MinCost)
+		if err != nil {
+			t.Fatalf("hash login password: %v", err)
+		}
+		if _, err := user.NewRepository(database.Pool).Create(t.Context(), domain.CreateUserParams{
+			Email:        email,
+			PasswordHash: string(passwordHash),
+			FirstName:    "Login",
+			LastName:     "User",
+		}); err != nil {
+			t.Fatalf("create login user: %v", err)
+		}
+
+		fixture := newApplicationFixture(t, database.URI)
+		login := func(t *testing.T, loginEmail, password string) *http.Response {
+			t.Helper()
+			request, err := http.NewRequestWithContext(
+				t.Context(),
+				http.MethodPost,
+				fixture.baseURL+"/api/v1/login",
+				strings.NewReader(`{"email":"`+loginEmail+`","password":"`+password+`"}`),
+			)
+			if err != nil {
+				t.Fatalf("create login request: %v", err)
+			}
+			request.Header.Set("Content-Type", "application/json")
+			response, err := fixture.client.Do(request)
+			if err != nil {
+				t.Fatalf("POST /api/v1/login: %v", err)
+			}
+			return response
+		}
+
+		wrongPasswordResponse := login(t, email, "wrong-password")
+		defer func() { _ = wrongPasswordResponse.Body.Close() }()
+		if wrongPasswordResponse.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("wrong-password login status = %d, want %d", wrongPasswordResponse.StatusCode, http.StatusUnauthorized)
+		}
+
+		unknownEmailResponse := login(t, "missing@example.com", correctPassword)
+		defer func() { _ = unknownEmailResponse.Body.Close() }()
+		if unknownEmailResponse.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("unknown-email login status = %d, want %d", unknownEmailResponse.StatusCode, http.StatusUnauthorized)
+		}
+
+		correctPasswordResponse := login(t, email, correctPassword)
+		defer func() { _ = correctPasswordResponse.Body.Close() }()
+		if correctPasswordResponse.StatusCode != http.StatusOK {
+			t.Fatalf("correct-password login status = %d, want %d", correctPasswordResponse.StatusCode, http.StatusOK)
+		}
+
+		var loginResponse struct {
+			Token string `json:"token"`
+		}
+		if err := json.NewDecoder(correctPasswordResponse.Body).Decode(&loginResponse); err != nil {
+			t.Fatalf("decode login response: %v", err)
+		}
+		if loginResponse.Token == "" {
+			t.Fatal("login token is empty")
+		}
+
+		meRequest, err := http.NewRequestWithContext(t.Context(), http.MethodGet, fixture.baseURL+"/api/v1/me", nil)
+		if err != nil {
+			t.Fatalf("create /me request: %v", err)
+		}
+		meRequest.Header.Set("Authorization", "Bearer "+loginResponse.Token)
+		meResponse, err := fixture.client.Do(meRequest)
+		if err != nil {
+			t.Fatalf("GET /api/v1/me: %v", err)
+		}
+		defer func() { _ = meResponse.Body.Close() }()
+		if meResponse.StatusCode != http.StatusOK {
+			t.Fatalf("/me status = %d, want %d", meResponse.StatusCode, http.StatusOK)
+		}
+		var meBody struct {
+			Subject string `json:"subject"`
+			Email   string `json:"email"`
+		}
+		if err := json.NewDecoder(meResponse.Body).Decode(&meBody); err != nil {
+			t.Fatalf("decode /me response: %v", err)
+		}
+		if meBody.Subject != email || meBody.Email != email {
+			t.Fatalf("/me body = %+v, want subject and email %q", meBody, email)
 		}
 	})
 

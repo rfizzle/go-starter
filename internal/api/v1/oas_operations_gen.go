@@ -9,4 +9,5 @@ const (
 	GetCurrentUserOperation  OperationName = "GetCurrentUser"
 	HealthLivenessOperation  OperationName = "HealthLiveness"
 	HealthReadinessOperation OperationName = "HealthReadiness"
+	LoginOperation           OperationName = "Login"
 )
