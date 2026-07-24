@@ -15,21 +15,6 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-// freePort asks the OS for an available TCP port on the loopback interface and
-// returns it. Binding tests to an ephemeral port keeps them from colliding with
-// the production default (8080) or with each other. The listener is closed
-// before the port is reused, leaving a brief reuse window; acceptable here since
-// these tests don't run in parallel and the loopback ephemeral range is large.
-func freePort(t *testing.T) int {
-	t.Helper()
-	l, err := net.Listen("tcp", "127.0.0.1:0")
-	if err != nil {
-		t.Fatalf("Failed to reserve a free port: %v", err)
-	}
-	defer func() { _ = l.Close() }()
-	return l.Addr().(*net.TCPAddr).Port
-}
-
 func TestNewWebserver(t *testing.T) {
 	handler := http.NewServeMux()
 	ws, err := New(handler)
@@ -50,10 +35,7 @@ func TestWebserverStartAndStop(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	host := "127.0.0.1"
-	port := freePort(t)
-
-	ws, err := New(handler, WithHost(host), WithPort(port))
+	ws, err := New(handler, WithHost("127.0.0.1"), WithPort(0))
 	assert.NoError(t, err)
 
 	// Run drives both startup and graceful shutdown off the context: cancelling
@@ -64,40 +46,48 @@ func TestWebserverStartAndStop(t *testing.T) {
 		runErr <- ws.Run(ctx)
 	}()
 
-	// Ensure the server is stopped even if an assertion below fails, then verify
-	// a context-driven shutdown returns nil.
+	stopped := false
 	defer func() {
+		if stopped {
+			return
+		}
 		cancel()
 		if err := <-runErr; err != nil {
 			t.Errorf("Failed to stop webserver: %v", err)
 		}
 	}()
 
-	url := fmt.Sprintf("http://%s:%d/api/v1/test", host, port)
+	var address net.Addr
+	select {
+	case address = <-ws.Started():
+	case err := <-runErr:
+		stopped = true
+		t.Fatalf("Webserver.Run() returned before startup: %v", err)
+	case <-time.After(5 * time.Second):
+		t.Fatal("Webserver.Run() did not report startup")
+	}
+
+	url := fmt.Sprintf("http://%s/api/v1/test", address)
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		t.Fatalf("Failed to create readiness request: %v", err)
 	}
 
-	// Poll until the server accepts connections rather than sleeping a fixed
-	// duration, so the test is neither flaky nor unnecessarily slow.
-	var resp *http.Response
-	deadline := time.Now().Add(5 * time.Second)
-	for {
-		resp, err = http.DefaultClient.Do(request.Clone(ctx))
-		if err == nil {
-			break
-		}
-		if time.Now().After(deadline) {
-			t.Fatalf("Server did not become ready in time: %v", err)
-		}
-		time.Sleep(25 * time.Millisecond)
+	resp, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatalf("GET %s: %v", url, err)
 	}
 	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status OK, got %v", resp.Status)
 	}
+
+	cancel()
+	if err := <-runErr; err != nil {
+		t.Fatalf("Failed to stop webserver: %v", err)
+	}
+	stopped = true
 }
 
 func TestPprofGating(t *testing.T) {

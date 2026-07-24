@@ -20,8 +20,10 @@ import (
 	"context"
 	"crypto/tls"
 	"fmt"
+	"net"
 	"net/http"
 	"net/http/pprof"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -39,6 +41,7 @@ import (
 type Webserver struct {
 	host              string
 	port              int
+	started           chan net.Addr
 	server            *http.Server
 	logger            *zap.Logger
 	fileserver        http.Handler
@@ -70,6 +73,10 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 	newApp := &Webserver{
 		host: "0.0.0.0",
 		port: 8080,
+		// Buffered so Run can publish the bound address without depending on a
+		// receiver being scheduled. A Webserver is a single-run lifecycle
+		// component, so exactly one address is published.
+		started: make(chan net.Addr, 1),
 		// A short header-read deadline closes the Slowloris attack surface (a
 		// client trickling headers to hold connections open) by default, even
 		// when the operator leaves the other timeouts unset.
@@ -180,19 +187,35 @@ func (application *Webserver) tlsEnabled() bool {
 // configured shutdown timeout. It returns nil on a clean shutdown so it composes
 // with an errgroup without treating an intentional stop as an error.
 func (application *Webserver) Run(ctx context.Context) error {
-	// ListenAndServe blocks, so run it in a goroutine and surface any startup
-	// error through a buffered channel (buffered so the goroutine never leaks
-	// if we return via ctx.Done() first).
+	listener, err := net.Listen("tcp", application.server.Addr)
+	if err != nil {
+		return errors.Wrap(err, "issue opening webserver listener")
+	}
+	defer func() { _ = listener.Close() }()
+
+	// Serve blocks, so run it in a goroutine and surface any startup or runtime
+	// error through a buffered channel. The listener wrapper publishes startup
+	// only after http.Server has entered its accept loop; callers can therefore
+	// synchronize on Started without polling or racing to reuse a "free" port.
+	accepting := make(chan struct{})
+	var acceptingOnce sync.Once
+	listener = &acceptNotificationListener{
+		Listener: listener,
+		notify: func() {
+			acceptingOnce.Do(func() {
+				application.started <- listener.Addr()
+				close(accepting)
+			})
+		},
+	}
+
 	serveErr := make(chan error, 1)
 	go func() {
-		// ListenAndServeTLS with empty cert/key paths reads the certificate from
-		// the server's TLSConfig; we only take the TLS path when explicit paths
-		// were configured, so pass them through directly.
 		var err error
 		if application.tlsEnabled() {
-			err = application.server.ListenAndServeTLS(application.tlsCertFile, application.tlsKeyFile)
+			err = application.server.ServeTLS(listener, application.tlsCertFile, application.tlsKeyFile)
 		} else {
-			err = application.server.ListenAndServe()
+			err = application.server.Serve(listener)
 		}
 		if err != nil && !errors.Is(err, http.ErrServerClosed) {
 			serveErr <- errors.Wrap(err, "issue serving webserver")
@@ -200,6 +223,19 @@ func (application *Webserver) Run(ctx context.Context) error {
 		}
 		serveErr <- nil
 	}()
+
+	select {
+	case <-accepting:
+		// The server owns and is actively accepting on the listener.
+	case err := <-serveErr:
+		return err
+	case <-ctx.Done():
+		// Cancellation won before Serve entered its accept loop. Closing the
+		// listener prevents a late Serve call from escaping shutdown.
+		_ = listener.Close()
+		<-serveErr
+		return nil
+	}
 
 	select {
 	case err := <-serveErr:
@@ -214,8 +250,24 @@ func (application *Webserver) Run(ctx context.Context) error {
 			return errors.Wrap(err, "issue stopping webserver")
 		}
 
-		return nil
+		return <-serveErr
 	}
+}
+
+// Started reports the address once the HTTP server has entered its accept
+// loop. Webserver instances are single-use and publish exactly one address.
+func (application *Webserver) Started() <-chan net.Addr {
+	return application.started
+}
+
+type acceptNotificationListener struct {
+	net.Listener
+	notify func()
+}
+
+func (listener *acceptNotificationListener) Accept() (net.Conn, error) {
+	listener.notify()
+	return listener.Listener.Accept()
 }
 
 func WithHost(host string) func(*Webserver) {

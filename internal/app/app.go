@@ -4,6 +4,7 @@ import (
 	"context"
 	"embed"
 	"fmt"
+	"net"
 	"sync/atomic"
 	"time"
 
@@ -24,9 +25,10 @@ import (
 )
 
 type App struct {
-	cfg    *config.Application
-	ready  *atomic.Bool
-	logger *zap.Logger
+	cfg     *config.Application
+	ready   *atomic.Bool
+	logger  *zap.Logger
+	started chan net.Addr
 }
 
 type migrator interface {
@@ -51,11 +53,14 @@ func New(cfg *config.Application) (*App, error) {
 	isReady := &atomic.Bool{}
 	isReady.Store(false)
 
-	return &App{
-		cfg:    cfg,
-		ready:  isReady,
-		logger: zap.NewNop(),
-	}, nil
+	application := &App{
+		cfg:     cfg,
+		ready:   isReady,
+		logger:  zap.NewNop(),
+		started: make(chan net.Addr, 1),
+	}
+
+	return application, nil
 }
 
 // Run starts the application and blocks until ctx is cancelled (e.g. an OS
@@ -255,11 +260,22 @@ func (application *App) Run(ctx context.Context) error {
 		return webServer.Run(groupCtx)
 	})
 
-	// Set the ready flag to true
-	application.setReady(true)
+	var address net.Addr
+	select {
+	case address = <-webServer.Started():
+		// Publish readiness only after the listener is bound and the HTTP server
+		// has entered its accept loop. The buffered signal lets fixtures use the
+		// exact bound address without polling.
+		application.setReady(true)
+		application.started <- address
+	case <-groupCtx.Done():
+		err = group.Wait()
+		application.setReady(false)
+		return err
+	}
 
 	// Log that we are serving the application
-	application.logger.Info(fmt.Sprintf("application started on %s:%d", application.cfg.Webserver.Address, application.cfg.Webserver.Port))
+	application.logger.Info("application started", zap.Stringer("address", address))
 
 	// Block until the group's context is cancelled (signal) or a component
 	// fails. Mark the app not-ready as soon as we begin unwinding.
@@ -282,6 +298,13 @@ func migrateOnStartup(ctx context.Context, enabled bool, store migrator) error {
 
 func (application *App) Ready() bool {
 	return application.ready.Load()
+}
+
+// Started reports the bound listener address after dependency checks complete
+// and the HTTP server has entered its accept loop. App instances are single-use
+// and publish exactly one address.
+func (application *App) Started() <-chan net.Addr {
+	return application.started
 }
 
 func (application *App) SetReady(ready bool) {
