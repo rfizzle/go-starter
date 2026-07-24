@@ -16,6 +16,48 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 )
 
+func TestMigrateEmptyDatabaseToCurrentSchemaIsIdempotent(t *testing.T) {
+	database := postgrestest.New(t).EmptyDatabase(t)
+	client, err := postgres.Open(
+		t.Context(),
+		postgres.WithPool(database.Pool),
+		postgres.WithLogger(zaptest.NewLogger(t)),
+	)
+	if err != nil {
+		t.Fatalf("Open() error: %v", err)
+	}
+
+	for run := 1; run <= 2; run++ {
+		if err := client.Migrate(t.Context(), postgres.Migrations); err != nil {
+			t.Fatalf("Migrate() run %d error: %v", run, err)
+		}
+	}
+
+	var (
+		usersTableExists  bool
+		appliedMigrations int
+	)
+	if err := database.Pool.QueryRow(
+		t.Context(),
+		"SELECT to_regclass('public.users') IS NOT NULL",
+	).Scan(&usersTableExists); err != nil {
+		t.Fatalf("query users table: %v", err)
+	}
+	if err := database.Pool.QueryRow(
+		t.Context(),
+		"SELECT count(*) FROM goose_db_version WHERE is_applied AND version_id > 0",
+	).Scan(&appliedMigrations); err != nil {
+		t.Fatalf("count applied migrations: %v", err)
+	}
+
+	if !usersTableExists {
+		t.Fatal("users table does not exist after migration")
+	}
+	if appliedMigrations != 2 {
+		t.Fatalf("applied migrations = %d, want 2", appliedMigrations)
+	}
+}
+
 func TestMigrateSerializesConcurrentPostgresAttempts(t *testing.T) {
 	database := postgrestest.New(t).EmptyDatabase(t)
 	testMigrations := fstest.MapFS{
