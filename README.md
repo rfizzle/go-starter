@@ -24,11 +24,13 @@ OTLP export. This is a starter, not a production deployment you should ship
 unchanged: choose deployment-specific secrets, CORS origins, connection limits,
 TLS termination, monitoring, backup, and availability policies first.
 
-The user domain, configurable development seed record, and embedded static
-files are examples intended to be replaced or extended. Login rate limiting is
-active by default and process-local: each replica enforces its own limit. The
-service ignores forwarding headers unless the immediate proxy is included in
-`rate-limit.trusted-proxies`; configure only proxy CIDRs operated by your
+The user domain and configurable development seed record are examples intended
+to be replaced or extended. The committed page under `web/build/` is a
+framework-neutral placeholder, not a supported frontend toolchain; see
+[`web/README.md`](web/README.md) for the embedding boundary. Login rate limiting
+is active by default and process-local: each replica enforces its own limit.
+The service ignores forwarding headers unless the immediate proxy is included
+in `rate-limit.trusted-proxies`; configure only proxy CIDRs operated by your
 deployment. OpenTelemetry export is inactive unless explicitly enabled and
 given access to an OTLP collector.
 
@@ -36,8 +38,8 @@ given access to an OTLP collector.
 
 Run the initializer once in a clean clone before making application-specific
 changes. It updates the Go module and imports, command and release names,
-environment prefix, container metadata, OpenAPI metadata, package metadata,
-examples, and documentation:
+environment prefix, container metadata, OpenAPI metadata, examples, and
+documentation:
 
 ```sh
 go run ./tools/initialize \
@@ -192,7 +194,7 @@ and `make vendor` are intentionally explicit.
 | `internal/controller/` | Hand-written generated-transport-to-domain mapping. |
 | `internal/auth/` | Authentication and generated security-handler integration. |
 | `internal/cli/` | Shared CLI lifecycle and seed support. |
-| `web/` | Embedded static assets. |
+| [`web/`](web/README.md) | Minimal embedded frontend placeholder and its replacement contract. |
 
 See the [documentation index](docs/README.md), the
 [module/platform boundary decision](docs/architecture/module-platform-boundaries.md),

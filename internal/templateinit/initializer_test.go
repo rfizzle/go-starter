@@ -40,8 +40,7 @@ func TestInitialize(t *testing.T) {
 	assertFileContains(t, filepath.Join(root, ".goreleaser.yaml"), "- "+cfg.ImageName)
 	assertFileContains(t, filepath.Join(root, "api", "openapi.yml"), `title: "`+cfg.ApplicationName+`"`)
 	assertFileContains(t, filepath.Join(root, "api", "openapi.yml"), `description: "`+cfg.Description+`"`)
-	assertFileContains(t, filepath.Join(root, "package.json"), `"name": "`+cfg.BinaryName+`"`)
-	assertFileContains(t, filepath.Join(root, "package.json"), `"description": "`+cfg.Description+`"`)
+	assertFileContains(t, filepath.Join(root, "web", "build", "index.html"), cfg.ApplicationName)
 	assertFileContains(t, filepath.Join(root, markerFile), "module="+cfg.ModulePath)
 
 	assertFileEquals(t, gitSentinel, defaultModulePath)
@@ -207,12 +206,6 @@ import (
 var _ = pgx.ErrNoRows
 var _ = database.StatusNone
 var _ = assert.Equal
-`,
-		"package.json": `{
-  "name": "go-starter",
-  "description": "Go Starter Project",
-  "repository": {"url": "https://github.com/rfizzle/go-starter.git"}
-}
 `,
 		"README.md": `# Go Starter
 Go Starter is a starter for services.

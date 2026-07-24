@@ -244,7 +244,6 @@ func requireTemplate(root string) error {
 		"build/docker/Dockerfile",
 		"build/docker/Dockerfile.release",
 		"cmd/root.go",
-		"package.json",
 		"README.md",
 	} {
 		info, err := os.Lstat(filepath.Join(root, path))
@@ -381,8 +380,6 @@ func rewrite(path string, contents []byte, cfg Config) ([]byte, error) {
 		text = replaceLine(text, "      org.opencontainers.image.description: OpenAPI-first foundation for PostgreSQL-backed Go services", "      org.opencontainers.image.description: "+description)
 	case "cmd/root.go":
 		text = replaceLine(text, `	Short:   "A starter golang project",`, "\tShort:   "+description+",")
-	case "package.json":
-		text = replaceLine(text, `  "description": "`+cfg.ApplicationName+`",`, `  "description": `+description+",")
 	}
 
 	updated := []byte(text)

@@ -25,4 +25,3 @@ coverage.out
 # Files that are not inputs to the production binary
 docs
 compose.yaml
-package.json

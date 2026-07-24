@@ -24,13 +24,6 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **CI pipeline**: `make ci` - Run the read-only validation workflow
 - **Docker**: `make docker` - Build Docker container using build scripts
 
-### NPM Scripts (Alternative)
-The project also supports npm-style aliases via package.json, including:
-- `npm run build`, `npm run check`, `npm run test`, `npm run fmt`, `npm run lint`
-- `npm run architecture-check`
-- `npm run generate`, `npm run generate-check`, `npm run cover`, `npm run vuln`
-- `npm run release-snapshot`, `npm run tidy`, `npm run vendor`
-
 ## Project Architecture
 
 ### Code Generation Strategy

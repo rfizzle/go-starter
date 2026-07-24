@@ -1,3 +1,7 @@
+// Package web exposes the framework-neutral static assets embedded in the
+// service binary. The committed build/index.html keeps clean Go builds
+// independent of a frontend toolchain; downstream projects may replace the
+// build directory with their frontend output.
 package web
 
 import (
@@ -8,7 +12,8 @@ import (
 	"path"
 )
 
-// Add all the files in static, including hidden files.
+// Embed every committed frontend build artifact. At least build/index.html
+// must remain present so a clean clone compiles without running Node.
 //
 //go:embed build/*
 var static embed.FS
