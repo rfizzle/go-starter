@@ -16,6 +16,7 @@ type Application struct {
 	Build         Build         `mapstructure:"build"`
 	Webserver     Webserver     `mapstructure:"webserver"`
 	Database      Database      `mapstructure:"database"`
+	Seed          Seed          `mapstructure:"seed"`
 	Auth          Auth          `mapstructure:"auth"`
 	Logging       Logging       `mapstructure:"logging"`
 	Observability Observability `mapstructure:"observability"`
@@ -118,6 +119,16 @@ type Database struct {
 	// so a connection wedged mid-query would otherwise hang shutdown
 	// indefinitely. 0 waits indefinitely (the raw pgxpool behaviour).
 	CloseTimeout int `mapstructure:"close-timeout"`
+}
+
+// Seed configures the single development account created by the seed command.
+// Password may be empty in development, in which case the command generates a
+// random password and displays it once if the account is created.
+type Seed struct {
+	Email     string `mapstructure:"email"`
+	Password  string `mapstructure:"password"`
+	FirstName string `mapstructure:"first-name"`
+	LastName  string `mapstructure:"last-name"`
 }
 
 type Auth struct {

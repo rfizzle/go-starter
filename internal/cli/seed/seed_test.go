@@ -1,12 +1,16 @@
 package seed
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/rfizzle/go-starter/internal/domain"
@@ -47,8 +51,28 @@ func (f *fakeUserStore) Create(_ context.Context, params domain.CreateUserParams
 }
 
 func TestNew_NilStore(t *testing.T) {
-	_, err := New(nil)
+	_, err := New(nil, []UserSeed{{Email: "a@example.com", Password: "pw-a"}})
 	require.Error(t, err)
+}
+
+func TestNew_RequiresExplicitUsersAndCredentials(t *testing.T) {
+	store := newFakeUserStore()
+
+	tests := []struct {
+		name  string
+		seeds []UserSeed
+	}{
+		{name: "no users"},
+		{name: "missing email", seeds: []UserSeed{{Password: "password"}}},
+		{name: "missing password", seeds: []UserSeed{{Email: "a@example.com"}}},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := New(store, tt.seeds)
+			require.Error(t, err)
+		})
+	}
 }
 
 func TestSeeder_Run_CreatesMissingUsers(t *testing.T) {
@@ -58,12 +82,14 @@ func TestSeeder_Run_CreatesMissingUsers(t *testing.T) {
 		{Email: "b@example.com", Password: "pw-b", FirstName: "B", LastName: "Two"},
 	}
 
-	s, err := New(store, WithUsers(seeds), WithBcryptCost(bcrypt.MinCost))
+	s, err := New(store, seeds, WithBcryptCost(bcrypt.MinCost))
 	require.NoError(t, err)
 
-	require.NoError(t, s.Run(context.Background()))
+	result, err := s.Run(context.Background())
+	require.NoError(t, err)
 
 	require.Len(t, store.created, 2)
+	assert.Equal(t, Result{Created: 2}, result)
 	assert.Equal(t, "a@example.com", store.created[0].Email)
 	assert.Equal(t, "A", store.created[0].FirstName)
 
@@ -76,15 +102,21 @@ func TestSeeder_Run_Idempotent(t *testing.T) {
 	store := newFakeUserStore()
 	seeds := []UserSeed{{Email: "a@example.com", Password: "pw-a"}}
 
-	s, err := New(store, WithUsers(seeds), WithBcryptCost(bcrypt.MinCost))
+	s, err := New(store, seeds, WithBcryptCost(bcrypt.MinCost))
 	require.NoError(t, err)
 
-	require.NoError(t, s.Run(context.Background()))
-	require.NoError(t, s.Run(context.Background()))
-	require.NoError(t, s.Run(context.Background()))
+	first, err := s.Run(context.Background())
+	require.NoError(t, err)
+	second, err := s.Run(context.Background())
+	require.NoError(t, err)
+	third, err := s.Run(context.Background())
+	require.NoError(t, err)
 
 	// Three runs, but the user is inserted exactly once.
 	require.Len(t, store.created, 1)
+	assert.Equal(t, Result{Created: 1}, first)
+	assert.Equal(t, Result{Existing: 1}, second)
+	assert.Equal(t, Result{Existing: 1}, third)
 }
 
 func TestSeeder_Run_SkipsExisting(t *testing.T) {
@@ -96,24 +128,30 @@ func TestSeeder_Run_SkipsExisting(t *testing.T) {
 		{Email: "b@example.com", Password: "pw-b"},
 	}
 
-	s, err := New(store, WithUsers(seeds), WithBcryptCost(bcrypt.MinCost))
+	s, err := New(store, seeds, WithBcryptCost(bcrypt.MinCost))
 	require.NoError(t, err)
 
-	require.NoError(t, s.Run(context.Background()))
+	result, err := s.Run(context.Background())
+	require.NoError(t, err)
 
 	// Only the missing user is created.
 	require.Len(t, store.created, 1)
 	assert.Equal(t, "b@example.com", store.created[0].Email)
+	assert.Equal(t, Result{Created: 1, Existing: 1}, result)
 }
 
 func TestSeeder_Run_LookupError(t *testing.T) {
 	store := newFakeUserStore()
 	store.byEmailErr = errors.New("boom")
 
-	s, err := New(store, WithUsers([]UserSeed{{Email: "a@example.com"}}), WithBcryptCost(bcrypt.MinCost))
+	s, err := New(
+		store,
+		[]UserSeed{{Email: "a@example.com", Password: "password"}},
+		WithBcryptCost(bcrypt.MinCost),
+	)
 	require.NoError(t, err)
 
-	err = s.Run(context.Background())
+	_, err = s.Run(context.Background())
 	require.Error(t, err)
 	assert.Empty(t, store.created)
 }
@@ -122,21 +160,36 @@ func TestSeeder_Run_CreateError(t *testing.T) {
 	store := newFakeUserStore()
 	store.createErr = errors.New("boom")
 
-	s, err := New(store, WithUsers([]UserSeed{{Email: "a@example.com"}}), WithBcryptCost(bcrypt.MinCost))
+	s, err := New(
+		store,
+		[]UserSeed{{Email: "a@example.com", Password: "password"}},
+		WithBcryptCost(bcrypt.MinCost),
+	)
 	require.NoError(t, err)
 
-	err = s.Run(context.Background())
+	_, err = s.Run(context.Background())
 	require.Error(t, err)
 }
 
-func TestSeeder_Run_DefaultUsers(t *testing.T) {
+func TestSeeder_Run_DoesNotLogPlaintextPassword(t *testing.T) {
 	store := newFakeUserStore()
+	plaintext := strings.Join([]string{"plaintext", "must", "not", "be", "logged"}, "-")
+	var logs bytes.Buffer
+	logger := zap.New(zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(&logs),
+		zap.DebugLevel,
+	))
 
-	s, err := New(store, WithBcryptCost(bcrypt.MinCost))
+	s, err := New(
+		store,
+		[]UserSeed{{Email: "a@example.com", Password: plaintext}},
+		WithLogger(logger),
+		WithBcryptCost(bcrypt.MinCost),
+	)
 	require.NoError(t, err)
 
-	require.NoError(t, s.Run(context.Background()))
-
-	require.Len(t, store.created, len(DefaultUsers))
-	assert.Equal(t, DefaultUsers[0].Email, store.created[0].Email)
+	_, err = s.Run(context.Background())
+	require.NoError(t, err)
+	assert.NotContains(t, logs.String(), plaintext)
 }

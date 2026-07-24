@@ -47,7 +47,9 @@ The target performs the local startup sequence:
 3. exports the values from the ignored `.env` file;
 4. runs `go run . migrate up`, which applies pending embedded migrations under
    a PostgreSQL advisory lock;
-5. runs `go run . seed`, which idempotently inserts the example user;
+5. runs `go run . seed`, which idempotently inserts the explicitly configured
+   development user and prints a generated password once if no password was
+   configured and the account is created;
 6. runs `go run . serve`.
 
 The service is ready when both health probes succeed:
@@ -139,7 +141,11 @@ make dev-reset
 attempts with a PostgreSQL session advisory lock. `serve` leaves
 `database.auto-migrate` disabled by default; enable it only for deployments
 that deliberately choose startup migration. `seed` expects the schema to be
-current and remains idempotent: existing baseline records are skipped.
+current, is refused outside the development environment, and requires
+`GOSTARTER_SEED_EMAIL`. Set `GOSTARTER_SEED_PASSWORD` explicitly or leave it
+unset to generate a password that is displayed only when the account is first
+created. Existing accounts are skipped without changing or disclosing their
+credentials.
 Migration SQL lives in
 `internal/platform/database/postgres/migrations/` and is embedded in the
 binary.

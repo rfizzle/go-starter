@@ -21,6 +21,7 @@ func TestApplicationValidate(t *testing.T) {
 			name:  "valid seed configuration ignores unused serve settings",
 			scope: ValidationScopeSeed,
 			mutate: func(cfg *Application) {
+				cfg.Environment = "development"
 				cfg.Webserver.Port = -1
 				cfg.Auth.JWTSecret = ""
 				cfg.Auth.JWTTTL = -1
@@ -28,6 +29,32 @@ func TestApplicationValidate(t *testing.T) {
 				cfg.Observability.SampleRatio = 2
 				cfg.Database.CloseTimeout = -1
 			},
+		},
+		{
+			name:  "seed command is development only",
+			scope: ValidationScopeSeed,
+			mutate: func(cfg *Application) {
+				cfg.Environment = "production"
+			},
+			wantErr: []string{"only supported in the development environment"},
+		},
+		{
+			name:  "seed email is required",
+			scope: ValidationScopeSeed,
+			mutate: func(cfg *Application) {
+				cfg.Environment = "development"
+				cfg.Seed.Email = ""
+			},
+			wantErr: []string{"seed.email"},
+		},
+		{
+			name:  "seed password must fit bcrypt",
+			scope: ValidationScopeSeed,
+			mutate: func(cfg *Application) {
+				cfg.Environment = "development"
+				cfg.Seed.Password = strings.Repeat("p", 73)
+			},
+			wantErr: []string{"seed.password"},
 		},
 		{
 			name:  "valid migrate configuration ignores unused serve settings",
@@ -249,6 +276,9 @@ func validApplication() Application {
 			MaxConns:     10,
 			MinConns:     2,
 			CloseTimeout: 10,
+		},
+		Seed: Seed{
+			Email: "developer@example.com",
 		},
 		Auth: Auth{
 			JWTSecret: strings.Repeat("s", 32),

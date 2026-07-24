@@ -226,17 +226,21 @@ An init container runs once per pod and is safe because of locking, but a
 single deployment job avoids redundant attempts and gives schema rollout an
 independent success gate.
 
-The `seed` command assumes migrations are already complete. Add schema changes
-as new sequential migration files; never rewrite a migration that may already
-have run.
+The `seed` command assumes migrations are already complete and is limited to
+the development environment. Its user identity comes from explicit seed
+configuration. A configured password is never printed; when it is omitted, the
+command generates and displays a random password only if the account is
+created. Add schema changes as new sequential migration files; never rewrite a
+migration that may already have run.
 
 `MigrationStatus` reports `database.StatusNone`, `database.StatusPartial`, or
 `database.StatusComplete`. Status lookup ensures Goose's version table exists,
 so it is not a strictly read-only operation on a pristine database.
 
 The `seed` command constructs `user.Repository` over the same pool and passes
-it to `internal/cli/seed` through a narrow `UserStore` interface. Seed records are
-matched by natural key and skipped when already present.
+it to `internal/cli/seed` through a narrow `UserStore` interface. Seed records
+are matched by natural key and skipped when already present; existing names
+and password hashes are never overwritten.
 
 ## Testing
 

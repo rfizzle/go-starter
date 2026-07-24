@@ -36,6 +36,9 @@ func (application Application) Validate(scope ValidationScope) error {
 	if scope == ValidationScopeServe {
 		errs = append(errs, application.validateServe()...)
 	}
+	if scope == ValidationScopeSeed {
+		errs = append(errs, application.validateSeed()...)
+	}
 
 	return errors.Join(errs...)
 }
@@ -55,6 +58,22 @@ func (application Application) validateShared(scope ValidationScope) []error {
 	}
 
 	errs = append(errs, validateDatabase(application.Database, scope == ValidationScopeServe)...)
+	return errs
+}
+
+func (application Application) validateSeed() []error {
+	var errs []error
+
+	if !oneOf(application.Environment, "development") {
+		errs = append(errs, errors.New("seed command is only supported in the development environment"))
+	}
+	if strings.TrimSpace(application.Seed.Email) == "" {
+		errs = append(errs, errors.New("seed.email is required"))
+	}
+	if len(application.Seed.Password) > 72 {
+		errs = append(errs, errors.New("seed.password must not exceed 72 bytes"))
+	}
+
 	return errs
 }
 

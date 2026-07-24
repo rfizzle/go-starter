@@ -24,11 +24,11 @@ OTLP export. This is a starter, not a production deployment you should ship
 unchanged: choose deployment-specific secrets, CORS origins, connection limits,
 TLS termination, monitoring, backup, and availability policies first.
 
-The user domain, the `admin@example.com` seed record, and embedded static files
-are examples intended to be replaced or extended. The rate-limiter package is
-also an optional example and is not installed in the active middleware stack.
-OpenTelemetry export is inactive unless explicitly enabled and given access to
-an OTLP collector.
+The user domain, configurable development seed record, and embedded static
+files are examples intended to be replaced or extended. The rate-limiter
+package is also an optional example and is not installed in the active
+middleware stack. OpenTelemetry export is inactive unless explicitly enabled
+and given access to an OTLP collector.
 
 ## Initialize a new project
 
@@ -93,7 +93,10 @@ make dev-run
 
 `dev-run` starts the pinned PostgreSQL Compose service, waits for its health
 check, loads `.env`, applies pending embedded migrations, idempotently seeds the
-example user, and serves the application. In another terminal, probe it:
+configured development user, and serves the application. When the seed password
+is omitted, the command prints a generated password once if it creates the
+account; store that password before continuing. In another terminal, probe the
+service:
 
 ```sh
 curl --fail http://localhost:8080/api/v1/healthz/liveness
@@ -134,7 +137,9 @@ complete command-specific settings.
 
 Configuration is validated before network or database resources are opened.
 In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
-32 bytes. Secrets are never included in validation errors.
+32 bytes. The `seed` command runs only in the development environment, requires
+`seed.email`, and accepts `seed.password` or generates one securely. Secrets
+are never included in validation errors or logs.
 
 ## Core commands
 

@@ -1,6 +1,6 @@
-// Package seed provides idempotent database seeding for the starter. It inserts
-// a baseline set of records (an example user) so a freshly-migrated database is
-// immediately usable in development, demos, and integration tests.
+// Package seed provides idempotent development database seeding for the
+// starter. Callers must provide every record explicitly; this package contains
+// no built-in identities or credentials.
 //
 // Seeding is idempotent: every run checks for an existing record before
 // inserting, so running the `seed` subcommand repeatedly — or on a database
@@ -31,7 +31,7 @@ type UserStore interface {
 	Create(ctx context.Context, params domain.CreateUserParams) (domain.User, error)
 }
 
-// UserSeed is a single baseline user to seed. Password is plaintext and is
+// UserSeed is a single development user to seed. Password is plaintext and is
 // bcrypt-hashed at seed time; it is never stored in the clear.
 type UserSeed struct {
 	Email     string
@@ -40,16 +40,10 @@ type UserSeed struct {
 	LastName  string
 }
 
-// DefaultUsers is the baseline user set seeded when no explicit set is provided.
-// It is intentionally a single, obviously-non-production account so the starter
-// has a known login for local development without shipping real credentials.
-var DefaultUsers = []UserSeed{
-	{
-		Email:     "admin@example.com",
-		Password:  "password",
-		FirstName: "Admin",
-		LastName:  "User",
-	},
+// Result reports observable seeding outcomes without exposing credentials.
+type Result struct {
+	Created  int
+	Existing int
 }
 
 // Seeder inserts baseline records idempotently. Construct it with New.
@@ -73,13 +67,6 @@ func WithLogger(logger *zap.Logger) Option {
 	}
 }
 
-// WithUsers overrides the set of users to seed. Defaults to DefaultUsers.
-func WithUsers(users []UserSeed) Option {
-	return func(s *Seeder) {
-		s.userSeeds = users
-	}
-}
-
 // WithBcryptCost overrides the bcrypt cost used to hash seed passwords. Defaults
 // to bcrypt.DefaultCost. Primarily a testing hook so tests can hash with the
 // minimum cost.
@@ -89,19 +76,30 @@ func WithBcryptCost(cost int) Option {
 	}
 }
 
-// New builds a Seeder over the given user store. It returns an error when the
-// store is nil so misconfiguration fails loudly at construction rather than
-// mid-seed.
-func New(users UserStore, options ...Option) (*Seeder, error) {
+// New builds a Seeder over the given user store and explicit development
+// records. It rejects missing stores, records, identities, and credentials so
+// misconfiguration fails before database work starts.
+func New(users UserStore, userSeeds []UserSeed, options ...Option) (*Seeder, error) {
 	if users == nil {
 		return nil, fmt.Errorf("user store is nil")
+	}
+	if len(userSeeds) == 0 {
+		return nil, fmt.Errorf("at least one user seed is required")
+	}
+	for i, userSeed := range userSeeds {
+		if userSeed.Email == "" {
+			return nil, fmt.Errorf("user seed %d email is empty", i+1)
+		}
+		if userSeed.Password == "" {
+			return nil, fmt.Errorf("user seed %d password is empty", i+1)
+		}
 	}
 
 	s := &Seeder{
 		users:      users,
 		logger:     zap.NewNop(),
 		bcryptCost: bcrypt.DefaultCost,
-		userSeeds:  DefaultUsers,
+		userSeeds:  userSeeds,
 	}
 
 	for _, option := range options {
@@ -111,34 +109,35 @@ func New(users UserStore, options ...Option) (*Seeder, error) {
 	return s, nil
 }
 
-// Run seeds all configured records. It is safe to call repeatedly: existing
-// records are skipped, so only missing rows are inserted. The first error
-// aborts the run and is returned.
-func (s *Seeder) Run(ctx context.Context) error {
+// Run seeds all configured records and reports how many were created or already
+// existed. It is safe to call repeatedly: existing records are skipped, so only
+// missing rows are inserted. The first error aborts the run and is returned.
+func (s *Seeder) Run(ctx context.Context) (Result, error) {
 	return s.seedUsers(ctx)
 }
 
 // seedUsers inserts each configured user that does not already exist, keyed on
 // email. An existing user is left untouched (seeding never overwrites), so a
 // changed seed password does not silently rewrite a real account.
-func (s *Seeder) seedUsers(ctx context.Context) error {
-	created := 0
+func (s *Seeder) seedUsers(ctx context.Context) (Result, error) {
+	var result Result
 	for _, u := range s.userSeeds {
 		_, err := s.users.ByEmail(ctx, u.Email)
 		switch {
 		case err == nil:
 			// Already present; seeding is idempotent, so skip.
 			s.logger.Debug("seed user already exists, skipping", zap.String("email", u.Email))
+			result.Existing++
 			continue
 		case errors.Is(err, domain.ErrNotFound):
 			// Fall through to create below.
 		default:
-			return fmt.Errorf("lookup seed user %q: %w", u.Email, err)
+			return result, fmt.Errorf("lookup seed user %q: %w", u.Email, err)
 		}
 
 		hash, err := bcrypt.GenerateFromPassword([]byte(u.Password), s.bcryptCost)
 		if err != nil {
-			return fmt.Errorf("hash seed user %q password: %w", u.Email, err)
+			return result, fmt.Errorf("hash seed user %q password: %w", u.Email, err)
 		}
 
 		if _, err := s.users.Create(ctx, domain.CreateUserParams{
@@ -147,16 +146,17 @@ func (s *Seeder) seedUsers(ctx context.Context) error {
 			FirstName:    u.FirstName,
 			LastName:     u.LastName,
 		}); err != nil {
-			return fmt.Errorf("create seed user %q: %w", u.Email, err)
+			return result, fmt.Errorf("create seed user %q: %w", u.Email, err)
 		}
 
 		s.logger.Info("seeded user", zap.String("email", u.Email))
-		created++
+		result.Created++
 	}
 
 	s.logger.Info("user seeding complete",
-		zap.Int("created", created),
+		zap.Int("created", result.Created),
+		zap.Int("existing", result.Existing),
 		zap.Int("total", len(s.userSeeds)),
 	)
-	return nil
+	return result, nil
 }
