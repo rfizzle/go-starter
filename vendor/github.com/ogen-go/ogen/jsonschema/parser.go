@@ -20,8 +20,10 @@ import (
 const (
 	xOgenName       = "x-ogen-name"
 	xOgenProperties = "x-ogen-properties"
+	xOgenType       = "x-ogen-type"
 	xOgenTimeFormat = "x-ogen-time-format"
 	xOapiExtraTags  = "x-oapi-codegen-extra-tags"
+	xOgenValidate   = "x-ogen-validate"
 )
 
 // Parser parses JSON schemas.
@@ -32,7 +34,8 @@ type Parser struct {
 
 	rootFile location.File // optional, used for error messages
 
-	inferTypes bool
+	inferTypes                bool
+	allowCrossTypeConstraints bool
 }
 
 // NewParser creates new Parser.
@@ -46,9 +49,10 @@ func NewParser(s Settings) *Parser {
 				file:              s.File,
 			},
 		},
-		refcache:   map[jsonpointer.RefKey]*Schema{},
-		rootFile:   s.File,
-		inferTypes: s.InferTypes,
+		refcache:                  map[jsonpointer.RefKey]*Schema{},
+		rootFile:                  s.File,
+		inferTypes:                s.InferTypes,
+		allowCrossTypeConstraints: s.AllowCrossTypeConstraints,
 	}
 }
 
@@ -130,6 +134,21 @@ func (p *Parser) parse1(schema *RawSchema, ctx *jsonpointer.ResolveCtx, hook fun
 			return nil, p.wrapField("default", p.file(ctx), schema.Common.Locator, err)
 		}
 	}
+	if len(schema.Const) > 0 {
+		if err := func() error {
+			v, err := parseJSONValue(nil, json.RawMessage(schema.Const))
+			if err != nil {
+				return err
+			}
+
+			s.Const = v
+			s.ConstSet = true
+			return nil
+		}(); err != nil {
+			err := errors.Wrap(err, "parse const")
+			return nil, p.wrapField("const", p.file(ctx), schema.Common.Locator, err)
+		}
+	}
 
 	for key, val := range schema.Common.Extensions {
 		if err := func() error {
@@ -179,6 +198,11 @@ func (p *Parser) parse1(schema *RawSchema, ctx *jsonpointer.ResolveCtx, hook fun
 					s.Properties[idx].X = x
 				}
 
+			case xOgenType:
+				if err := val.Decode(&s.XOgenType); err != nil {
+					return err
+				}
+
 			case xOgenTimeFormat:
 				if err := val.Decode(&s.XOgenTimeFormat); err != nil {
 					return err
@@ -186,6 +210,11 @@ func (p *Parser) parse1(schema *RawSchema, ctx *jsonpointer.ResolveCtx, hook fun
 
 			case xOapiExtraTags:
 				if err := val.Decode(&s.ExtraTags); err != nil {
+					return err
+				}
+
+			case xOgenValidate:
+				if err := val.Decode(&s.OgenValidate); err != nil {
 					return err
 				}
 			}
@@ -315,6 +344,8 @@ func (p *Parser) parseSchema(schema *RawSchema, ctx *jsonpointer.ResolveCtx, hoo
 				"patternProperties": {},
 				"minProperties":     {},
 				"maxProperties":     {},
+				"minLength":         {},
+				"maxLength":         {},
 			},
 			"array": {
 				"items":       {},
@@ -348,7 +379,7 @@ func (p *Parser) parseSchema(schema *RawSchema, ctx *jsonpointer.ResolveCtx, hoo
 		for _, fset := range allowed {
 			// Generic fields.
 			for _, f := range []string{
-				"type", "enum", "nullable", "format", "default",
+				"type", "enum", "const", "nullable", "format", "default",
 				"oneOf", "anyOf", "allOf", "discriminator",
 				"description", "example", "examples", "deprecated",
 				"additionalProperties", "xml",
@@ -370,6 +401,11 @@ func (p *Parser) parseSchema(schema *RawSchema, ctx *jsonpointer.ResolveCtx, hoo
 				}
 
 				if _, ok := allowedFields[field]; !ok {
+					if p.allowCrossTypeConstraints {
+						// Allow cross-type constraints.
+						// They will be interpreted during validation code generation.
+						continue
+					}
 					return nil, wrapField(field, errors.Errorf("unexpected field for type %q", schema.Type))
 				}
 			}

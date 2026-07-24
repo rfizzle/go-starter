@@ -121,6 +121,10 @@ var (
 		"client/request/validation",
 		`Enables validation of client requests`,
 	}
+	ClientEditors = Feature{
+		"client/editors",
+		`Enables editors function options for client`,
+	}
 	ServerResponseValidation = Feature{
 		"server/response/validation",
 		`Enables validation of server responses`,
@@ -136,6 +140,11 @@ var (
 	DebugExampleTests = Feature{
 		"debug/example_tests",
 		`Enables example tests generation`,
+	}
+	NamingCamelInitialisms = Feature{
+		"naming/camel_initialisms",
+		`Applies initialism rules (ID, URL, HTTP, ...) to camelCase identifiers, ` +
+			`e.g. "userId" becomes "UserID". Opt-in, since it changes generated names.`,
 	}
 )
 
@@ -158,8 +167,10 @@ var AllFeatures = []Feature{
 	ClientSecurityReentrant,
 	ClientRequestOptions,
 	ClientRequestValidation,
+	ClientEditors,
 	ServerResponseValidation,
 	OgenOtel,
 	OgenUnimplemented,
 	DebugExampleTests,
+	NamingCamelInitialisms,
 }

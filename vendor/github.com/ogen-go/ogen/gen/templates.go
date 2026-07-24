@@ -2,7 +2,9 @@ package gen
 
 import (
 	"embed"
+	stdjson "encoding/json"
 	"fmt"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -37,6 +39,82 @@ type DefaultElem struct {
 	Var string
 	// Default is default value to set.
 	Default ir.Default
+	// Depth is the recursion depth, used to derive unique local variable names
+	// when rendering nested array/struct/map default literals.
+	Depth int
+}
+
+// LocalVar returns a unique local accumulator variable name for this depth.
+func (d DefaultElem) LocalVar() string {
+	return fmt.Sprintf("defaultVal%d", d.Depth)
+}
+
+// NextDepth returns the depth for a nested DefaultElem.
+func (d DefaultElem) NextDepth() int {
+	return d.Depth + 1
+}
+
+// DefaultStructField pairs a struct field with the value present for it in an
+// object default.
+type DefaultStructField struct {
+	Field *ir.Field
+	Value any
+}
+
+// DefaultMapEntry is a single key/value of a map default, in sorted-key order.
+type DefaultMapEntry struct {
+	Key   string
+	Value any
+}
+
+func defaultSlice(d ir.Default) []any {
+	if !d.Set {
+		return nil
+	}
+	s, _ := d.Value.([]any)
+	return s
+}
+
+func defaultStructFields(t *ir.Type, d ir.Default) []DefaultStructField {
+	if !d.Set {
+		return nil
+	}
+	m, _ := d.Value.(map[string]any)
+	var out []DefaultStructField
+	for _, f := range t.Fields {
+		if f.Spec == nil {
+			continue
+		}
+		if v, ok := m[f.Spec.Name]; ok {
+			out = append(out, DefaultStructField{Field: f, Value: v})
+		}
+	}
+	return out
+}
+
+func defaultMapEntries(d ir.Default) []DefaultMapEntry {
+	if !d.Set {
+		return nil
+	}
+	m, _ := d.Value.(map[string]any)
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	out := make([]DefaultMapEntry, 0, len(keys))
+	for _, k := range keys {
+		out = append(out, DefaultMapEntry{Key: k, Value: m[k]})
+	}
+	return out
+}
+
+func defaultJSON(v any) (string, error) {
+	b, err := stdjson.Marshal(v)
+	if err != nil {
+		return "", err
+	}
+	return string(b), nil
 }
 
 // Elem is variable helper for recursive array or object encoding or decoding.
@@ -155,7 +233,7 @@ func templateFunctions() template.FuncMap {
 				Default: value,
 			}
 		},
-		"sub_default_elem": func(t *ir.Type, v string, val any) DefaultElem {
+		"sub_default_elem": func(t *ir.Type, v string, val any, depth int) DefaultElem {
 			return DefaultElem{
 				Type: t,
 				Var:  v,
@@ -163,14 +241,20 @@ func templateFunctions() template.FuncMap {
 					Value: val,
 					Set:   true,
 				},
+				Depth: depth,
 			}
 		},
+		"default_slice":         defaultSlice,
+		"default_struct_fields": defaultStructFields,
+		"default_map_entries":   defaultMapEntries,
+		"default_json":          defaultJSON,
 		"op_elem": func(op *ir.Operation, cfg TemplateConfig) OperationElem {
 			return OperationElem{
 				Operation: op,
 				Config:    cfg,
 			}
 		},
+		"sse_server_response_encoding": sseServerResponseEncoding,
 		"ir_media": func(e ir.Encoding, t *ir.Type) ir.Media {
 			return ir.Media{
 				Encoding: e,
@@ -206,8 +290,12 @@ func templateFunctions() template.FuncMap {
 		"mod": func(a, b int) int {
 			return a % b
 		},
-		"isObjectParam":     isObjectParam,
-		"paramObjectFields": paramObjectFields,
+		"isObjectParam":                    isObjectParam,
+		"paramObjectFields":                paramObjectFields,
+		"uniqueResponseTypes":              uniqueResponseTypes,
+		"dedupeVariantsByType":             dedupeVariantsByType,
+		"needsArrayElementDiscrimination":  needsArrayElementDiscrimination,
+		"dedupeVariantsByArrayElementType": dedupeVariantsByArrayElementType,
 	}
 }
 
@@ -269,4 +357,97 @@ func paramObjectFields(typ *ir.Type) string {
 	}
 
 	return "[]uri.QueryParameterObjectField{" + strings.Join(fields, ",") + "}"
+}
+
+// uniqueResponseTypes deduplicates response types by Type.Name to avoid duplicate case statements
+// in type switches. When multiple responses share the same type (e.g., multiple patterns using the
+// same schema), we only need one case statement.
+func uniqueResponseTypes(responses []ir.ResponseInfo) []ir.ResponseInfo {
+	seen := make(map[string]bool)
+	var unique []ir.ResponseInfo
+
+	for _, resp := range responses {
+		if resp.RawResponse {
+			// Raw responses are handled separately in the template
+			continue
+		}
+		typeName := resp.Type.Name
+		if !seen[typeName] {
+			seen[typeName] = true
+			unique = append(unique, resp)
+		}
+	}
+
+	return unique
+}
+
+// dedupeVariantsByType deduplicates variants by their FieldType to avoid duplicate type checks.
+// When multiple variants have the same field type (or no type discrimination), keep only unique entries.
+func dedupeVariantsByType(variants []ir.UniqueFieldVariant) []ir.UniqueFieldVariant {
+	if len(variants) == 0 {
+		return variants
+	}
+
+	seen := make(map[string]bool)
+	result := make([]ir.UniqueFieldVariant, 0, len(variants))
+
+	for _, v := range variants {
+		// If FieldType is empty (no type discrimination), include all variants
+		if v.FieldType == "" || !seen[v.FieldType] {
+			if v.FieldType != "" {
+				seen[v.FieldType] = true
+			}
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
+// needsArrayElementDiscrimination checks if all variants have the same jx.Array FieldType
+// but different ArrayElementTypes, requiring element-level discrimination.
+func needsArrayElementDiscrimination(variants []ir.UniqueFieldVariant) bool {
+	if len(variants) < 2 {
+		return false
+	}
+
+	// All variants must be arrays
+	for _, v := range variants {
+		if v.FieldType != jxTypeArray {
+			return false
+		}
+	}
+
+	// Count unique element types
+	uniqueElemTypes := make(map[string]bool)
+	for _, v := range variants {
+		if v.ArrayElementType != "" {
+			uniqueElemTypes[v.ArrayElementType] = true
+		}
+	}
+
+	return len(uniqueElemTypes) > 1
+}
+
+// dedupeVariantsByArrayElementType deduplicates array variants by their ArrayElementType.
+// Used when all variants are arrays that need element-level discrimination.
+func dedupeVariantsByArrayElementType(variants []ir.UniqueFieldVariant) []ir.UniqueFieldVariant {
+	if len(variants) == 0 {
+		return variants
+	}
+
+	seen := make(map[string]bool)
+	result := make([]ir.UniqueFieldVariant, 0, len(variants))
+
+	for _, v := range variants {
+		// If ArrayElementType is empty, include the variant
+		if v.ArrayElementType == "" || !seen[v.ArrayElementType] {
+			if v.ArrayElementType != "" {
+				seen[v.ArrayElementType] = true
+			}
+			result = append(result, v)
+		}
+	}
+
+	return result
 }

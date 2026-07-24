@@ -62,7 +62,7 @@ func (e *expander) Spec(api *openapi.API) (spec *ogen.Spec, err error) {
 
 	setOperation := func(pi *ogen.PathItem, method string, op *ogen.Operation) error {
 		var ptr **ogen.Operation
-		switch strings.ToLower(method) {
+		switch m := strings.ToLower(method); m {
 		case "get":
 			ptr = &pi.Get
 		case "put":
@@ -79,8 +79,16 @@ func (e *expander) Spec(api *openapi.API) (spec *ogen.Spec, err error) {
 			ptr = &pi.Patch
 		case "trace":
 			ptr = &pi.Trace
-		}
-		if ptr == nil {
+		case "query":
+			ptr = &pi.Query
+		default:
+			if pi.AdditionalOperations != nil {
+				if _, ok := pi.AdditionalOperations[m]; ok {
+					return errors.Errorf("path item already contains %q operation", method)
+				}
+				pi.AdditionalOperations[m] = op
+				return nil
+			}
 			return errors.Errorf("unexpected method %q", method)
 		}
 
@@ -103,7 +111,9 @@ func (e *expander) Spec(api *openapi.API) (spec *ogen.Spec, err error) {
 		pi := spec.Paths[path]
 		if pi == nil {
 			pi = &ogen.PathItem{}
-
+			if api.Version.Minor >= 2 {
+				pi.AdditionalOperations = make(map[string]*ogen.Operation)
+			}
 			if spec.Paths == nil {
 				spec.Paths = ogen.Paths{}
 			}
@@ -641,6 +651,8 @@ func (e *expander) Schema(schema *jsonschema.Schema, walked map[*jsonschema.Sche
 	case jsonschema.Object:
 		expanded.MinProperties = schema.MinProperties
 		expanded.MaxProperties = schema.MaxProperties
+		expanded.MinLength = schema.MinLength
+		expanded.MaxLength = schema.MaxLength
 
 		if props := schema.Properties; len(props) > 0 {
 			expanded.Properties = make(ogen.Properties, len(props))

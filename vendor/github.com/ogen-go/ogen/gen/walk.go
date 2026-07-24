@@ -36,6 +36,8 @@ func walkResponseTypes(r *ir.Responses, walkFn func(name string, t *ir.Type) (*i
 					Encoding:      media.Encoding,
 					Type:          typ,
 					JSONStreaming: media.JSONStreaming,
+					RawResponse:   media.RawResponse,
+					SSEEventShape: media.SSEEventShape,
 				}
 			}
 
@@ -70,6 +72,8 @@ func walkResponseTypes(r *ir.Responses, walkFn func(name string, t *ir.Type) (*i
 					Encoding:      media.Encoding,
 					Type:          typ,
 					JSONStreaming: media.JSONStreaming,
+					RawResponse:   media.RawResponse,
+					SSEEventShape: media.SSEEventShape,
 				}
 			}
 
@@ -97,6 +101,8 @@ func walkResponseTypes(r *ir.Responses, walkFn func(name string, t *ir.Type) (*i
 				Encoding:      media.Encoding,
 				Type:          typ,
 				JSONStreaming: media.JSONStreaming,
+				RawResponse:   media.RawResponse,
+				SSEEventShape: media.SSEEventShape,
 			}
 		}
 		if def.NoContent != nil {
