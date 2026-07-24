@@ -191,6 +191,38 @@ func TestApplicationValidate(t *testing.T) {
 			wantErr: []string{"auth.jwt-secret", "auth.jwt-ttl"},
 		},
 		{
+			name:  "rate limit bounds must be positive",
+			scope: ValidationScopeServe,
+			mutate: func(cfg *Application) {
+				cfg.RateLimit.MaxRequests = 0
+				cfg.RateLimit.Window = -1
+				cfg.RateLimit.MaxKeys = 0
+				cfg.RateLimit.CleanupInterval = -1
+			},
+			wantErr: []string{
+				"rate-limit.max-requests",
+				"rate-limit.window",
+				"rate-limit.max-keys",
+				"rate-limit.cleanup-interval",
+			},
+		},
+		{
+			name:  "trusted proxies must be canonical CIDR networks",
+			scope: ValidationScopeServe,
+			mutate: func(cfg *Application) {
+				cfg.RateLimit.TrustedProxies = []string{
+					"192.0.2.1",
+					"192.0.2.1/24",
+					"not-a-network",
+				}
+			},
+			wantErr: []string{
+				"rate-limit.trusted-proxies[0]",
+				"rate-limit.trusted-proxies[1]",
+				"rate-limit.trusted-proxies[2]",
+			},
+		},
+		{
 			name:  "enabled observability validates endpoint and ratio",
 			scope: ValidationScopeServe,
 			mutate: func(cfg *Application) {
@@ -283,6 +315,13 @@ func validApplication() Application {
 		Auth: Auth{
 			JWTSecret: strings.Repeat("s", 32),
 			JWTTTL:    3600,
+		},
+		RateLimit: RateLimit{
+			MaxRequests:     5,
+			Window:          60,
+			MaxKeys:         10_000,
+			CleanupInterval: 60,
+			TrustedProxies:  []string{"10.0.0.0/8", "2001:db8::/32"},
 		},
 		Logging: Logging{
 			Level:  "info",

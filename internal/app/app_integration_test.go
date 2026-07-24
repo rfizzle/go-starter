@@ -9,6 +9,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -29,6 +30,23 @@ type applicationFixture struct {
 	cancel      context.CancelFunc
 	runErr      chan error
 	stopped     bool
+}
+
+type applicationClock struct {
+	mu  sync.Mutex
+	now time.Time
+}
+
+func (clock *applicationClock) Now() time.Time {
+	clock.mu.Lock()
+	defer clock.mu.Unlock()
+	return clock.now
+}
+
+func (clock *applicationClock) Advance(duration time.Duration) {
+	clock.mu.Lock()
+	defer clock.mu.Unlock()
+	clock.now = clock.now.Add(duration)
 }
 
 func TestApplicationLifecycle(t *testing.T) {
@@ -154,6 +172,65 @@ func TestApplicationLifecycle(t *testing.T) {
 		}
 	})
 
+	t.Run("limits login by unspoofable client identity and recovers after the window", func(t *testing.T) {
+		cfg := lifecycleConfig(harness.Database(t).URI)
+		cfg.RateLimit.MaxRequests = 2
+		cfg.RateLimit.Window = 60
+
+		application, err := New(cfg)
+		if err != nil {
+			t.Fatalf("New() error: %v", err)
+		}
+		clock := &applicationClock{now: time.Unix(1, 0)}
+		application.rateLimitClock = clock.Now
+		fixture := startApplicationFixture(t, application)
+
+		login := func(forwardedFor string) *http.Response {
+			request, err := http.NewRequestWithContext(
+				t.Context(),
+				http.MethodPost,
+				fixture.baseURL+"/api/v1/login",
+				strings.NewReader(`{"email":"missing@example.com","password":"wrong-password"}`),
+			)
+			if err != nil {
+				t.Fatalf("create login request: %v", err)
+			}
+			request.Header.Set("Content-Type", "application/json")
+			request.Header.Set("X-Forwarded-For", forwardedFor)
+			response, err := fixture.client.Do(request)
+			if err != nil {
+				t.Fatalf("POST /api/v1/login: %v", err)
+			}
+			return response
+		}
+
+		for _, spoofedIP := range []string{"198.51.100.1", "198.51.100.2"} {
+			response := login(spoofedIP)
+			_ = response.Body.Close()
+			if response.StatusCode != http.StatusUnauthorized {
+				t.Fatalf("allowed login status = %d, want %d", response.StatusCode, http.StatusUnauthorized)
+			}
+		}
+
+		denied := login("198.51.100.3")
+		_ = denied.Body.Close()
+		if denied.StatusCode != http.StatusTooManyRequests {
+			t.Fatalf("denied login status = %d, want %d", denied.StatusCode, http.StatusTooManyRequests)
+		}
+		if retryAfter := denied.Header.Get("Retry-After"); retryAfter != "60" {
+			t.Fatalf("denied login Retry-After = %q, want %q", retryAfter, "60")
+		}
+
+		clock.Advance(time.Minute)
+		recovered := login("198.51.100.4")
+		_ = recovered.Body.Close()
+		if recovered.StatusCode != http.StatusUnauthorized {
+			t.Fatalf("recovered login status = %d, want %d", recovered.StatusCode, http.StatusUnauthorized)
+		}
+
+		fixture.stop(t)
+	})
+
 	t.Run("listener startup failure is returned without reporting readiness", func(t *testing.T) {
 		blocker, err := net.Listen("tcp", "127.0.0.1:0")
 		if err != nil {
@@ -207,6 +284,11 @@ func newApplicationFixture(t *testing.T, databaseURI string) *applicationFixture
 	if err != nil {
 		t.Fatalf("New() error: %v", err)
 	}
+	return startApplicationFixture(t, application)
+}
+
+func startApplicationFixture(t *testing.T, application *App) *applicationFixture {
+	t.Helper()
 
 	runCtx, cancel := context.WithCancel(t.Context())
 	fixture := &applicationFixture{
@@ -302,6 +384,12 @@ func lifecycleConfig(databaseURI string) *config.Application {
 		Auth: config.Auth{
 			JWTSecret: strings.Repeat("lifecycle-secret-", 2),
 			JWTTTL:    3600,
+		},
+		RateLimit: config.RateLimit{
+			MaxRequests:     5,
+			Window:          60,
+			MaxKeys:         10_000,
+			CleanupInterval: 60,
 		},
 		Logging: config.Logging{
 			Level: "info",

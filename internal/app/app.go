@@ -22,8 +22,10 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
 	"github.com/rfizzle/go-starter/internal/platform/health"
+	httpmiddleware "github.com/rfizzle/go-starter/internal/platform/http/middleware"
 	httpserver "github.com/rfizzle/go-starter/internal/platform/http/server"
 	"github.com/rfizzle/go-starter/internal/platform/observability"
+	"github.com/rfizzle/go-starter/internal/platform/ratelimiter"
 	staticweb "github.com/rfizzle/go-starter/web"
 )
 
@@ -32,6 +34,9 @@ type App struct {
 	ready   *atomic.Bool
 	logger  *zap.Logger
 	started chan net.Addr
+	// rateLimitClock is a deterministic test seam. Production leaves it nil so
+	// the limiter uses time.Now.
+	rateLimitClock func() time.Time
 }
 
 type migrator interface {
@@ -262,12 +267,43 @@ func (application *App) Run(ctx context.Context) error {
 		return fmt.Errorf("api.NewServer(): %w", err)
 	}
 
+	rateLimitWindow := time.Duration(application.cfg.RateLimit.Window) * time.Second
+	loginLimiter, err := ratelimiter.NewLimiter(ratelimiter.RateLimitConfig{
+		MaxRequests:     application.cfg.RateLimit.MaxRequests,
+		Window:          rateLimitWindow,
+		MaxKeys:         application.cfg.RateLimit.MaxKeys,
+		CleanupInterval: time.Duration(application.cfg.RateLimit.CleanupInterval) * time.Second,
+		KeyPrefix:       "login:",
+		Clock:           application.rateLimitClock,
+	})
+	if err != nil {
+		return fmt.Errorf("ratelimiter.NewLimiter(): %w", err)
+	}
+	defer loginLimiter.Close()
+
+	if err := prometheus.Register(loginLimiter); err != nil {
+		application.logger.Warn("could not register login rate limiter metrics collector", zap.Error(err))
+	} else {
+		defer prometheus.Unregister(loginLimiter)
+	}
+
+	loginRateLimit, err := httpmiddleware.NewLoginRateLimit(
+		loginLimiter,
+		application.cfg.RateLimit.TrustedProxies,
+		rateLimitWindow,
+		application.logger,
+	)
+	if err != nil {
+		return fmt.Errorf("middleware.NewLoginRateLimit(): %w", err)
+	}
+	apiHandler := loginRateLimit(appServer)
+
 	// Configure static file server
 	staticFs := staticweb.AssetHandler("/", "")
 
 	// Configure application webserver
 	webServer, err := httpserver.New(
-		appServer,
+		apiHandler,
 		httpserver.WithHost(application.cfg.Webserver.Address),
 		httpserver.WithPort(application.cfg.Webserver.Port),
 		httpserver.WithReadHeaderTimeout(time.Duration(application.cfg.Webserver.ReadHeaderTimeout)*time.Second),

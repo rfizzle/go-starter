@@ -85,6 +85,11 @@ use the `GOSTARTER_` prefix:
 | `database.uri` | `GOSTARTER_DATABASE_URI` |
 | `database.auto-migrate` | `GOSTARTER_DATABASE_AUTO_MIGRATE` |
 | `auth.jwt-secret` | `GOSTARTER_AUTH_JWT_SECRET` |
+| `rate-limit.max-requests` | `GOSTARTER_RATE_LIMIT_MAX_REQUESTS` |
+| `rate-limit.window` | `GOSTARTER_RATE_LIMIT_WINDOW` |
+| `rate-limit.max-keys` | `GOSTARTER_RATE_LIMIT_MAX_KEYS` |
+| `rate-limit.cleanup-interval` | `GOSTARTER_RATE_LIMIT_CLEANUP_INTERVAL` |
+| `rate-limit.trusted-proxies` | `GOSTARTER_RATE_LIMIT_TRUSTED_PROXIES` |
 | `logging.level` | `GOSTARTER_LOGGING_LEVEL` |
 | `logging.format` | `GOSTARTER_LOGGING_FORMAT` |
 | `observability.enabled` | `GOSTARTER_OBSERVABILITY_ENABLED` |
@@ -115,6 +120,15 @@ The `cmd` package owns Viper file, environment, and flag loading;
 Logger and OpenTelemetry provider construction lives in
 `internal/platform/observability`. OpenTelemetry export is disabled unless
 `observability.enabled` is true.
+
+Login attempts are limited by client IP. With no trusted proxy CIDRs (the safe
+default), `X-Forwarded-For` is ignored and the network peer is the limiter key.
+When traffic arrives through reverse proxies, set
+`GOSTARTER_RATE_LIMIT_TRUSTED_PROXIES` to a comma-separated list of canonical
+CIDRs for proxies operated by the deployment. The middleware walks the
+forwarding chain from the trusted peer toward the client and stops at the first
+untrusted address. The limiter is in-memory and process-local, so multiple
+replicas enforce independent limits rather than one global aggregate limit.
 
 ## PostgreSQL lifecycle
 

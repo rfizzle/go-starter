@@ -47,6 +47,12 @@ func validServeCommandConfig() *config.Application {
 			JWTSecret: strings.Repeat("s", 32),
 			JWTTTL:    3600,
 		},
+		RateLimit: config.RateLimit{
+			MaxRequests:     5,
+			Window:          60,
+			MaxKeys:         10_000,
+			CleanupInterval: 60,
+		},
 		Logging: config.Logging{
 			Level: "info",
 		},

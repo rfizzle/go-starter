@@ -18,6 +18,7 @@ type Application struct {
 	Database      Database      `mapstructure:"database"`
 	Seed          Seed          `mapstructure:"seed"`
 	Auth          Auth          `mapstructure:"auth"`
+	RateLimit     RateLimit     `mapstructure:"rate-limit"`
 	Logging       Logging       `mapstructure:"logging"`
 	Observability Observability `mapstructure:"observability"`
 	// ShutdownDelay is the delay, in seconds, between receiving a shutdown
@@ -141,6 +142,18 @@ type Auth struct {
 	JWTAudience string `mapstructure:"jwt-audience"`
 	// JWTTTL is the lifetime, in seconds, of generated tokens. Default 3600.
 	JWTTTL int `mapstructure:"jwt-ttl"`
+}
+
+// RateLimit configures the process-local limiter applied to login attempts.
+// TrustedProxies contains only proxy CIDRs operated by this deployment. The
+// client-supplied forwarding chain is ignored unless the request's immediate
+// peer belongs to one of these networks.
+type RateLimit struct {
+	MaxRequests     int      `mapstructure:"max-requests"`
+	Window          int      `mapstructure:"window"`
+	MaxKeys         int      `mapstructure:"max-keys"`
+	CleanupInterval int      `mapstructure:"cleanup-interval"`
+	TrustedProxies  []string `mapstructure:"trusted-proxies"`
 }
 
 // Observability configures OpenTelemetry (OTLP) export of traces and metrics.

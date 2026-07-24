@@ -252,6 +252,7 @@ github.com/munnerz/goautoneg
 ## explicit; go 1.23.0
 github.com/ogen-go/ogen
 github.com/ogen-go/ogen/cmd/ogen
+github.com/ogen-go/ogen/conv
 github.com/ogen-go/ogen/gen
 github.com/ogen-go/ogen/gen/genfs
 github.com/ogen-go/ogen/gen/ir

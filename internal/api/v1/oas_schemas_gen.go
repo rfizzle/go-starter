@@ -2,6 +2,10 @@
 
 package api
 
+import (
+	"github.com/go-faster/errors"
+)
+
 type BearerAuth struct {
 	Token string
 	Roles []string
@@ -77,6 +81,132 @@ func (s *CurrentUserResponse) SetLastName(val OptString) {
 
 func (*CurrentUserResponse) getCurrentUserRes() {}
 
+// Ref: #/components/schemas/genericResponse
+type GenericResponse struct {
+	Code    OptInt                   `json:"code"`
+	Data    *GenericResponseData     `json:"data"`
+	Message OptString                `json:"message"`
+	Status  OptGenericResponseStatus `json:"status"`
+}
+
+// GetCode returns the value of Code.
+func (s *GenericResponse) GetCode() OptInt {
+	return s.Code
+}
+
+// GetData returns the value of Data.
+func (s *GenericResponse) GetData() *GenericResponseData {
+	return s.Data
+}
+
+// GetMessage returns the value of Message.
+func (s *GenericResponse) GetMessage() OptString {
+	return s.Message
+}
+
+// GetStatus returns the value of Status.
+func (s *GenericResponse) GetStatus() OptGenericResponseStatus {
+	return s.Status
+}
+
+// SetCode sets the value of Code.
+func (s *GenericResponse) SetCode(val OptInt) {
+	s.Code = val
+}
+
+// SetData sets the value of Data.
+func (s *GenericResponse) SetData(val *GenericResponseData) {
+	s.Data = val
+}
+
+// SetMessage sets the value of Message.
+func (s *GenericResponse) SetMessage(val OptString) {
+	s.Message = val
+}
+
+// SetStatus sets the value of Status.
+func (s *GenericResponse) SetStatus(val OptGenericResponseStatus) {
+	s.Status = val
+}
+
+type GenericResponseData struct{}
+
+// GenericResponseHeaders wraps GenericResponse with response headers.
+type GenericResponseHeaders struct {
+	RetryAfter int
+	Response   GenericResponse
+}
+
+// GetRetryAfter returns the value of RetryAfter.
+func (s *GenericResponseHeaders) GetRetryAfter() int {
+	return s.RetryAfter
+}
+
+// GetResponse returns the value of Response.
+func (s *GenericResponseHeaders) GetResponse() GenericResponse {
+	return s.Response
+}
+
+// SetRetryAfter sets the value of RetryAfter.
+func (s *GenericResponseHeaders) SetRetryAfter(val int) {
+	s.RetryAfter = val
+}
+
+// SetResponse sets the value of Response.
+func (s *GenericResponseHeaders) SetResponse(val GenericResponse) {
+	s.Response = val
+}
+
+func (*GenericResponseHeaders) loginRes() {}
+
+type GenericResponseStatus string
+
+const (
+	GenericResponseStatusSuccess GenericResponseStatus = "success"
+	GenericResponseStatusFail    GenericResponseStatus = "fail"
+	GenericResponseStatusError   GenericResponseStatus = "error"
+)
+
+// AllValues returns all GenericResponseStatus values.
+func (GenericResponseStatus) AllValues() []GenericResponseStatus {
+	return []GenericResponseStatus{
+		GenericResponseStatusSuccess,
+		GenericResponseStatusFail,
+		GenericResponseStatusError,
+	}
+}
+
+// MarshalText implements encoding.TextMarshaler.
+func (s GenericResponseStatus) MarshalText() ([]byte, error) {
+	switch s {
+	case GenericResponseStatusSuccess:
+		return []byte(s), nil
+	case GenericResponseStatusFail:
+		return []byte(s), nil
+	case GenericResponseStatusError:
+		return []byte(s), nil
+	default:
+		return nil, errors.Errorf("invalid value: %q", s)
+	}
+}
+
+// UnmarshalText implements encoding.TextUnmarshaler.
+func (s *GenericResponseStatus) UnmarshalText(data []byte) error {
+	switch GenericResponseStatus(data) {
+	case GenericResponseStatusSuccess:
+		*s = GenericResponseStatusSuccess
+		return nil
+	case GenericResponseStatusFail:
+		*s = GenericResponseStatusFail
+		return nil
+	case GenericResponseStatusError:
+		*s = GenericResponseStatusError
+		return nil
+	default:
+		return errors.Errorf("invalid value: %q", data)
+	}
+}
+
 // GetCurrentUserUnauthorized is response for GetCurrentUser operation.
 type GetCurrentUserUnauthorized struct{}
 
@@ -142,6 +272,98 @@ func (*LoginResponse) loginRes() {}
 type LoginUnauthorized struct{}
 
 func (*LoginUnauthorized) loginRes() {}
+
+// NewOptGenericResponseStatus returns new OptGenericResponseStatus with value set to v.
+func NewOptGenericResponseStatus(v GenericResponseStatus) OptGenericResponseStatus {
+	return OptGenericResponseStatus{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptGenericResponseStatus is optional GenericResponseStatus.
+type OptGenericResponseStatus struct {
+	Value GenericResponseStatus
+	Set   bool
+}
+
+// IsSet returns true if OptGenericResponseStatus was set.
+func (o OptGenericResponseStatus) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptGenericResponseStatus) Reset() {
+	var v GenericResponseStatus
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptGenericResponseStatus) SetTo(v GenericResponseStatus) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptGenericResponseStatus) Get() (v GenericResponseStatus, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptGenericResponseStatus) Or(d GenericResponseStatus) GenericResponseStatus {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
+
+// NewOptInt returns new OptInt with value set to v.
+func NewOptInt(v int) OptInt {
+	return OptInt{
+		Value: v,
+		Set:   true,
+	}
+}
+
+// OptInt is optional int.
+type OptInt struct {
+	Value int
+	Set   bool
+}
+
+// IsSet returns true if OptInt was set.
+func (o OptInt) IsSet() bool { return o.Set }
+
+// Reset unsets value.
+func (o *OptInt) Reset() {
+	var v int
+	o.Value = v
+	o.Set = false
+}
+
+// SetTo sets value to v.
+func (o *OptInt) SetTo(v int) {
+	o.Set = true
+	o.Value = v
+}
+
+// Get returns value and boolean that denotes whether value was set.
+func (o OptInt) Get() (v int, ok bool) {
+	if !o.Set {
+		return v, false
+	}
+	return o.Value, true
+}
+
+// Or returns value if set, or given parameter if does not.
+func (o OptInt) Or(d int) int {
+	if v, ok := o.Get(); ok {
+		return v
+	}
+	return d
+}
 
 // NewOptString returns new OptString with value set to v.
 func NewOptString(v string) OptString {

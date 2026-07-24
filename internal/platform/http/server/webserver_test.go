@@ -170,6 +170,25 @@ func TestCORSOrigins(t *testing.T) {
 	}
 }
 
+func TestForwardedForDoesNotRewriteUntrustedPeer(t *testing.T) {
+	var remoteAddr string
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		remoteAddr = r.RemoteAddr
+		w.WriteHeader(http.StatusNoContent)
+	})
+	ws, err := New(handler)
+	assert.NoError(t, err)
+
+	request := httptest.NewRequest(http.MethodPost, "/api/v1/login", nil)
+	request.RemoteAddr = "192.0.2.10:1234"
+	request.Header.Set("X-Forwarded-For", "198.51.100.20")
+	response := httptest.NewRecorder()
+	ws.server.Handler.ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusNoContent, response.Code)
+	assert.Equal(t, "192.0.2.10:1234", remoteAddr)
+}
+
 func TestReadHeaderTimeout(t *testing.T) {
 	// A non-zero ReadHeaderTimeout on the http.Server is what closes the
 	// Slowloris surface, so verify both the safe default and the override.

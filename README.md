@@ -25,10 +25,12 @@ unchanged: choose deployment-specific secrets, CORS origins, connection limits,
 TLS termination, monitoring, backup, and availability policies first.
 
 The user domain, configurable development seed record, and embedded static
-files are examples intended to be replaced or extended. The rate-limiter
-package is also an optional example and is not installed in the active
-middleware stack. OpenTelemetry export is inactive unless explicitly enabled
-and given access to an OTLP collector.
+files are examples intended to be replaced or extended. Login rate limiting is
+active by default and process-local: each replica enforces its own limit. The
+service ignores forwarding headers unless the immediate proxy is included in
+`rate-limit.trusted-proxies`; configure only proxy CIDRs operated by your
+deployment. OpenTelemetry export is inactive unless explicitly enabled and
+given access to an OTLP collector.
 
 ## Initialize a new project
 

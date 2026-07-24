@@ -172,6 +172,13 @@ func addServeFlags(command *cobra.Command) {
 	command.Flags().String("auth.jwt-audience", "", "required audience (aud) claim on validated JWTs; not checked when empty")
 	command.Flags().Int("auth.jwt-ttl", 3600, "lifetime in seconds of generated JWTs")
 
+	// Login rate-limit options
+	command.Flags().Int("rate-limit.max-requests", 5, "maximum login attempts allowed per client IP during one window")
+	command.Flags().Int("rate-limit.window", 60, "login rate-limit window in seconds")
+	command.Flags().Int("rate-limit.max-keys", 10000, "maximum client IP keys retained by the in-memory login limiter")
+	command.Flags().Int("rate-limit.cleanup-interval", 60, "seconds between expired login limiter key cleanup")
+	command.Flags().StringSlice("rate-limit.trusted-proxies", nil, "trusted reverse-proxy CIDRs allowed to supply X-Forwarded-For (for example 10.0.0.0/8; empty trusts no proxy)")
+
 	// Logging options
 	command.Flags().String("logging.level", "info", "minimum log level: debug, info, warn, or error (--verbose forces debug)")
 	command.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")

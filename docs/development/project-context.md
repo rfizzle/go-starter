@@ -144,7 +144,7 @@ All code must meet these standards before merging:
 The web server includes these middleware layers (in order):
 - Timeout (60s default)
 - RequestID generation
-- RealIP extraction
+- Trusted-proxy-aware client identity for login rate limiting
 - Panic recovery
 - Custom logging middleware for API routes
 - Static file serving

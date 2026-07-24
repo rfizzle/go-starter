@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"net"
+	"net/netip"
 	"net/url"
 	"strconv"
 	"strings"
@@ -119,6 +120,8 @@ func (application Application) validateServe() []error {
 		errs = append(errs, errors.New("auth.jwt-ttl must be greater than zero"))
 	}
 
+	errs = append(errs, validateRateLimit(application.RateLimit)...)
+
 	if application.Observability.Enabled {
 		ratio := application.Observability.SampleRatio
 		if math.IsNaN(ratio) || math.IsInf(ratio, 0) || ratio < 0 || ratio > 1 {
@@ -126,6 +129,34 @@ func (application Application) validateServe() []error {
 		}
 		if endpoint := strings.TrimSpace(application.Observability.Endpoint); endpoint != "" && !validOTLPEndpoint(endpoint) {
 			errs = append(errs, errors.New("observability.endpoint must be a host:port address without a URL scheme"))
+		}
+	}
+
+	return errs
+}
+
+func validateRateLimit(rateLimit RateLimit) []error {
+	var errs []error
+
+	positiveInts := []struct {
+		name  string
+		value int
+	}{
+		{name: "rate-limit.max-requests", value: rateLimit.MaxRequests},
+		{name: "rate-limit.window", value: rateLimit.Window},
+		{name: "rate-limit.max-keys", value: rateLimit.MaxKeys},
+		{name: "rate-limit.cleanup-interval", value: rateLimit.CleanupInterval},
+	}
+	for _, field := range positiveInts {
+		if field.value <= 0 {
+			errs = append(errs, fmt.Errorf("%s must be greater than zero", field.name))
+		}
+	}
+
+	for index, rawPrefix := range rateLimit.TrustedProxies {
+		prefix, err := netip.ParsePrefix(strings.TrimSpace(rawPrefix))
+		if err != nil || prefix != prefix.Masked() {
+			errs = append(errs, fmt.Errorf("rate-limit.trusted-proxies[%d] must be a canonical IP network in CIDR notation", index))
 		}
 	}
 

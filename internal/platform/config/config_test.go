@@ -1,6 +1,7 @@
 package config
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -28,6 +29,8 @@ func TestUnmarshalResolvesNestedKeys(t *testing.T) {
 	flags.String("database.uri", "", "")
 	flags.Bool("database.auto-migrate", false, "")
 	flags.String("seed.email", "", "")
+	flags.Int("rate-limit.max-requests", 5, "")
+	flags.StringSlice("rate-limit.trusted-proxies", nil, "")
 	if err := v.BindPFlags(flags); err != nil {
 		t.Fatalf("BindPFlags() error: %v", err)
 	}
@@ -38,6 +41,8 @@ func TestUnmarshalResolvesNestedKeys(t *testing.T) {
 	t.Setenv("GOSTARTER_WEBSERVER_PORT", "9090")
 	t.Setenv("GOSTARTER_DATABASE_AUTO_MIGRATE", "true")
 	t.Setenv("GOSTARTER_SEED_EMAIL", "developer@example.com")
+	t.Setenv("GOSTARTER_RATE_LIMIT_MAX_REQUESTS", "7")
+	t.Setenv("GOSTARTER_RATE_LIMIT_TRUSTED_PROXIES", "10.0.0.0/8,192.0.2.0/24")
 
 	var cfg Application
 	if err := v.Unmarshal(&cfg); err != nil {
@@ -58,6 +63,12 @@ func TestUnmarshalResolvesNestedKeys(t *testing.T) {
 	}
 	if cfg.Seed.Email != "developer@example.com" {
 		t.Errorf("Seed.Email = %q, want %q (from env)", cfg.Seed.Email, "developer@example.com")
+	}
+	if cfg.RateLimit.MaxRequests != 7 {
+		t.Errorf("RateLimit.MaxRequests = %d, want 7 (from env)", cfg.RateLimit.MaxRequests)
+	}
+	if got, want := cfg.RateLimit.TrustedProxies, []string{"10.0.0.0/8", "192.0.2.0/24"}; !slices.Equal(got, want) {
+		t.Errorf("RateLimit.TrustedProxies = %v, want %v (from env)", got, want)
 	}
 	// A key with only a flag default (no env/flag override) must fall back to it.
 	if cfg.Logging.Format != "" {

@@ -76,6 +76,19 @@ paths:
                 $ref: "#/components/schemas/loginResponse"
         "401":
           description: unauthorized
+        "429":
+          description: too many login attempts from this client
+          headers:
+            Retry-After:
+              description: Seconds to wait before retrying the login request.
+              required: true
+              schema:
+                type: integer
+                minimum: 1
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/genericResponse"
 components:
   securitySchemes:
     bearerAuth:

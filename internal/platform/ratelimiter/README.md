@@ -17,6 +17,8 @@ process-local operations such as login attempts.
 
 The limiter is deliberately in-memory. Limits are independent per process, so
 deployments with multiple replicas do not receive a global aggregate limit.
+The configured threshold therefore applies separately to each replica; use a
+shared external limiter when a deployment requires a global limit.
 
 ## Usage
 
@@ -53,5 +55,6 @@ normally leave it nil to use `time.Now`.
 ## Non-goals
 
 This package does not provide distributed limiting, persistent counters,
-trusted-proxy client identification, or HTTP response policy. Client identity
-and middleware wiring are owned by the HTTP edge and application composition.
+trusted-proxy client identification, or HTTP response policy. The login
+middleware in `internal/platform/http/middleware` owns those HTTP concerns, and
+`internal/app` owns construction, metrics registration, and shutdown.

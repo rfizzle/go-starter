@@ -118,7 +118,6 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		mux.Use(chimiddleware.Timeout(newApp.requestTimeout))
 	}
 	mux.Use(chimiddleware.RequestID)
-	mux.Use(chimiddleware.RealIP)
 	mux.Use(middleware.Recoverer(newApp.logger))
 	mux.Use(middleware.MaxBytes(newApp.maxBodyBytes))
 	mux.Use(middleware.Logger(newApp.logger, []string{"/api/*"}))

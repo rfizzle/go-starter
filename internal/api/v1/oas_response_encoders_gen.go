@@ -9,6 +9,9 @@ import (
 	"github.com/go-faster/jx"
 	"go.opentelemetry.io/otel/codes"
 	"go.opentelemetry.io/otel/trace"
+
+	"github.com/ogen-go/ogen/conv"
+	"github.com/ogen-go/ogen/uri"
 )
 
 func encodeGetCurrentUserResponse(response GetCurrentUserRes, w http.ResponseWriter, span trace.Span) error {
@@ -81,6 +84,35 @@ func encodeLoginResponse(response LoginRes, w http.ResponseWriter, span trace.Sp
 	case *LoginUnauthorized:
 		w.WriteHeader(401)
 		span.SetStatus(codes.Error, http.StatusText(401))
+
+		return nil
+
+	case *GenericResponseHeaders:
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
+		// Encoding response headers.
+		{
+			h := uri.NewHeaderEncoder(w.Header())
+			// Encode "Retry-After" header.
+			{
+				cfg := uri.HeaderParameterEncodingConfig{
+					Name:    "Retry-After",
+					Explode: false,
+				}
+				if err := h.EncodeParam(cfg, func(e uri.Encoder) error {
+					return e.EncodeValue(conv.IntToString(response.RetryAfter))
+				}); err != nil {
+					return errors.Wrap(err, "encode Retry-After header")
+				}
+			}
+		}
+		w.WriteHeader(429)
+		span.SetStatus(codes.Error, http.StatusText(429))
+
+		e := new(jx.Encoder)
+		response.Response.Encode(e)
+		if _, err := e.WriteTo(w); err != nil {
+			return errors.Wrap(err, "write")
+		}
 
 		return nil
 
