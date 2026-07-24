@@ -7,8 +7,10 @@
 The user module implements PostgreSQL persistence for the starter's example
 user capability. It maps database rows to infrastructure-free domain values,
 supports fixed and filtered queries, and owns the user transaction boundary.
-It does not authenticate users, hash credentials, expose password hashes, map
-HTTP transport types, own the database pool, or run migrations.
+It does not authenticate users, hash credentials, map HTTP transport types,
+own the database pool, or run migrations. It exposes a password hash only
+through `CredentialByEmail`, scoped to the `domain.Credential` projection
+consumed by authentication callers — never through `domain.User`.
 
 ## 2. Contract
 
@@ -26,6 +28,7 @@ func NewRepository(pool *pgxpool.Pool) *Repository
 ```go
 func (r *Repository) ByID(ctx context.Context, id string) (domain.User, error)
 func (r *Repository) ByEmail(ctx context.Context, email string) (domain.User, error)
+func (r *Repository) CredentialByEmail(ctx context.Context, email string) (domain.Credential, error)
 func (r *Repository) Create(ctx context.Context, params domain.CreateUserParams) (domain.User, error)
 func (r *Repository) List(ctx context.Context, filter domain.UserFilter) ([]domain.User, error)
 func (r *Repository) WithinTx(ctx context.Context, fn func(*Repository) error) error
@@ -58,6 +61,9 @@ write-only at the module boundary.
    rollback errors when both occur.
 7. **I7 — Resource ownership:** the caller owns the pgx pool; repositories do
    not close it.
+8. **I8 — Credential exposure boundary:** `CredentialByEmail` is the only
+   method that returns a password hash, and it does so only as
+   `domain.Credential`, never `domain.User`.
 
 ## 5. Error Contract
 
@@ -85,6 +91,7 @@ generated transport and is constructed in a composition root.
 - [ ] I1: translate no-row outcomes for ID and email lookups.
 - [x] I2: reject malformed UUIDs and preserve valid UUID round trips.
 - [x] I3: database-to-domain mapping drops password hashes.
+- [x] I8: `CredentialByEmail` retains the password hash; `ByEmail`/`fromDB` still drop it.
 - [ ] I4: map creation parameters without changing the supplied hash.
 - [ ] I5: bind filter values and preserve deterministic ordering.
 - [ ] I6: cover commit, callback rollback, commit failure, and joined rollback failure.
@@ -94,6 +101,7 @@ generated transport and is constructed in a composition root.
 
 - [ ] Create and read a user against a disposable PostgreSQL database.
 - [ ] Verify filtered listing and transaction commit/rollback against PostgreSQL.
+- [ ] I1/I8: `CredentialByEmail` returns `domain.ErrNotFound` for an unknown email and the stored hash for a known one.
 
 ## 8. Open Questions
 

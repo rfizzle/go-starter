@@ -73,6 +73,22 @@ func (r *Repository) ByEmail(ctx context.Context, email string) (domain.User, er
 	return fromDB(row), nil
 }
 
+// CredentialByEmail returns the authentication-only projection of the user
+// with the given email, or domain.ErrNotFound if none exists. It is the only
+// Repository method that returns a password hash; callers outside
+// authentication must use ByEmail instead.
+func (r *Repository) CredentialByEmail(ctx context.Context, email string) (domain.Credential, error) {
+	row, err := r.queries.GetUserByEmail(ctx, email)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return domain.Credential{}, domain.ErrNotFound
+		}
+		return domain.Credential{}, fmt.Errorf("get credential by email: %w", err)
+	}
+
+	return credentialFromDB(row), nil
+}
+
 // Create inserts a user and returns the stored row.
 func (r *Repository) Create(ctx context.Context, params domain.CreateUserParams) (domain.User, error) {
 	row, err := r.queries.CreateUser(ctx, db.CreateUserParams{

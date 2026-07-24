@@ -68,3 +68,17 @@ func TestFromDB_DropsPasswordHash(t *testing.T) {
 	// The domain type has no field for the password hash; this test documents
 	// that the hash never crosses the storage boundary.
 }
+
+func TestCredentialFromDB_RetainsPasswordHash(t *testing.T) {
+	row := db.User{
+		ID:           pgtype.UUID{Bytes: [16]byte{0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0, 0x12, 0x34, 0x56, 0x78, 0x9a, 0xbc, 0xde, 0xf0}, Valid: true},
+		Email:        "user@example.com",
+		PasswordHash: "secret-hash",
+	}
+
+	credential := credentialFromDB(row)
+
+	assert.Equal(t, uuidToString(row.ID), credential.UserID)
+	assert.Equal(t, "user@example.com", credential.Email)
+	assert.Equal(t, "secret-hash", credential.PasswordHash)
+}

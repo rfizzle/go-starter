@@ -40,6 +40,33 @@ func TestRepository_CreateAndReadAgainstPostgres(t *testing.T) {
 	assert.Equal(t, created, byEmail)
 }
 
+func TestRepository_CredentialByEmailAgainstPostgres(t *testing.T) {
+	database := postgrestest.New(t).Database(t)
+	repository := user.NewRepository(database.Pool)
+
+	created, err := repository.Create(t.Context(), domain.CreateUserParams{
+		Email:        "credential@example.com",
+		PasswordHash: "stored-password-hash",
+		FirstName:    "Ada",
+		LastName:     "Lovelace",
+	})
+	require.NoError(t, err)
+
+	credential, err := repository.CredentialByEmail(t.Context(), created.Email)
+	require.NoError(t, err)
+	assert.Equal(t, created.ID, credential.UserID)
+	assert.Equal(t, created.Email, credential.Email)
+	assert.Equal(t, "stored-password-hash", credential.PasswordHash)
+}
+
+func TestRepository_CredentialByEmailNotFoundAgainstPostgres(t *testing.T) {
+	database := postgrestest.New(t).Database(t)
+	repository := user.NewRepository(database.Pool)
+
+	_, err := repository.CredentialByEmail(t.Context(), "missing@example.com")
+	assert.ErrorIs(t, err, domain.ErrNotFound)
+}
+
 func TestRepository_ListUsesDynamicFiltersAgainstPostgres(t *testing.T) {
 	database := postgrestest.New(t).Database(t)
 	repository := user.NewRepository(database.Pool)

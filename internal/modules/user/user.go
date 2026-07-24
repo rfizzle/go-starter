@@ -25,6 +25,17 @@ func fromDB(row db.User) domain.User {
 	}
 }
 
+// credentialFromDB maps a sqlc row to the authentication-only projection.
+// Unlike fromDB, it retains the password hash: this is the sole conversion
+// permitted to do so, and only Repository.CredentialByEmail calls it.
+func credentialFromDB(row db.User) domain.Credential {
+	return domain.Credential{
+		UserID:       uuidToString(row.ID),
+		Email:        row.Email,
+		PasswordHash: row.PasswordHash,
+	}
+}
+
 // uuidToString renders a pgtype.UUID as the canonical 8-4-4-4-12 hex form.
 // Returns "" when the value is NULL/unset.
 func uuidToString(id pgtype.UUID) string {
