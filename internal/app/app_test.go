@@ -161,7 +161,7 @@ func TestCredentialAuthenticator_Authenticate(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			service, err := credential.NewService(tt.reader)
+			service, err := credential.NewService(tt.reader, bcrypt.MinCost)
 			if err != nil {
 				t.Fatalf("credential.NewService() error: %v", err)
 			}

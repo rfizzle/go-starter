@@ -11,6 +11,7 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/sync/errgroup"
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
@@ -206,7 +207,7 @@ func (application *App) Run(ctx context.Context) error {
 	// its own. userRepo satisfies its package-private credentialReader port
 	// structurally (CredentialByEmail) without this package importing that
 	// interface.
-	credentialService, err := credential.NewService(userRepo)
+	credentialService, err := credential.NewService(userRepo, bcrypt.DefaultCost)
 	if err != nil {
 		return fmt.Errorf("credential.NewService(): %w", err)
 	}

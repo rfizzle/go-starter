@@ -19,17 +19,12 @@ import (
 )
 
 // ErrInvalidCredentials is returned when the email is unknown, the password
-// does not match the stored hash, or the stored hash is malformed. All three
-// cases return this same error and perform the same bcrypt comparison work,
-// so a caller cannot use the response or its timing to learn whether an
-// account exists.
+// does not match the stored hash, or the stored hash is malformed or uses an
+// unexpected cost. All cases return this same error and perform one bcrypt
+// comparison at the Service's configured cost.
 var ErrInvalidCredentials = errors.New("invalid credentials")
 
-// unknownAccountHash is a valid bcrypt hash of a fixed, non-secret value with
-// no corresponding real account. Authenticate compares against it whenever
-// the requested email has no matching credential, so a missing account costs
-// the same bcrypt work as a wrong password.
-var unknownAccountHash = mustHash("go-starter-credential-unknown-account")
+const unknownAccountVerificationInput = "go-starter-credential-unknown-account"
 
 // Authenticated is the identity returned by a successful Authenticate call.
 // It never carries a password hash.
@@ -49,17 +44,37 @@ type credentialReader interface {
 
 // Service verifies plaintext passwords against stored bcrypt hashes.
 type Service struct {
-	reader credentialReader
+	reader             credentialReader
+	hashCost           int
+	unknownAccountHash []byte
 }
 
-// NewService builds a Service backed by reader. It returns an error if
-// reader is nil so misconfiguration fails at construction rather than on the
-// first authentication attempt.
-func NewService(reader credentialReader) (*Service, error) {
+// NewService builds a Service backed by reader. hashCost is both the required
+// cost of stored bcrypt hashes and the cost of the dummy comparison used for
+// invalid credential paths. It returns an error for a nil reader or an invalid
+// bcrypt cost so misconfiguration fails during construction.
+func NewService(reader credentialReader, hashCost int) (*Service, error) {
 	if reader == nil {
 		return nil, errors.New("credential: reader is required")
 	}
-	return &Service{reader: reader}, nil
+	if hashCost < bcrypt.MinCost || hashCost > bcrypt.MaxCost {
+		return nil, fmt.Errorf(
+			"credential: hash cost must be between %d and %d",
+			bcrypt.MinCost,
+			bcrypt.MaxCost,
+		)
+	}
+
+	unknownAccountHash, err := bcrypt.GenerateFromPassword([]byte(unknownAccountVerificationInput), hashCost)
+	if err != nil {
+		return nil, fmt.Errorf("credential: create unknown-account hash: %w", err)
+	}
+
+	return &Service{
+		reader:             reader,
+		hashCost:           hashCost,
+		unknownAccountHash: unknownAccountHash,
+	}, nil
 }
 
 // Authenticate verifies password for email. It returns the authenticated
@@ -77,33 +92,30 @@ func (s *Service) Authenticate(ctx context.Context, email, password string) (Aut
 	}
 
 	cred, err := s.reader.CredentialByEmail(ctx, email)
+	comparisonHash := s.unknownAccountHash
+	credentialUsable := false
 	switch {
 	case err == nil:
-		match := bcrypt.CompareHashAndPassword([]byte(cred.PasswordHash), []byte(password)) == nil
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return Authenticated{}, fmt.Errorf("credential: %w", ctxErr)
+		storedHash := []byte(cred.PasswordHash)
+		cost, costErr := bcrypt.Cost(storedHash)
+		if costErr == nil && cost == s.hashCost {
+			comparisonHash = storedHash
+			credentialUsable = true
 		}
-		if !match {
-			return Authenticated{}, ErrInvalidCredentials
-		}
-		return Authenticated{UserID: cred.UserID, Email: cred.Email}, nil
 	case errors.Is(err, domain.ErrNotFound):
-		_ = bcrypt.CompareHashAndPassword([]byte(unknownAccountHash), []byte(password))
-		if ctxErr := ctx.Err(); ctxErr != nil {
-			return Authenticated{}, fmt.Errorf("credential: %w", ctxErr)
-		}
-		return Authenticated{}, ErrInvalidCredentials
+		// Keep the dummy hash selected so missing accounts perform the same
+		// comparison as malformed or unexpected-cost stored hashes.
 	default:
 		return Authenticated{}, fmt.Errorf("credential: read credential: %w", err)
 	}
-}
 
-// mustHash hashes password at package initialization. It panics on failure,
-// which is unreachable for a fixed, valid-length input and a valid cost.
-func mustHash(password string) string {
-	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
-	if err != nil {
-		panic("credential: failed to precompute unknown-account hash: " + err.Error())
+	match := bcrypt.CompareHashAndPassword(comparisonHash, []byte(password)) == nil
+	if ctxErr := ctx.Err(); ctxErr != nil {
+		return Authenticated{}, fmt.Errorf("credential: %w", ctxErr)
 	}
-	return string(hash)
+	if !credentialUsable || !match {
+		return Authenticated{}, ErrInvalidCredentials
+	}
+
+	return Authenticated{UserID: cred.UserID, Email: cred.Email}, nil
 }

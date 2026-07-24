@@ -68,7 +68,7 @@ func TestApplicationLifecycle(t *testing.T) {
 			correctPassword = "correct-password"
 		)
 		database := harness.Database(t)
-		passwordHash, err := bcrypt.GenerateFromPassword([]byte(correctPassword), bcrypt.MinCost)
+		passwordHash, err := bcrypt.GenerateFromPassword([]byte(correctPassword), bcrypt.DefaultCost)
 		if err != nil {
 			t.Fatalf("hash login password: %v", err)
 		}
