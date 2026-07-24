@@ -39,7 +39,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint architecture-check check test race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint architecture-check check test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -143,9 +143,17 @@ env: ## Check env for correct setup
 	@./scripts/check-env.bash
 
 ## Test:
-test: ## Run the tests of the project
+test: test-unit ## Run the unit tests of the project
+
+test-unit: ## Run tests that do not require external services
 	@echo "${MAGENTA}Running golang tests...${RESET}"
 	@$(GOTEST) -v $(PROJECT_PACKAGES)
+
+test-integration: ## Run tests backed by disposable external services
+	@echo "${MAGENTA}Running integration tests...${RESET}"
+	@$(GOTEST) -v -count=1 -tags=integration $(PROJECT_PACKAGES)
+
+test-all: test-unit test-integration ## Run unit and integration tests
 
 race: ## Run the tests of the project with race conditions
 	@echo "${MAGENTA}Running golang tests...${RESET}"

@@ -5,7 +5,6 @@ package health_test
 import (
 	"context"
 	"errors"
-	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -13,14 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap/zaptest"
 
+	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 	"github.com/rfizzle/go-starter/internal/platform/health"
 )
 
 func TestAggregatorTracksRealPostgresAvailability(t *testing.T) {
-	databaseURI := os.Getenv("GOSTARTER_TEST_DATABASE_URI")
-	if databaseURI == "" {
-		t.Skip("GOSTARTER_TEST_DATABASE_URI is not set")
-	}
+	databaseURI := postgrestest.New(t).EmptyDatabase(t).URI
 
 	newPool := func() *pgxpool.Pool {
 		t.Helper()

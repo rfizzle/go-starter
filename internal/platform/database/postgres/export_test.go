@@ -2,6 +2,7 @@ package postgres
 
 import (
 	"context"
+	"io/fs"
 
 	"github.com/pashagolub/pgxmock/v4"
 )
@@ -18,4 +19,10 @@ func WithMockPool(pool pgxmock.PgxPoolIface) Option {
 
 		return nil
 	}
+}
+
+// MigrateFS exposes the private migration seam to external-package integration
+// tests without adding fs.FS to the production API.
+func MigrateFS(client *Client, ctx context.Context, migrationFS fs.FS) error {
+	return client.migrate(ctx, migrationFS)
 }

@@ -1,0 +1,2 @@
+# Vendored third-party source is preserved byte-for-byte by go mod vendor.
+vendor/** -whitespace

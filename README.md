@@ -145,7 +145,10 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | `make env` | Report installed and required tool versions. |
 | `make build` | Build `bin/gostarter` without changing source files. |
 | `make check` | Run generation drift, formatting, vet, lint, and test checks. |
-| `make test` | Run all Go tests. |
+| `make test` | Run tests that do not require external services. |
+| `make test-unit` | Run tests that do not require external services. |
+| `make test-integration` | Run integration tests with disposable external services. |
+| `make test-all` | Run unit and integration test tiers. |
 | `make race` | Run all Go tests with the race detector. |
 | `make cover` | Write `coverage.out` and print statement coverage. |
 | `make generate` | Regenerate ogen and sqlc output. |
@@ -211,11 +214,19 @@ The [ogen workflow guide](docs/development/ogen-workflow.md) and
 ## Testing tiers
 
 - Focused unit tests: `go test ./internal/auth` (substitute the changed package).
-- Full unit/package suite: `make test`.
+- Full unit/package suite: `make test-unit` (also available as `make test`).
+- Disposable PostgreSQL integration suite: `make test-integration`.
+- Both tiers: `make test-all`.
 - Static and generated-code gates: `make check`.
 - Concurrency-sensitive changes: `make race`.
 - Coverage report: `make cover`.
 - Dependency vulnerability scan: `make vuln`.
+
+Integration tests use the
+[PostgreSQL test harness](internal/platform/database/postgrestest/README.md),
+which starts an isolated container and skips locally with a clear diagnostic
+when Docker is unavailable. CI requires Docker and treats startup failure as a
+failed integration run.
 
 The [testing strategy](docs/guidelines/testing-strategy.md) describes project
 conventions. Database behavior is primarily isolated behind mocks and test

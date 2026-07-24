@@ -1,28 +1,23 @@
 //go:build integration
 
-package postgres
+package postgres_test
 
 import (
 	"context"
 	"errors"
-	"fmt"
-	"os"
 	"sync"
-	"sync/atomic"
 	"testing"
 	"testing/fstest"
-	"time"
 
-	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
+	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 )
 
-var integrationDatabaseSequence atomic.Uint64
-
 func TestMigrateSerializesConcurrentPostgresAttempts(t *testing.T) {
-	testURI := createMigrationTestDatabase(t)
-
+	database := postgrestest.New(t).EmptyDatabase(t)
 	testMigrations := fstest.MapFS{
 		"migrations/00001_serialization_probe.sql": {
 			Data: []byte(`-- +goose Up
@@ -37,18 +32,18 @@ DROP TABLE migration_serialization_probe;
 		},
 	}
 
-	clients := make([]*Client, 2)
+	clients := make([]*postgres.Client, 2)
 	for i := range clients {
-		pool, err := pgxpool.New(t.Context(), testURI)
+		pool, err := pgxpool.New(t.Context(), database.URI)
 		if err != nil {
 			t.Fatalf("pgxpool.New() client %d error: %v", i, err)
 		}
 		t.Cleanup(pool.Close)
 
-		client, err := Open(
+		client, err := postgres.Open(
 			t.Context(),
-			WithPool(pool),
-			WithLogger(zaptest.NewLogger(t)),
+			postgres.WithPool(pool),
+			postgres.WithLogger(zaptest.NewLogger(t)),
 		)
 		if err != nil {
 			t.Fatalf("Open() client %d error: %v", i, err)
@@ -62,7 +57,7 @@ DROP TABLE migration_serialization_probe;
 	for _, client := range clients {
 		workers.Go(func() {
 			<-start
-			results <- client.migrate(t.Context(), testMigrations)
+			results <- postgres.MigrateFS(client, t.Context(), testMigrations)
 		})
 	}
 	close(start)
@@ -76,7 +71,7 @@ DROP TABLE migration_serialization_probe;
 	}
 
 	var exists bool
-	if err := clients[0].pool.QueryRow(
+	if err := database.Pool.QueryRow(
 		t.Context(),
 		"SELECT to_regclass('public.migration_serialization_probe') IS NOT NULL",
 	).Scan(&exists); err != nil {
@@ -88,17 +83,17 @@ DROP TABLE migration_serialization_probe;
 }
 
 func TestMigrateHonorsCanceledContext(t *testing.T) {
-	testURI := createMigrationTestDatabase(t)
-	pool, err := pgxpool.New(t.Context(), testURI)
+	database := postgrestest.New(t).EmptyDatabase(t)
+	pool, err := pgxpool.New(t.Context(), database.URI)
 	if err != nil {
 		t.Fatalf("pgxpool.New() error: %v", err)
 	}
 	t.Cleanup(pool.Close)
 
-	client, err := Open(
+	client, err := postgres.Open(
 		t.Context(),
-		WithPool(pool),
-		WithLogger(zaptest.NewLogger(t)),
+		postgres.WithPool(pool),
+		postgres.WithLogger(zaptest.NewLogger(t)),
 	)
 	if err != nil {
 		t.Fatalf("Open() error: %v", err)
@@ -107,57 +102,8 @@ func TestMigrateHonorsCanceledContext(t *testing.T) {
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	err = client.Migrate(ctx, Migrations)
+	err = client.Migrate(ctx, postgres.Migrations)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Migrate() error = %v, want context cancellation", err)
 	}
-}
-
-func createMigrationTestDatabase(t *testing.T) string {
-	t.Helper()
-
-	adminURI := os.Getenv("GOSTARTER_TEST_DATABASE_URI")
-	if adminURI == "" {
-		t.Skip("GOSTARTER_TEST_DATABASE_URI is not set")
-	}
-
-	adminConfig, err := pgx.ParseConfig(adminURI)
-	if err != nil {
-		t.Fatalf("pgx.ParseConfig() error: %v", err)
-	}
-	admin, err := pgx.ConnectConfig(t.Context(), adminConfig)
-	if err != nil {
-		t.Fatalf("connect test database administrator: %v", err)
-	}
-	t.Cleanup(func() {
-		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if err := admin.Close(cleanupCtx); err != nil {
-			t.Errorf("close test database administrator: %v", err)
-		}
-	})
-
-	databaseName := fmt.Sprintf(
-		"gostarter_migration_%d_%d",
-		os.Getpid(),
-		integrationDatabaseSequence.Add(1),
-	)
-	identifier := pgx.Identifier{databaseName}.Sanitize()
-	if _, err := admin.Exec(t.Context(), "CREATE DATABASE "+identifier); err != nil {
-		t.Fatalf("create isolated migration database: %v", err)
-	}
-	t.Cleanup(func() {
-		cleanupCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-		if _, err := admin.Exec(
-			cleanupCtx,
-			"DROP DATABASE "+identifier+" WITH (FORCE)",
-		); err != nil {
-			t.Errorf("drop isolated migration database: %v", err)
-		}
-	})
-
-	testConfig := adminConfig.Copy()
-	testConfig.Database = databaseName
-	return testConfig.ConnString()
 }
