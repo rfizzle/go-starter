@@ -16,6 +16,7 @@ PROJECT_PACKAGES=./...
 ROOT=$(CURDIR)
 YAMLFMT=yamlfmt -conf "${ROOT}/.yamlfmt"
 COVERAGE_PROFILE=coverage.out
+COVERAGE_MAINTAINED_PROFILE=coverage.maintained.out
 TOOL_BIN?=
 
 ifneq (,$(findstring 256color, ${TERM}))
@@ -159,10 +160,10 @@ race: ## Run the tests of the project with race conditions
 	@echo "${MAGENTA}Running golang tests...${RESET}"
 	@$(GOTEST) -v -race $(PROJECT_PACKAGES)
 
-cover: ## Run tests and write a coverage profile
+cover: ## Run unit and integration tests and report/gate maintained-code coverage
 	@echo "${MAGENTA}Running golang tests with coverage...${RESET}"
-	@$(GOTEST) -covermode=atomic -coverprofile=$(COVERAGE_PROFILE) $(PROJECT_PACKAGES)
-	@$(GOCMD) tool cover -func=$(COVERAGE_PROFILE)
+	@$(GOTEST) -covermode=atomic -coverprofile=$(COVERAGE_PROFILE) -tags=integration -count=1 $(PROJECT_PACKAGES)
+	@./scripts/check-coverage.bash $(COVERAGE_PROFILE) $(COVERAGE_MAINTAINED_PROFILE)
 
 vuln: ## Scan dependencies for known vulnerabilities
 	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || { echo "${RED}govulncheck not found. Run: make tools${RESET}"; exit 1; }

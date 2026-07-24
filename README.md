@@ -150,7 +150,7 @@ In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 | `make test-integration` | Run integration tests with disposable external services. |
 | `make test-all` | Run unit and integration test tiers. |
 | `make race` | Run all Go tests with the race detector. |
-| `make cover` | Write `coverage.out` and print statement coverage. |
+| `make cover` | Run unit and integration tests; report and gate maintained-code coverage. |
 | `make generate` | Regenerate ogen and sqlc output. |
 | `make generate-check` | Fail if committed generated code is stale. |
 | `make architecture-check` | Verify module, domain, platform, and transport boundaries. |
@@ -219,7 +219,7 @@ The [ogen workflow guide](docs/development/ogen-workflow.md) and
 - Both tiers: `make test-all`.
 - Static and generated-code gates: `make check`.
 - Concurrency-sensitive changes: `make race`.
-- Coverage report: `make cover`.
+- Coverage report and gate: `make cover` (fails below the floor in `scripts/coverage-baseline.env`).
 - Dependency vulnerability scan: `make vuln`.
 
 Integration tests use the

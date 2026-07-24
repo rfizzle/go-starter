@@ -195,6 +195,18 @@ make check
 Integration tests that require local services should use the repository's integration
 workflow and build tags. Do not claim a command passed unless it was run successfully.
 
+## Coverage Gate
+
+`make cover` runs the unit and integration suites together, then reports
+total and maintained-code statement coverage. Maintained coverage excludes
+the ogen and sqlc generated packages (`internal/api/v1/`,
+`internal/platform/database/postgres/db/`) so generated boilerplate cannot
+hide a real regression.
+
+The command fails when maintained coverage drops below the floor recorded in
+`scripts/coverage-baseline.env`. Raise that floor only after `make cover`
+measures a durable improvement; never lower it to make a regression pass.
+
 ## Review Checklist
 
 - Each test maps to a contract, acceptance criterion, regression, boundary, or named risk.
