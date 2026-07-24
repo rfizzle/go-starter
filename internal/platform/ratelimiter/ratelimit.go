@@ -2,394 +2,302 @@ package ratelimiter
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
+	"sync/atomic"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
 )
 
-// RateLimiter interface for rate limiting authentication attempts
-type RateLimiter interface {
-	Allow(ctx context.Context, key string) (bool, error)
-	Reset(ctx context.Context, key string) error
-}
+// ErrClosed is returned when Allow or Reset is called after Close.
+var ErrClosed = errors.New("rate limiter is closed")
 
-// RateLimitConfig holds configuration for rate limiting
+// RateLimitConfig defines the fixed-window limit and its in-memory bounds.
 type RateLimitConfig struct {
-	// MaxRequests is the maximum number of requests allowed
+	// MaxRequests is the maximum number of requests allowed per key and window.
 	MaxRequests int
-	// Window is the time window for the rate limit
+	// Window is the fixed-window duration.
 	Window time.Duration
-	// KeyPrefix is prepended to all keys
+	// MaxKeys is the maximum number of keys retained in memory.
+	MaxKeys int
+	// CleanupInterval controls how often expired keys are removed.
+	CleanupInterval time.Duration
+	// KeyPrefix is prepended to keys before they are stored.
 	KeyPrefix string
+	// Clock supplies the current time. A nil Clock uses time.Now.
+	Clock func() time.Time
 }
 
-// DefaultRateLimitConfig returns sensible rate limiting defaults
+// DefaultRateLimitConfig returns bounded defaults suitable for a single
+// application instance.
 func DefaultRateLimitConfig() RateLimitConfig {
 	return RateLimitConfig{
-		MaxRequests: 100,
-		Window:      time.Hour,
-		KeyPrefix:   "rate_limit:",
+		MaxRequests:     100,
+		Window:          time.Hour,
+		MaxKeys:         10_000,
+		CleanupInterval: time.Minute,
+		KeyPrefix:       "rate_limit:",
 	}
 }
 
-// RateLimitEntry represents a single rate limit entry
-type RateLimitEntry struct {
-	Count     int
-	Window    time.Time
-	ExpiresAt time.Time
+type entry struct {
+	count    int
+	resetAt  time.Time
+	lastSeen time.Time
 }
 
-// IsExpired checks if the rate limit entry has expired
-func (e *RateLimitEntry) IsExpired() bool {
-	return time.Now().After(e.ExpiresAt)
+// Limiter is a bounded, in-memory fixed-window rate limiter. Its methods are
+// safe for concurrent use. Close must be called to stop its cleanup goroutine.
+//
+// Limiter implements prometheus.Collector. Register it with the application's
+// registry to expose decision, error, and eviction counters.
+type Limiter struct {
+	maxRequests int
+	window      time.Duration
+	maxKeys     int
+	keyPrefix   string
+	now         func() time.Time
+
+	mu      sync.Mutex
+	entries map[string]entry
+	closed  bool
+
+	done      chan struct{}
+	closeOnce sync.Once
+	cleanupWG sync.WaitGroup
+
+	allowedTotal   atomic.Uint64
+	deniedTotal    atomic.Uint64
+	errorsTotal    atomic.Uint64
+	evictionsTotal atomic.Uint64
+
+	allowedDesc   *prometheus.Desc
+	deniedDesc    *prometheus.Desc
+	errorsDesc    *prometheus.Desc
+	evictionsDesc *prometheus.Desc
 }
 
-// ShouldReset checks if the window has passed and count should reset
-func (e *RateLimitEntry) ShouldReset() bool {
-	return time.Now().After(e.Window)
-}
-
-// MemoryRateLimiter implements rate limiting using in-memory storage
-type MemoryRateLimiter struct {
-	config  RateLimitConfig
-	entries map[string]*RateLimitEntry
-	mutex   sync.RWMutex
-}
-
-// NewMemoryRateLimiter creates a new in-memory rate limiter
-func NewMemoryRateLimiter(config RateLimitConfig) *MemoryRateLimiter {
-	limiter := &MemoryRateLimiter{
-		config:  config,
-		entries: make(map[string]*RateLimitEntry),
+// NewLimiter validates config and starts the cleanup lifecycle.
+func NewLimiter(config RateLimitConfig) (*Limiter, error) {
+	if config.MaxRequests <= 0 {
+		return nil, fmt.Errorf("max requests must be positive: %d", config.MaxRequests)
+	}
+	if config.Window <= 0 {
+		return nil, fmt.Errorf("window must be positive: %s", config.Window)
+	}
+	if config.MaxKeys <= 0 {
+		return nil, fmt.Errorf("max keys must be positive: %d", config.MaxKeys)
+	}
+	if config.CleanupInterval <= 0 {
+		return nil, fmt.Errorf("cleanup interval must be positive: %s", config.CleanupInterval)
 	}
 
-	// Start cleanup goroutine
-	go limiter.cleanup()
+	now := config.Clock
+	if now == nil {
+		now = time.Now
+	}
 
-	return limiter
+	const namespace = "rate_limiter"
+	limiter := &Limiter{
+		maxRequests: config.MaxRequests,
+		window:      config.Window,
+		maxKeys:     config.MaxKeys,
+		keyPrefix:   config.KeyPrefix,
+		now:         now,
+		entries:     make(map[string]entry),
+		done:        make(chan struct{}),
+		allowedDesc: prometheus.NewDesc(
+			namespace+"_allowed_total",
+			"Number of requests allowed by the in-memory rate limiter.",
+			nil,
+			nil,
+		),
+		deniedDesc: prometheus.NewDesc(
+			namespace+"_denied_total",
+			"Number of requests denied by the in-memory rate limiter.",
+			nil,
+			nil,
+		),
+		errorsDesc: prometheus.NewDesc(
+			namespace+"_errors_total",
+			"Number of rate limiter operations that returned an error.",
+			nil,
+			nil,
+		),
+		evictionsDesc: prometheus.NewDesc(
+			namespace+"_evictions_total",
+			"Number of expired or least-recently-used keys evicted from the in-memory rate limiter.",
+			nil,
+			nil,
+		),
+	}
+
+	limiter.cleanupWG.Add(1)
+	go limiter.cleanup(config.CleanupInterval)
+
+	return limiter, nil
 }
 
-// Allow checks if a request is allowed for the given key
-func (m *MemoryRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
-	fullKey := m.config.KeyPrefix + key
+// Allow reports whether key has remaining capacity in its current fixed
+// window. Context cancellation and use after Close return errors; callers must
+// not treat those errors as allowed requests.
+func (l *Limiter) Allow(ctx context.Context, key string) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		l.errorsTotal.Add(1)
+		return false, err
+	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	fullKey := l.keyPrefix + key
 
-	now := time.Now()
-	entry, exists := m.entries[fullKey]
+	l.mu.Lock()
+	if l.closed {
+		l.mu.Unlock()
+		l.errorsTotal.Add(1)
+		return false, ErrClosed
+	}
+	if err := ctx.Err(); err != nil {
+		l.mu.Unlock()
+		l.errorsTotal.Add(1)
+		return false, err
+	}
+	now := l.now()
 
-	if !exists || entry.IsExpired() {
-		// Create new entry
-		m.entries[fullKey] = &RateLimitEntry{
-			Count:     1,
-			Window:    now.Add(m.config.Window),
-			ExpiresAt: now.Add(m.config.Window * 2), // Keep for double the window for accurate tracking
+	current, exists := l.entries[fullKey]
+	if !exists {
+		l.evictExpiredLocked(now)
+		if len(l.entries) >= l.maxKeys {
+			l.evictOldestLocked()
 		}
+
+		l.entries[fullKey] = entry{
+			count:    1,
+			resetAt:  now.Add(l.window),
+			lastSeen: now,
+		}
+		l.mu.Unlock()
+		l.allowedTotal.Add(1)
 		return true, nil
 	}
 
-	if entry.ShouldReset() {
-		// Reset the window
-		entry.Count = 1
-		entry.Window = now.Add(m.config.Window)
-		entry.ExpiresAt = now.Add(m.config.Window * 2)
+	current.lastSeen = now
+	if !now.Before(current.resetAt) {
+		current.count = 1
+		current.resetAt = now.Add(l.window)
+		l.entries[fullKey] = current
+		l.mu.Unlock()
+		l.allowedTotal.Add(1)
 		return true, nil
 	}
 
-	if entry.Count >= m.config.MaxRequests {
+	if current.count >= l.maxRequests {
+		l.entries[fullKey] = current
+		l.mu.Unlock()
+		l.deniedTotal.Add(1)
 		return false, nil
 	}
 
-	entry.Count++
+	current.count++
+	l.entries[fullKey] = current
+	l.mu.Unlock()
+	l.allowedTotal.Add(1)
 	return true, nil
 }
 
-// Reset clears the rate limit for the given key
-func (m *MemoryRateLimiter) Reset(ctx context.Context, key string) error {
-	fullKey := m.config.KeyPrefix + key
+// Reset removes the current window for key.
+func (l *Limiter) Reset(ctx context.Context, key string) error {
+	if err := ctx.Err(); err != nil {
+		l.errorsTotal.Add(1)
+		return err
+	}
 
-	m.mutex.Lock()
-	defer m.mutex.Unlock()
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
-	delete(m.entries, fullKey)
+	if l.closed {
+		l.errorsTotal.Add(1)
+		return ErrClosed
+	}
+	if err := ctx.Err(); err != nil {
+		l.errorsTotal.Add(1)
+		return err
+	}
+
+	delete(l.entries, l.keyPrefix+key)
 	return nil
 }
 
-// GetCount returns the current count for debugging/monitoring
-func (m *MemoryRateLimiter) GetCount(ctx context.Context, key string) (int, error) {
-	fullKey := m.config.KeyPrefix + key
+// Close stops background cleanup and prevents further Allow or Reset calls.
+// It is safe to call concurrently and more than once.
+func (l *Limiter) Close() {
+	l.closeOnce.Do(func() {
+		l.mu.Lock()
+		l.closed = true
+		l.mu.Unlock()
 
-	m.mutex.RLock()
-	defer m.mutex.RUnlock()
-
-	entry, exists := m.entries[fullKey]
-	if !exists || entry.IsExpired() {
-		return 0, nil
-	}
-
-	if entry.ShouldReset() {
-		return 0, nil
-	}
-
-	return entry.Count, nil
+		close(l.done)
+		l.cleanupWG.Wait()
+	})
 }
 
-// cleanup periodically removes expired entries
-func (m *MemoryRateLimiter) cleanup() {
-	ticker := time.NewTicker(m.config.Window)
+func (l *Limiter) cleanup(interval time.Duration) {
+	defer l.cleanupWG.Done()
+
+	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
 
-	for range ticker.C {
-		m.mutex.Lock()
-		for key, entry := range m.entries {
-			if entry.IsExpired() {
-				delete(m.entries, key)
-			}
-		}
-		m.mutex.Unlock()
-	}
-}
-
-// RedisRateLimiter implements rate limiting using Redis
-// This is a skeleton implementation - you'd need to add actual Redis client
-type RedisRateLimiter struct {
-	config RateLimitConfig
-	// redis  redis.Client // You would inject your Redis client here
-}
-
-// NewRedisRateLimiter creates a new Redis-backed rate limiter
-func NewRedisRateLimiter(config RateLimitConfig /* , redisClient redis.Client */) *RedisRateLimiter {
-	return &RedisRateLimiter{
-		config: config,
-		// redis:  redisClient,
-	}
-}
-
-// Allow checks if a request is allowed using Redis
-func (r *RedisRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
-	_ = key // Suppress unused warning for placeholder implementation
-
-	// Example Redis implementation (pseudo-code):
-	// 1. Use Redis INCR to increment counter
-	// 2. Set expiration if it's the first increment
-	// 3. Check if count exceeds limit
-
-	// Lua script for atomic increment and check:
-	/*
-		local key = KEYS[1]
-		local limit = tonumber(ARGV[1])
-		local window = tonumber(ARGV[2])
-
-		local current = redis.call("GET", key)
-		if current == false then
-			redis.call("SET", key, 1)
-			redis.call("EXPIRE", key, window)
-			return 1
-		end
-
-		current = tonumber(current)
-		if current < limit then
-			return redis.call("INCR", key)
-		else
-			return -1
-		end
-	*/
-
-	// For now, return true (implement with your Redis client)
-	return true, nil
-}
-
-// Reset clears the rate limit for the given key using Redis
-func (r *RedisRateLimiter) Reset(ctx context.Context, key string) error {
-	_ = key // Suppress unused warning for placeholder implementation
-
-	// Example: r.redis.Del(ctx, fullKey)
-	return nil
-}
-
-// SlidingWindowRateLimiter implements a sliding window rate limiter
-type SlidingWindowRateLimiter struct {
-	config  RateLimitConfig
-	windows map[string][]time.Time
-	mutex   sync.RWMutex
-}
-
-// NewSlidingWindowRateLimiter creates a sliding window rate limiter
-func NewSlidingWindowRateLimiter(config RateLimitConfig) *SlidingWindowRateLimiter {
-	limiter := &SlidingWindowRateLimiter{
-		config:  config,
-		windows: make(map[string][]time.Time),
-	}
-
-	// Start cleanup goroutine
-	go limiter.cleanup()
-
-	return limiter
-}
-
-// Allow checks if a request is allowed using sliding window
-func (s *SlidingWindowRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
-	fullKey := s.config.KeyPrefix + key
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	now := time.Now()
-	windowStart := now.Add(-s.config.Window)
-
-	// Get existing timestamps for this key
-	timestamps, exists := s.windows[fullKey]
-	if !exists {
-		timestamps = make([]time.Time, 0, s.config.MaxRequests+1)
-	}
-
-	// Remove timestamps outside the window
-	validTimestamps := make([]time.Time, 0, len(timestamps))
-	for _, ts := range timestamps {
-		if ts.After(windowStart) {
-			validTimestamps = append(validTimestamps, ts)
+	for {
+		select {
+		case <-ticker.C:
+			l.mu.Lock()
+			now := l.now()
+			l.evictExpiredLocked(now)
+			l.mu.Unlock()
+		case <-l.done:
+			return
 		}
 	}
-
-	// Check if we can add another request
-	if len(validTimestamps) >= s.config.MaxRequests {
-		s.windows[fullKey] = validTimestamps
-		return false, nil
-	}
-
-	// Add current timestamp
-	validTimestamps = append(validTimestamps, now)
-	s.windows[fullKey] = validTimestamps
-
-	return true, nil
 }
 
-// Reset clears the rate limit for the given key
-func (s *SlidingWindowRateLimiter) Reset(ctx context.Context, key string) error {
-	fullKey := s.config.KeyPrefix + key
-
-	s.mutex.Lock()
-	defer s.mutex.Unlock()
-
-	delete(s.windows, fullKey)
-	return nil
-}
-
-// cleanup periodically removes old entries
-func (s *SlidingWindowRateLimiter) cleanup() {
-	ticker := time.NewTicker(s.config.Window)
-	defer ticker.Stop()
-
-	for range ticker.C {
-		s.mutex.Lock()
-		windowStart := time.Now().Add(-s.config.Window * 2) // Keep some buffer
-
-		for key, timestamps := range s.windows {
-			validTimestamps := make([]time.Time, 0, len(timestamps))
-			for _, ts := range timestamps {
-				if ts.After(windowStart) {
-					validTimestamps = append(validTimestamps, ts)
-				}
-			}
-
-			if len(validTimestamps) == 0 {
-				delete(s.windows, key)
-			} else {
-				s.windows[key] = validTimestamps
-			}
-		}
-		s.mutex.Unlock()
-	}
-}
-
-// TokenBucketRateLimiter implements a token bucket rate limiter
-type TokenBucketRateLimiter struct {
-	config  RateLimitConfig
-	buckets map[string]*TokenBucket
-	mutex   sync.RWMutex
-}
-
-// TokenBucket represents a token bucket for rate limiting
-type TokenBucket struct {
-	tokens     int
-	capacity   int
-	refillRate time.Duration
-	lastRefill time.Time
-	mutex      sync.Mutex
-}
-
-// NewTokenBucketRateLimiter creates a token bucket rate limiter
-func NewTokenBucketRateLimiter(config RateLimitConfig) *TokenBucketRateLimiter {
-	return &TokenBucketRateLimiter{
-		config:  config,
-		buckets: make(map[string]*TokenBucket),
-	}
-}
-
-// Allow checks if a request is allowed using token bucket algorithm
-func (t *TokenBucketRateLimiter) Allow(ctx context.Context, key string) (bool, error) {
-	fullKey := t.config.KeyPrefix + key
-
-	t.mutex.RLock()
-	bucket, exists := t.buckets[fullKey]
-	t.mutex.RUnlock()
-
-	if !exists {
-		t.mutex.Lock()
-		// Double-check after acquiring write lock
-		bucket, exists = t.buckets[fullKey]
-		if !exists {
-			bucket = &TokenBucket{
-				tokens:     t.config.MaxRequests - 1, // Take one token immediately
-				capacity:   t.config.MaxRequests,
-				refillRate: t.config.Window / time.Duration(t.config.MaxRequests),
-				lastRefill: time.Now(),
-			}
-			t.buckets[fullKey] = bucket
-		}
-		t.mutex.Unlock()
-
-		if !exists {
-			return true, nil // First request is always allowed
+func (l *Limiter) evictExpiredLocked(now time.Time) {
+	for key, current := range l.entries {
+		if !now.Before(current.resetAt) {
+			delete(l.entries, key)
+			l.evictionsTotal.Add(1)
 		}
 	}
-
-	return bucket.takeToken(), nil
 }
 
-// takeToken attempts to take a token from the bucket
-func (b *TokenBucket) takeToken() bool {
-	b.mutex.Lock()
-	defer b.mutex.Unlock()
-
-	now := time.Now()
-	timePassed := now.Sub(b.lastRefill)
-
-	// Calculate tokens to add based on time passed
-	tokensToAdd := int(timePassed / b.refillRate)
-	if tokensToAdd > 0 {
-		b.tokens += tokensToAdd
-		if b.tokens > b.capacity {
-			b.tokens = b.capacity
+func (l *Limiter) evictOldestLocked() {
+	var oldestKey string
+	var oldestTime time.Time
+	found := false
+	for key, current := range l.entries {
+		if !found || current.lastSeen.Before(oldestTime) {
+			oldestKey = key
+			oldestTime = current.lastSeen
+			found = true
 		}
-		b.lastRefill = now
 	}
-
-	if b.tokens > 0 {
-		b.tokens--
-		return true
+	if found {
+		delete(l.entries, oldestKey)
+		l.evictionsTotal.Add(1)
 	}
-
-	return false
 }
 
-// Reset clears the rate limit for the given key
-func (t *TokenBucketRateLimiter) Reset(ctx context.Context, key string) error {
-	fullKey := t.config.KeyPrefix + key
+// Describe implements prometheus.Collector.
+func (l *Limiter) Describe(ch chan<- *prometheus.Desc) {
+	ch <- l.allowedDesc
+	ch <- l.deniedDesc
+	ch <- l.errorsDesc
+	ch <- l.evictionsDesc
+}
 
-	t.mutex.Lock()
-	defer t.mutex.Unlock()
-
-	delete(t.buckets, fullKey)
-	return nil
+// Collect implements prometheus.Collector.
+func (l *Limiter) Collect(ch chan<- prometheus.Metric) {
+	ch <- prometheus.MustNewConstMetric(l.allowedDesc, prometheus.CounterValue, float64(l.allowedTotal.Load()))
+	ch <- prometheus.MustNewConstMetric(l.deniedDesc, prometheus.CounterValue, float64(l.deniedTotal.Load()))
+	ch <- prometheus.MustNewConstMetric(l.errorsDesc, prometheus.CounterValue, float64(l.errorsTotal.Load()))
+	ch <- prometheus.MustNewConstMetric(l.evictionsDesc, prometheus.CounterValue, float64(l.evictionsTotal.Load()))
 }

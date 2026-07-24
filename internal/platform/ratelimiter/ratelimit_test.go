@@ -2,394 +2,279 @@ package ratelimiter
 
 import (
 	"context"
+	"errors"
+	"fmt"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMemoryRateLimiter(t *testing.T) {
-	config := RateLimitConfig{
-		MaxRequests: 3,
-		Window:      100 * time.Millisecond,
-		KeyPrefix:   "test:",
-	}
-
-	limiter := NewMemoryRateLimiter(config)
-	ctx := context.Background()
-
-	t.Run("allows requests within limit", func(t *testing.T) {
-		key := "user1"
-
-		// First 3 requests should be allowed
-		for i := 0; i < 3; i++ {
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
-			assert.True(t, allowed, "request %d should be allowed", i+1)
-		}
-
-		// 4th request should be denied
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed, "4th request should be denied")
-	})
-
-	t.Run("resets after window expires", func(t *testing.T) {
-		key := "user2"
-
-		// Use up the limit
-		for i := 0; i < 3; i++ {
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
-			assert.True(t, allowed)
-		}
-
-		// Should be denied
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed)
-
-		// Wait for window to expire
-		time.Sleep(110 * time.Millisecond)
-
-		// Should be allowed again
-		allowed, err = limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.True(t, allowed)
-	})
-
-	t.Run("different keys are independent", func(t *testing.T) {
-		key1 := "user3"
-		key2 := "user4"
-
-		// Use up limit for key1
-		for i := 0; i < 3; i++ {
-			allowed, err := limiter.Allow(ctx, key1)
-			assert.NoError(t, err)
-			assert.True(t, allowed)
-		}
-
-		// key1 should be denied
-		allowed, err := limiter.Allow(ctx, key1)
-		assert.NoError(t, err)
-		assert.False(t, allowed)
-
-		// key2 should still be allowed
-		allowed, err = limiter.Allow(ctx, key2)
-		assert.NoError(t, err)
-		assert.True(t, allowed)
-	})
-
-	t.Run("reset clears rate limit", func(t *testing.T) {
-		key := "user5"
-
-		// Use up the limit
-		for i := 0; i < 3; i++ {
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
-			assert.True(t, allowed)
-		}
-
-		// Should be denied
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed)
-
-		// Reset the limit
-		err = limiter.Reset(ctx, key)
-		assert.NoError(t, err)
-
-		// Should be allowed again
-		allowed, err = limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.True(t, allowed)
-	})
+type fakeClock struct {
+	mu  sync.Mutex
+	now time.Time
 }
 
-func TestMemoryRateLimiter_GetCount(t *testing.T) {
-	config := RateLimitConfig{
-		MaxRequests: 5,
-		Window:      time.Hour,
-		KeyPrefix:   "test:",
-	}
-
-	limiter := NewMemoryRateLimiter(config)
-	ctx := context.Background()
-	key := "user1"
-
-	// Initially should be 0
-	count, err := limiter.GetCount(ctx, key)
-	assert.NoError(t, err)
-	assert.Equal(t, 0, count)
-
-	// Make 3 requests
-	for i := 0; i < 3; i++ {
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.True(t, allowed)
-	}
-
-	// Count should be 3
-	count, err = limiter.GetCount(ctx, key)
-	assert.NoError(t, err)
-	assert.Equal(t, 3, count)
+func (c *fakeClock) Now() time.Time {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.now
 }
 
-func TestMemoryRateLimiter_Concurrent(t *testing.T) {
-	config := RateLimitConfig{
-		MaxRequests: 10,
-		Window:      time.Second,
-		KeyPrefix:   "test:",
+func (c *fakeClock) Advance(d time.Duration) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.now = c.now.Add(d)
+}
+
+func validConfig(clock *fakeClock) RateLimitConfig {
+	return RateLimitConfig{
+		MaxRequests:     2,
+		Window:          time.Minute,
+		MaxKeys:         4,
+		CleanupInterval: time.Hour,
+		KeyPrefix:       "test:",
+		Clock:           clock.Now,
+	}
+}
+
+func newTestLimiter(t *testing.T, config RateLimitConfig) *Limiter {
+	t.Helper()
+
+	limiter, err := NewLimiter(config)
+	require.NoError(t, err)
+	t.Cleanup(limiter.Close)
+	return limiter
+}
+
+func TestNewLimiter_ValidatesConfig(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(1, 0)}
+
+	tests := []struct {
+		name   string
+		mutate func(*RateLimitConfig)
+		want   string
+	}{
+		{
+			name:   "zero max requests",
+			mutate: func(config *RateLimitConfig) { config.MaxRequests = 0 },
+			want:   "max requests must be positive",
+		},
+		{
+			name:   "negative max requests",
+			mutate: func(config *RateLimitConfig) { config.MaxRequests = -1 },
+			want:   "max requests must be positive",
+		},
+		{
+			name:   "zero window",
+			mutate: func(config *RateLimitConfig) { config.Window = 0 },
+			want:   "window must be positive",
+		},
+		{
+			name:   "negative window",
+			mutate: func(config *RateLimitConfig) { config.Window = -time.Second },
+			want:   "window must be positive",
+		},
+		{
+			name:   "zero max keys",
+			mutate: func(config *RateLimitConfig) { config.MaxKeys = 0 },
+			want:   "max keys must be positive",
+		},
+		{
+			name:   "negative max keys",
+			mutate: func(config *RateLimitConfig) { config.MaxKeys = -1 },
+			want:   "max keys must be positive",
+		},
+		{
+			name:   "zero cleanup interval",
+			mutate: func(config *RateLimitConfig) { config.CleanupInterval = 0 },
+			want:   "cleanup interval must be positive",
+		},
+		{
+			name:   "negative cleanup interval",
+			mutate: func(config *RateLimitConfig) { config.CleanupInterval = -time.Second },
+			want:   "cleanup interval must be positive",
+		},
 	}
 
-	limiter := NewMemoryRateLimiter(config)
-	ctx := context.Background()
-	key := "concurrent_user"
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			config := validConfig(clock)
+			tt.mutate(&config)
 
+			limiter, err := NewLimiter(config)
+			require.ErrorContains(t, err, tt.want)
+			assert.Nil(t, limiter)
+		})
+	}
+}
+
+func TestLimiter_AllowResetAndWindowExpiry(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(1, 0)}
+	limiter := newTestLimiter(t, validConfig(clock))
+	ctx := context.Background()
+
+	for request := 1; request <= 2; request++ {
+		allowed, err := limiter.Allow(ctx, "client")
+		require.NoError(t, err)
+		assert.True(t, allowed, "request %d should be allowed", request)
+	}
+
+	allowed, err := limiter.Allow(ctx, "client")
+	require.NoError(t, err)
+	assert.False(t, allowed)
+
+	require.NoError(t, limiter.Reset(ctx, "client"))
+	allowed, err = limiter.Allow(ctx, "client")
+	require.NoError(t, err)
+	assert.True(t, allowed)
+
+	clock.Advance(time.Minute)
+	allowed, err = limiter.Allow(ctx, "client")
+	require.NoError(t, err)
+	assert.True(t, allowed)
+}
+
+func TestLimiter_BoundsHighCardinalityAndExpiresKeys(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(1, 0)}
+	config := validConfig(clock)
+	config.MaxKeys = 32
+	limiter := newTestLimiter(t, config)
+	ctx := context.Background()
+
+	for i := 0; i < 10_000; i++ {
+		allowed, err := limiter.Allow(ctx, fmt.Sprintf("client-%d", i))
+		require.NoError(t, err)
+		require.True(t, allowed)
+
+		limiter.mu.Lock()
+		entryCount := len(limiter.entries)
+		limiter.mu.Unlock()
+		if entryCount > config.MaxKeys {
+			t.Fatalf("entry count = %d, want at most %d", entryCount, config.MaxKeys)
+		}
+	}
+
+	clock.Advance(config.Window)
+	allowed, err := limiter.Allow(ctx, "after-expiry")
+	require.NoError(t, err)
+	assert.True(t, allowed)
+
+	limiter.mu.Lock()
+	entryCount := len(limiter.entries)
+	limiter.mu.Unlock()
+	assert.Equal(t, 1, entryCount)
+}
+
+func TestLimiter_Metrics(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(1, 0)}
+	config := validConfig(clock)
+	config.MaxRequests = 1
+	config.MaxKeys = 1
+	limiter := newTestLimiter(t, config)
+
+	allowed, err := limiter.Allow(context.Background(), "first")
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	allowed, err = limiter.Allow(context.Background(), "first")
+	require.NoError(t, err)
+	require.False(t, allowed)
+
+	allowed, err = limiter.Allow(context.Background(), "second")
+	require.NoError(t, err)
+	require.True(t, allowed)
+
+	cancelled, cancel := context.WithCancel(context.Background())
+	cancel()
+	allowed, err = limiter.Allow(cancelled, "third")
+	require.ErrorIs(t, err, context.Canceled)
+	require.False(t, allowed)
+
+	registry := prometheus.NewRegistry()
+	require.NoError(t, registry.Register(limiter))
+	families, err := registry.Gather()
+	require.NoError(t, err)
+
+	values := make(map[string]float64, len(families))
+	for _, family := range families {
+		require.Len(t, family.GetMetric(), 1)
+		values[family.GetName()] = family.GetMetric()[0].GetCounter().GetValue()
+	}
+
+	assert.Equal(t, float64(2), values["rate_limiter_allowed_total"])
+	assert.Equal(t, float64(1), values["rate_limiter_denied_total"])
+	assert.Equal(t, float64(1), values["rate_limiter_errors_total"])
+	assert.Equal(t, float64(1), values["rate_limiter_evictions_total"])
+}
+
+func TestLimiter_ConcurrentAllowResetAndClose(t *testing.T) {
+	clock := &fakeClock{now: time.Unix(1, 0)}
+	config := validConfig(clock)
+	config.MaxRequests = 100
+	config.MaxKeys = 16
+	limiter := newTestLimiter(t, config)
+
+	const workers = 32
+	start := make(chan struct{})
+	errs := make(chan error, workers)
 	var wg sync.WaitGroup
-	var allowedCount int32
-	var deniedCount int32
-	var mu sync.Mutex
 
-	// Launch 20 concurrent requests
-	for i := 0; i < 20; i++ {
+	for worker := 0; worker < workers; worker++ {
 		wg.Add(1)
-		go func() {
+		go func(id int) {
 			defer wg.Done()
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
+			<-start
 
-			mu.Lock()
-			if allowed {
-				allowedCount++
-			} else {
-				deniedCount++
+			for operation := 0; operation < 100; operation++ {
+				key := fmt.Sprintf("client-%d", id%config.MaxKeys)
+				var err error
+				if operation%3 == 0 {
+					err = limiter.Reset(context.Background(), key)
+				} else {
+					_, err = limiter.Allow(context.Background(), key)
+				}
+				if err != nil && !errors.Is(err, ErrClosed) {
+					errs <- err
+					return
+				}
 			}
-			mu.Unlock()
-		}()
+		}(worker)
 	}
 
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		<-start
+		limiter.Close()
+		limiter.Close()
+	}()
+
+	close(start)
 	wg.Wait()
+	close(errs)
 
-	// Should have exactly 10 allowed and 10 denied
-	assert.Equal(t, int32(10), allowedCount)
-	assert.Equal(t, int32(10), deniedCount)
-}
-
-func TestSlidingWindowRateLimiter(t *testing.T) {
-	config := RateLimitConfig{
-		MaxRequests: 3,
-		Window:      200 * time.Millisecond,
-		KeyPrefix:   "sliding:",
+	for err := range errs {
+		t.Errorf("concurrent operation returned unexpected error: %v", err)
 	}
 
-	limiter := NewSlidingWindowRateLimiter(config)
-	ctx := context.Background()
-
-	t.Run("allows requests within sliding window", func(t *testing.T) {
-		key := "sliding_user1"
-
-		// Make 3 requests - should all be allowed
-		for i := 0; i < 3; i++ {
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
-			assert.True(t, allowed, "request %d should be allowed", i+1)
-		}
-
-		// 4th request should be denied
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed, "4th request should be denied")
-
-		// Wait for window to slide partially
-		time.Sleep(100 * time.Millisecond)
-
-		// Still within window, should be denied
-		allowed, err = limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed)
-
-		// Wait for full window to pass
-		time.Sleep(120 * time.Millisecond)
-
-		// Should be allowed again
-		allowed, err = limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.True(t, allowed)
-	})
+	allowed, err := limiter.Allow(context.Background(), "after-close")
+	assert.False(t, allowed)
+	assert.ErrorIs(t, err, ErrClosed)
+	assert.ErrorIs(t, limiter.Reset(context.Background(), "after-close"), ErrClosed)
 }
 
-func TestTokenBucketRateLimiter(t *testing.T) {
-	config := RateLimitConfig{
-		MaxRequests: 5,                      // 5 tokens capacity
-		Window:      500 * time.Millisecond, // Refill 1 token every 100ms
-		KeyPrefix:   "bucket:",
-	}
-
-	limiter := NewTokenBucketRateLimiter(config)
-	ctx := context.Background()
-
-	t.Run("initial burst allowed", func(t *testing.T) {
-		key := "bucket_user1"
-
-		// Should allow initial burst up to capacity
-		for i := 0; i < 5; i++ {
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
-			assert.True(t, allowed, "request %d should be allowed", i+1)
-		}
-
-		// 6th request should be denied (bucket empty)
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed, "6th request should be denied")
-	})
-
-	t.Run("tokens refill over time", func(t *testing.T) {
-		key := "bucket_user2"
-
-		// Use up all tokens
-		for i := 0; i < 5; i++ {
-			allowed, err := limiter.Allow(ctx, key)
-			assert.NoError(t, err)
-			assert.True(t, allowed)
-		}
-
-		// Should be denied
-		allowed, err := limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed)
-
-		// Wait for some tokens to refill
-		time.Sleep(150 * time.Millisecond) // Should refill 1 token
-
-		// Should allow 1 request
-		allowed, err = limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.True(t, allowed)
-
-		// Should be denied again
-		allowed, err = limiter.Allow(ctx, key)
-		assert.NoError(t, err)
-		assert.False(t, allowed)
-	})
-}
-
-func TestRateLimitConfig_Defaults(t *testing.T) {
+func TestDefaultRateLimitConfig(t *testing.T) {
 	config := DefaultRateLimitConfig()
 
 	assert.Equal(t, 100, config.MaxRequests)
 	assert.Equal(t, time.Hour, config.Window)
+	assert.Equal(t, 10_000, config.MaxKeys)
+	assert.Equal(t, time.Minute, config.CleanupInterval)
 	assert.Equal(t, "rate_limit:", config.KeyPrefix)
 }
 
-func TestRateLimitEntry(t *testing.T) {
-	now := time.Now()
-
-	t.Run("IsExpired", func(t *testing.T) {
-		// Not expired
-		entry := &RateLimitEntry{
-			ExpiresAt: now.Add(time.Hour),
-		}
-		assert.False(t, entry.IsExpired())
-
-		// Expired
-		entry.ExpiresAt = now.Add(-time.Hour)
-		assert.True(t, entry.IsExpired())
-	})
-
-	t.Run("ShouldReset", func(t *testing.T) {
-		// Should not reset
-		entry := &RateLimitEntry{
-			Window: now.Add(time.Hour),
-		}
-		assert.False(t, entry.ShouldReset())
-
-		// Should reset
-		entry.Window = now.Add(-time.Hour)
-		assert.True(t, entry.ShouldReset())
-	})
-}
-
-func TestRedisRateLimiter_Interface(t *testing.T) {
-	// Just test that RedisRateLimiter implements the interface
-	config := DefaultRateLimitConfig()
-	limiter := NewRedisRateLimiter(config)
-
-	var _ RateLimiter = limiter
-
-	ctx := context.Background()
-
-	// These will use placeholder implementation
-	allowed, err := limiter.Allow(ctx, "test")
-	assert.NoError(t, err)
-	assert.True(t, allowed) // Placeholder always returns true
-
-	err = limiter.Reset(ctx, "test")
-	assert.NoError(t, err)
-}
-
-// Benchmark tests
-func BenchmarkMemoryRateLimiter_Allow(b *testing.B) {
-	config := RateLimitConfig{
-		MaxRequests: 1000,
-		Window:      time.Hour,
-		KeyPrefix:   "bench:",
-	}
-
-	limiter := NewMemoryRateLimiter(config)
-	ctx := context.Background()
-
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			key := "user" + string(rune(i%100)) // Use 100 different keys
-			_, _ = limiter.Allow(ctx, key)
-			i++
-		}
-	})
-}
-
-func BenchmarkSlidingWindowRateLimiter_Allow(b *testing.B) {
-	config := RateLimitConfig{
-		MaxRequests: 1000,
-		Window:      time.Hour,
-		KeyPrefix:   "bench:",
-	}
-
-	limiter := NewSlidingWindowRateLimiter(config)
-	ctx := context.Background()
-
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			key := "user" + string(rune(i%100))
-			_, _ = limiter.Allow(ctx, key)
-			i++
-		}
-	})
-}
-
-func BenchmarkTokenBucketRateLimiter_Allow(b *testing.B) {
-	config := RateLimitConfig{
-		MaxRequests: 1000,
-		Window:      time.Hour,
-		KeyPrefix:   "bench:",
-	}
-
-	limiter := NewTokenBucketRateLimiter(config)
-	ctx := context.Background()
-
-	b.ResetTimer()
-	b.RunParallel(func(pb *testing.PB) {
-		i := 0
-		for pb.Next() {
-			key := "user" + string(rune(i%100))
-			_, _ = limiter.Allow(ctx, key)
-			i++
-		}
-	})
-}
+var _ prometheus.Collector = (*Limiter)(nil)

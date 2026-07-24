@@ -1,13 +1,19 @@
 package ratelimiter
 
 import (
+	"context"
 	"net/http"
 
 	"go.uber.org/zap"
 )
 
+// requestLimiter is the narrow contract consumed by the HTTP middleware.
+type requestLimiter interface {
+	Allow(ctx context.Context, key string) (bool, error)
+}
+
 // RateLimitMiddleware creates middleware that rate limits authentication attempts
-func RateLimitMiddleware(rateLimiter RateLimiter, logger *zap.Logger) func(next http.Handler) http.Handler {
+func RateLimitMiddleware(rateLimiter requestLimiter, logger *zap.Logger) func(next http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			clientIP := getClientIP(r)
