@@ -1,156 +1,138 @@
 # Project Context
 
-## Overview
-Go Starter is a production-ready, enterprise-grade foundation for building scalable REST API services. It provides OpenAPI-first development with automatic code generation, JWT authentication, PostgreSQL integration, and comprehensive observability.
+Go Starter is an OpenAPI-first foundation for PostgreSQL-backed HTTP services.
+It demonstrates a complete but deliberately small vertical slice: explicit
+configuration, migration and seed commands, credential login, JWT bearer
+authentication, a protected current-user operation, health probes, metrics,
+optional OpenTelemetry export, and graceful shutdown.
 
-## Key Goals
-- Speed up API development with an 80% time reduction
-- Protect public contracts and significant risks with focused tests
-- Zero additional configs for Kubernetes deployment
+It is a starter rather than a finished production deployment. Downstream
+projects must choose their own secrets, CORS, TLS termination, database sizing,
+monitoring, backup, and availability policies.
 
-**Reference `foundations.md` first** - it contains core Go principles, patterns, and workflows that apply to all work.
+## Sources of truth
 
----
+| Concern | Source |
+| --- | --- |
+| Go toolchain | `go.mod` |
+| HTTP contract | `api/openapi.yml` |
+| Generated HTTP code | `internal/api/v1/` via `make generate` |
+| SQL schema | `internal/platform/database/postgres/migrations/` |
+| Fixed SQL queries | `internal/platform/database/postgres/queries/` |
+| Generated SQL code | `internal/platform/database/postgres/db/` via `make generate` |
+| Tool versions | `scripts/tool-versions.env` |
+| Release definition | `.goreleaser.yaml` |
+| Runtime configuration | `internal/platform/config/` and command flags |
 
-## Development Principles
+Never edit generated ogen or sqlc files directly.
 
-* **Architecture**: Follow **Go Standard Project Layout** with explicit package contracts
-* **Workflow**: Map acceptance criteria and significant risks to effective verification
-* **Quality**: Use **`go test`** and **`golangci-lint`** for validation
-* **Git**: Clean commits with meaningful messages, feature branches for major changes
-* **Clarity**: Clear names, document **why** decisions were made, not just what code does
-* **Performance**: Optimize for readability first, performance second (unless performance is key requirement)
+## Runtime architecture
 
----
+```text
+main.go
+  └── cmd (Cobra + Viper composition roots)
+        ├── migrate ──→ platform/database/postgres
+        ├── seed ─────→ cli/seed ──→ modules/user
+        └── serve ────→ internal/app
+                          ├── modules/credential + modules/user
+                          ├── auth + controller + api/v1
+                          └── platform/{config,database,health,http,
+                                      observability,ratelimiter}
+```
 
-## Core Workflows
+`internal/app` constructs concrete dependencies and owns runtime shutdown
+ordering. `internal/controller` maps generated transport types to small
+business-facing contracts. `internal/domain` is an infrastructure-free leaf.
+Business capabilities live under `internal/modules`; technical services live
+under `internal/platform`.
 
-### Planning and Design
+See the accepted
+[module/platform boundary decision](../architecture/module-platform-boundaries.md)
+and the [current architecture map](../architecture/current-state.md).
 
-When implementing new features or significant changes:
+## Implemented HTTP surface
 
-1. **Understand Requirements** - Review specifications and acceptance criteria
-2. **Research Existing Code** - Study current patterns and interfaces
-3. **Design Approach** - Plan the implementation strategy
-4. **Create Implementation Plan** - Break down into manageable tasks
-5. **Implement with TDD** - Write tests first, then implementation
-6. **Document Changes** - Update relevant documentation
+The OpenAPI document currently defines:
 
-### Development Workflow
+- process-oriented liveness;
+- dependency-aware readiness;
+- credential login returning a JWT bearer token; and
+- a protected current-user operation.
 
-1. **API Changes** (if needed):
-   - Modify `api/openapi.yml` first
-   - Run `make generate` to update generated API files
-   - Update controllers in `internal/controller/` to implement new interfaces
+The server also exposes `/metrics`. Profiling under `/debug/pprof/*` is
+disabled by default and is not part of the OpenAPI surface. The framework-neutral
+asset under `web/build/` is served only outside reserved API, metrics, and
+profiling paths.
 
-2. **Implementation** (contract-driven approach):
-   - Create feature branch from main
-   - Map acceptance criteria and significant risks to effective verification
-   - Implement the smallest change that satisfies the approved contract
-   - Refactor while keeping tests green
+Login attempts are limited by a bounded process-local limiter. Forwarding
+headers affect client identity only when the immediate peer belongs to a
+configured trusted-proxy CIDR.
 
-3. **Quality Checks**:
-   - Run `make fmt` to format code
-   - Run `make lint` for code quality
-   - Run `make test` to ensure all tests pass
-   - Run `make build` for multi-platform binaries
+## Persistence and lifecycle
 
-4. **Commit & Review**:
-   - Atomic commits with clear messages
-   - Create pull request for code review
+The application owns one pgx pool. The user repository uses sqlc for fixed
+queries and squirrel for runtime-shaped filters, mapping driver values to
+`domain.User` at the module boundary.
 
-### Key Commands
+Schema changes are embedded Goose migrations. Production deployments should
+run `migrate up` as a one-shot job before replicas start; the command uses a
+PostgreSQL advisory lock to serialize concurrent attempts. Startup migration is
+available only as an explicit configuration policy and is disabled by default.
 
-- `make build` - Build multi-platform binaries
-- `make test` - Run all Go tests
-- `make lint` - Run code quality checks
-- `make fmt` - Format code with gofmt and goimports
-- `make generate` - Regenerate API code from OpenAPI spec
-- `make ci` - Run CI pipeline checks
-- `make race` - Run tests with race detector
-- `make docker` - Build Docker container
+Readiness combines lifecycle state with a bounded PostgreSQL ping. Liveness
+does not call external dependencies. Cancellation propagates through runtime
+components, and shutdown drains the HTTP server before closing the database
+pool.
 
----
+## Configuration and observability
 
-## Documentation Update Guidelines
+Cobra flags, `GOSTARTER_*` environment variables, and an explicitly selected
+configuration file feed command-scoped Viper instances. Precedence and local
+examples are documented in [environment.md](environment.md). Validation occurs
+before network listeners or database work begins.
 
-Update project documentation when:
+Zap provides structured logging. Prometheus serves HTTP, limiter, and pool
+metrics. OpenTelemetry trace and metric export is optional and inactive unless
+explicitly enabled with an OTLP collector.
 
-1. **Discovering new patterns** or best practices specific to this project
-2. **Completing significant changes** that affect architecture or workflows
-3. **Adding new tools** or changing development environment
-4. **Making architectural decisions** that need to be recorded
-5. **Creating project-specific conventions** beyond standard Go practices
+## Development workflow
 
----
+1. Read `AGENTS.md` and the applicable repository skill.
+2. Place the change according to the architecture decision.
+3. Update the OpenAPI or SQL source before generated output.
+4. Select tests that protect acceptance criteria, boundaries, regressions, or
+   named operational risks.
+5. Implement only the approved behavior.
+6. Run focused checks, then `make check`.
+7. Run `make race`, `make test-integration`, or `make test-all` when the
+   affected risk requires them.
 
-## Architecture
+Key commands:
 
-### Application Structure
-- **Entry point**: `main.go` → `cmd/serve.go` (Cobra CLI)
-- **Composition root**: `internal/app/` - Dependency assembly and application lifecycle
-- **Domain contracts**: `internal/domain/` - Infrastructure-free business data, interfaces, and errors
-- **Business modules**: `internal/modules/` - Business capabilities and their adapters
-- **Platform**: `internal/platform/` - Configuration, database, middleware, observability, rate limiting, and web infrastructure
-- **Controllers**: `internal/controller/` - Generated transport-to-domain mapping
-- **Authentication**: `internal/auth/` - JWT validation and generated security integration
+| Command | Meaning |
+| --- | --- |
+| `make build` | Build the current-platform binary in `bin/`. |
+| `make generate-check` | Regenerate and fail on source drift. |
+| `make architecture-check` | Enforce package and import boundaries. |
+| `make docs-check` | Validate documentation references and version. |
+| `make test-unit` | Run tests without external services. |
+| `make test-integration` | Run disposable-service integration tests. |
+| `make test-all` | Run both test tiers. |
+| `make race` | Run Go tests with the race detector. |
+| `make cover` | Report and gate maintained-code coverage. |
+| `make check` | Run the fast repository validation suite. |
+| `make release-snapshot` | Exercise release archives, SBOMs, and images without publishing. |
 
-### Key Patterns
-* **Module/Platform Boundaries** - Modules may depend on domain contracts and selected platform capabilities; domain and platform do not depend on modules
-* **Consumer-Owned Interfaces** - Business orchestration and edges accept the narrow behavior they consume
-* **OpenAPI-First Development** - API definitions drive code generation
-* **Explicit Composition** - Concrete dependencies are assembled in `internal/app/` or a CLI composition root
+## Technology
 
-See [the accepted boundary decision](../architecture/module-platform-boundaries.md).
+- Go 1.26.5
+- Chi v5 and ogen
+- PostgreSQL, pgx/v5, sqlc, squirrel, and Goose
+- Cobra and Viper
+- Zap, Prometheus, and OpenTelemetry
+- Testify, pgxmock, and Testcontainers-Go
+- GoReleaser and distroless container images
 
----
-
-## Tech Stack
-
-- **Language**: Go 1.22+ (latest stable)
-- **Web Framework**: Chi v5 for HTTP routing and middleware
-- **API Generation**: ogen for OpenAPI code generation
-- **Database**: PostgreSQL with pgx/v5, sqlc, squirrel, and Goose
-- **Configuration**: Viper for config management, Cobra for CLI
-- **Logging**: Zap for structured logging
-- **Observability**: Prometheus metrics, OpenTelemetry tracing, pprof debugging
-- **Testing**: testify assertions, pgxmock for database mocking
-- **Code Quality**: golangci-lint, gofmt, goimports
-
-## Code Generation Strategy
-
-- **Single source of truth**: `api/openapi.yml`
-- **Generated code**: `internal/api/v1/oas_*_gen.go`
-- **Generation trigger**: `make generate` or `go generate`
-- **Never edit generated files directly** - all API changes must be made in the OpenAPI spec
-
----
-
-## Quality Standards
-
-All code must meet these standards before merging:
-
-* **Tests Pass** - All existing and new tests must pass
-* **Useful Tests** - Each test protects a contract, regression, boundary, or named risk
-* **Linting Clean** - No golangci-lint warnings
-* **Formatted** - Code properly formatted with gofmt and goimports
-* **Documentation** - Public APIs documented with godoc comments
-* **Naming Conventions** - camelCase variables, PascalCase exports, no snake_case
-* **Error Handling** - All errors handled and wrapped with context
-* **Integration** - Works correctly with existing codebase
-
-## Middleware Stack
-
-The web server includes these middleware layers (in order):
-- Timeout (60s default)
-- RequestID generation
-- Trusted-proxy-aware client identity for login rate limiting
-- Panic recovery
-- Custom logging middleware for API routes
-- Static file serving
-- CORS configuration
-- Built-in routes: `/metrics` (Prometheus), `/debug/pprof/*` (profiling)
-
----
-
-*For core Go principles and development patterns, see `foundations.md`. For specific guidelines and checklists, see the `docs/guidelines/` directory.*
+The root [README](../../README.md) is the user entrypoint. This document is the
+maintained engineering summary; deeper behavior belongs in the focused guides
+linked above.

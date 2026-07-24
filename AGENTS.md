@@ -6,18 +6,18 @@ This file provides guidance to AI Agents when working with code in this reposito
 
 ### Essential Commands
 - **Build**: `make build` - Build the local binary in `bin/`
-- **Check**: `make check` - Run generation consistency, formatting, vet, lint, and tests
-- **Test**: `make test` - Run all Go tests in the project
+- **Check**: `make check` - Run architecture, documentation, generation, formatting, vet, lint, and unit checks
+- **Test**: `make test` - Run tests that do not require external services
 - **Lint**: `make lint` - Run go vet and golangci-lint for code quality checks
 - **Format**: `make fmt` - Format Go code with gofmt, goimports, and YAML files with yamlfmt
-- **Generate**: `make generate` - Run go generate to regenerate API code from OpenAPI spec
-- **Development cycle**: `make generate fmt lint test` - Full development workflow
+- **Generate**: `make generate` - Regenerate ogen and sqlc output from their sources
+- **Development cycle**: `make generate fmt check` - Mutate generated/formatted sources, then run repository gates
 
 ### Additional Commands
 - **Single platform builds**: `make linux`, `make osx`, `make windows`
 - **Dependencies**: `make tidy` (rebuild go.mod), `make vendor` (sync to vendor/)
 - **Environment check**: `make env` - Validate development environment setup
-- **Race condition testing**: `make race` - Run tests with race detector
+- **Race condition testing**: `make race` - Run the default Go suite with the race detector
 - **Coverage**: `make cover` - Run tests and write a coverage profile
 - **Vulnerability scan**: `make vuln` - Scan dependencies with govulncheck
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
@@ -75,10 +75,10 @@ and the `go-project-layout` skill for the complete placement and review rules.
 
 ### Middleware Stack
 The web server includes these middleware layers (in order):
-- Timeout (60s), RequestID, RealIP, Recoverer
-- Custom logging middleware for API routes
-- Static file serving
-- CORS configuration
+- Request timeout (60s by default), RequestID, structured panic recovery
+- Request-body limit and custom logging for API routes
+- Reserved-path-aware static file serving and CORS
+- Trusted-proxy-aware rate limiting on the generated login handler
 - Built-in routes: `/metrics` (Prometheus), `/debug/pprof/*` (profiling)
 
 ### Configuration

@@ -138,11 +138,11 @@ to the final diff:
 ```bash
 make generate
 make fmt
-make lint
-make test
+make check
 ```
 
-Use `make race`, integration tests, vulnerability scanning, or benchmarks only when the
+Use `make race`, `make test-integration`, `make test-all`, vulnerability
+scanning, or benchmarks only when the
 changed risk warrants them.
 
 ## Definition of Done

@@ -40,7 +40,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint architecture-check check test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint architecture-check docs-check check test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -128,7 +128,10 @@ lint: ## Run go vet and golangci-lint
 architecture-check: ## Verify module, domain, platform, and generated-transport import boundaries
 	@./scripts/check-architecture.bash
 
-check: architecture-check generate-check fmt-check lint test ## Run all fast validation checks
+docs-check: ## Verify documentation links, commands, paths, and Go version
+	@./scripts/check-docs.bash
+
+check: architecture-check docs-check generate-check fmt-check lint test ## Run all fast validation checks
 
 ## Dependencies:
 tidy: ## Rebuild go.mod with only required dependencies

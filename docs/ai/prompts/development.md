@@ -89,11 +89,11 @@ Review Document → Plan Mode (analyze) → User Approval → Edit Mode (fix)
 
 ## GO PATTERNS
 Reference project guidelines for:
-- Standard Go Project Layout structure
+- Module/platform placement and import direction
 - Contract-first package boundaries
 - Consumer-owned interfaces and concrete constructor returns
 - Risk-based testing
-- Go 1.22+ conventions and idioms
+- Go 1.26.5 conventions and idioms
 - OpenAPI-first workflow (spec → generate → implement)
 
 ## QUALITY STANDARDS

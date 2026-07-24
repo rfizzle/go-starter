@@ -1,6 +1,7 @@
 # AI Documentation Templates
 
-Simple templates for creating consistent AI documentation in Go projects following Standard Go Project Layout.
+Templates for creating consistent AI documentation that follows this
+repository's module/platform boundaries.
 
 ## Available Templates
 
@@ -98,7 +99,7 @@ Each template includes a focused validation checklist covering:
 - Consistent formatting patterns
 
 ### Go-Specific
-- Standard Go Project Layout considerations
+- Module/platform placement and import-direction considerations
 - Contract-first package boundaries
 - Consumer-owned interfaces and Go conventions
 

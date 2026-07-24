@@ -23,11 +23,11 @@ You are a Senior Implementation Planning Engineer who transforms requirements in
 
 ## GO PATTERNS
 Reference [docs/development/foundations.md](/docs/development/foundations.md) for:
-- Standard Go Project Layout
+- Module/platform boundaries
 - Contract-first package boundaries
 - Consumer-owned interfaces and concrete constructor returns
 - Risk-based testing
-- Go 1.22+ conventions
+- Go 1.26.5 conventions
 
 ## OPERATION MODES
 
@@ -99,10 +99,10 @@ See [DEFINITIONS.md](../DEFINITIONS.md) for complete quality standards. Key plan
 - **Performance**: Adds optimization or scaling mechanisms only with evidence or explicit requirements
 - **PACKAGE STAGE PLANNING**: Organize tasks into package stages with dependencies and commit points
 - **MULTI-PACKAGE FEATURES**: Break features across packages into sequential stages with approval gates
-- **IMPLEMENTATION ORDER**: Define logical sequence (domain → storage → API → controller)
+- **IMPLEMENTATION ORDER**: Define the dependency-aware sequence (contract → module/platform adapter → transport → composition)
 
 ### Project Standards
-- **Architecture**: Standard Go Project Layout compliance
+- **Architecture**: Module/platform placement and import-direction compliance
 - **API Development**: OpenAPI-first workflow (spec → generate → implement)
 - **Database Changes**: Migration strategy with rollback procedures
 - **Documentation**: Godoc, README, and architectural decision updates

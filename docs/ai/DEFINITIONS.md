@@ -10,11 +10,11 @@ This document defines core concepts, terminology, and decision criteria used acr
 
 **Completion Criteria**:
 - All code compiles without errors
-- All tests pass (unit and integration)
+- Required unit and integration tests pass
 - Linting and formatting standards met
 - Documentation updated
 - OpenAPI spec updated if API changes made
-- Generated code updated via `make generate`
+- Generated code is current according to `make generate-check`
 
 **Stage Boundaries**:
 - **Single Feature Package**: One complete feature with all its components (API, business logic, storage, tests)
@@ -150,10 +150,13 @@ Would you prefer the other approach?
 
 ### Code Quality Gates
 1. **Compilation**: Code must compile without errors
-2. **Testing**: All tests must pass (`make test`)
-3. **Linting**: No linting errors (`make lint`)
-4. **Formatting**: Code properly formatted (`make fmt`)
-5. **Generation**: Generated code up to date (`make generate`)
+2. **Testing**: The required unit and integration tiers pass (`make test-unit`,
+   plus `make test-integration` or `make test-all` when the risk requires it)
+3. **Repository checks**: Architecture, documentation, generation, formatting,
+   vet, lint, and unit checks pass (`make check`)
+4. **Race checks**: `make race` passes for concurrency, lifecycle, middleware,
+   storage, or test-infrastructure changes
+5. **Generation**: Generated code is current (`make generate-check`)
 
 ### Documentation Requirements
 - Public APIs must have godoc comments

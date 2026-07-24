@@ -1,446 +1,146 @@
 # Ogen Workflow Guide
 
-Complete guide for OpenAPI-first development using ogen code generation in the Go Starter project.
+Go Starter uses ogen to generate the HTTP transport from
+`api/openapi.yml`. The OpenAPI document is the contract; generated Go files are
+derived output.
 
-## Overview
+## Ownership boundary
 
-Ogen is a powerful OpenAPI 3.0 code generator for Go that creates type-safe, efficient HTTP clients and servers. This project uses ogen to generate API interfaces from the OpenAPI specification, ensuring the API contract drives the implementation.
+| Path | Responsibility |
+| --- | --- |
+| `api/openapi.yml` | Paths, operations, schemas, security, status codes, and public error shapes |
+| `generate.go` | Pinned `go generate` invocation |
+| `internal/api/v1/` | ogen output; never edit directly |
+| `internal/controller/` | Generated request/response mapping and consumer-side ports |
+| `internal/auth/` | JWT validation and generated security-handler integration |
+| `internal/app/` | Concrete dependency construction and generated server assembly |
+| `internal/platform/http/server/` | Chi mounting, middleware, reserved routes, and server lifecycle |
 
-## Key Concepts
+Business logic belongs in `internal/modules/<capability>/`, not in generated
+transport or controllers.
 
-### OpenAPI-First Development
-1. **API specification is the source of truth** - All API changes start in `api/openapi.yml`
-2. **Code generation creates interfaces** - Ogen generates Go interfaces from the spec
-3. **Controllers implement interfaces** - Business logic implements generated interfaces
-4. **Type safety throughout** - Strong typing from API to database
+## Change an API contract
 
-### Generated Code Structure
+1. Edit `api/openapi.yml`.
+2. Run `make generate`.
+3. Review the generated interface and schema delta under `internal/api/v1/`.
+4. Implement the changed handler or security method at the transport edge.
+5. Update focused controller/HTTP tests for the public contract.
+6. Run:
 
-```
-internal/api/v1/
-├── oas_cfg_gen.go          # Configuration structures
-├── oas_client_gen.go       # HTTP client implementation
-├── oas_handlers_gen.go     # Handler interfaces
-├── oas_interfaces_gen.go   # Core interfaces
-├── oas_json_gen.go         # JSON marshaling/unmarshaling
-├── oas_middleware_gen.go   # Middleware interfaces
-├── oas_parameters_gen.go   # Request parameter types
-├── oas_request_*_gen.go    # Request decoders
-├── oas_response_*_gen.go   # Response encoders
-├── oas_router_gen.go       # HTTP router
-├── oas_schemas_gen.go      # Data models/DTOs
-├── oas_server_gen.go       # Server implementation
-├── oas_validators_gen.go   # Input validation
-└── oas_*_gen.go           # Other generated files
-```
-
-## Workflow Steps
-
-### 1. Modify OpenAPI Specification
-
-Edit `api/openapi.yml` to define or update API endpoints:
-
-```yaml
-paths:
-  /api/v1/users/{id}:
-    get:
-      operationId: getUser
-      summary: Get user by ID
-      tags:
-        - users
-      parameters:
-        - name: id
-          in: path
-          required: true
-          schema:
-            type: string
-            format: uuid
-      responses:
-        '200':
-          description: User found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-        '404':
-          description: User not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-
-components:
-  schemas:
-    User:
-      type: object
-      required:
-        - id
-        - email
-        - name
-      properties:
-        id:
-          type: string
-          format: uuid
-        email:
-          type: string
-          format: email
-        name:
-          type: string
-        createdAt:
-          type: string
-          format: date-time
+```sh
+make generate-check
+make check
 ```
 
-### 2. Generate Code
+`make generate` runs both ogen and sqlc. The ogen invocation is:
 
-Run the generation command:
-
-```bash
-# Using Make
-make generate
-
-# Or directly with go generate
-go generate ./...
-
-# Or using ogen directly
-go run github.com/ogen-go/ogen/cmd/ogen \
-  --target internal/api/v1 \
-  --package api \
-  --clean \
-  --convenient-errors \
-  api/openapi.yml
+```sh
+go generate
 ```
 
-### 3. Implement Controller
+The directive in `generate.go` runs the module-pinned ogen version:
 
-Create or update controller to implement the generated interface:
-
-```go
-// internal/controller/user.go
-package controller
-
-import (
-    "context"
-    "errors"
-
-    "github.com/rfizzle/go-starter/internal/api/v1"
-    "github.com/rfizzle/go-starter/internal/domain"
-)
-
-type userReader interface {
-    ByID(ctx context.Context, id string) (domain.User, error)
-}
-
-type UserController struct {
-    users userReader
-}
-
-func NewUserController(users userReader) *UserController {
-    return &UserController{users: users}
-}
-
-// GetUser implements the generated interface method
-func (c *UserController) GetUser(ctx context.Context, params api.GetUserParams) (api.GetUserRes, error) {
-    user, err := c.users.ByID(ctx, params.ID)
-    if err != nil {
-        if errors.Is(err, domain.ErrNotFound) {
-            return &api.GetUserNotFound{
-                Message: "User not found",
-            }, nil
-        }
-        return nil, err
-    }
-    
-    return &api.User{
-        ID:        user.ID,
-        Email:     user.Email,
-        Name:      user.Name,
-        CreatedAt: user.CreatedAt,
-    }, nil
-}
+```text
+go run github.com/ogen-go/ogen/cmd/ogen --clean --package api \
+  --target internal/api/v1 api/openapi.yml
 ```
 
-### 4. Wire Up in Application
+Do not install or invoke a separate unpinned ogen binary.
 
-Register the controller with the generated server:
+## Current contract
 
-```go
-// internal/app/app.go
-func (a *App) setupRoutes() {
-    // Create controller
-    userController := controller.NewUserController(a.db)
-    
-    // Create ogen server with our controller
-    srv, err := api.NewServer(userController)
-    if err != nil {
-        log.Fatal(err)
-    }
-    
-    // Mount to Chi router
-    a.router.Mount("/", srv)
-}
+The committed OpenAPI document defines four operations:
+
+| Operation | Purpose |
+| --- | --- |
+| `HealthLiveness` | Process-oriented liveness |
+| `HealthReadiness` | Dependency-aware readiness |
+| `Login` | Credential verification and JWT issuance |
+| `GetCurrentUser` | Bearer-protected current-user response |
+
+`internal/controller.Controller` implements the generated handler and security
+contracts. Small interfaces such as `UserReader`, `ReadinessChecker`, and
+`Authenticator` describe only behavior the edge consumes. Concrete module and
+platform implementations are injected from `internal/app`.
+
+## Mapping rules
+
+- Keep generated `api.*` types inside controller, auth, HTTP server, and
+  composition-root edges.
+- Convert business values to response schemas in `internal/controller/`.
+- Map expected business errors to the bounded response declared in OpenAPI.
+- Return unexpected internal errors so the server's error path can handle and
+  log them; do not expose raw errors in response bodies.
+- Let ogen enforce schema-level request validation.
+- Keep credential verification, persistence, and other business rules in
+  modules.
+- Add compile-time assertions when an edge must satisfy a generated interface.
+
+The login flow demonstrates the intended direction:
+
+```text
+OpenAPI Login
+  → generated api.Handler
+  → controller.Login
+  → controller.Authenticator
+  → app adapter
+  → modules/credential.Service
 ```
 
-## Common Patterns
+The controller does not import the concrete credential module.
 
-### Request Validation
+## Security
 
-Ogen automatically validates requests based on the OpenAPI schema:
+Security schemes are declared in `api/openapi.yml`. The generated security
+handler is implemented in `internal/controller/security.go` and delegates JWT
+validation to `internal/auth`.
 
-```yaml
-parameters:
-  - name: limit
-    in: query
-    schema:
-      type: integer
-      minimum: 1
-      maximum: 100
-      default: 10
-```
+The login operation is intentionally public. The current-user operation
+requires the `BearerAuth` scheme. A token issued by login uses the configured
+issuer, audience, TTL, and subject and is accepted by the same server's
+protected operation.
 
-The generated code will:
-- Validate the parameter is an integer
-- Ensure it's between 1 and 100
-- Use default value if not provided
+Login rate limiting is installed around the generated API handler in the
+composition root. It derives client identity through configured trusted proxy
+CIDRs and returns the OpenAPI-declared 429 response.
 
-### Error Responses
+## Testing
 
-Define error schemas in OpenAPI:
+Do not test ogen's generated implementation. Test project-owned behavior:
 
-```yaml
-components:
-  schemas:
-    Error:
-      type: object
-      required:
-        - message
-        - code
-      properties:
-        message:
-          type: string
-        code:
-          type: string
-        details:
-          type: object
-```
+- controller unit tests for mapping, bounded errors, and consumer contracts;
+- HTTP tests for status, headers, request validation, and security behavior;
+- application tests for generated-server assembly, login, `/me`, listener
+  lifecycle, and shutdown; and
+- `make generate-check` for source/output consistency.
 
-Implement in controller:
-
-```go
-func (c *Controller) SomeOperation(ctx context.Context, req api.Request) (api.Response, error) {
-    if err := c.validate(req); err != nil {
-        return &api.ErrorBadRequest{
-            Message: "Validation failed",
-            Code:    "VALIDATION_ERROR",
-            Details: api.OptObject{
-                Set: true,
-                Value: map[string]interface{}{
-                    "field": "email",
-                    "error": "invalid format",
-                },
-            },
-        }, nil
-    }
-    // ... rest of implementation
-}
-```
-
-### Optional Fields
-
-Use ogen's optional types for nullable fields:
-
-```go
-type UpdateUserReq struct {
-    Name  api.OptString `json:"name"`
-    Email api.OptString `json:"email"`
-}
-
-// In controller
-if req.Name.Set {
-    user.Name = req.Name.Value
-}
-```
-
-### Streaming Responses
-
-For large responses, use streaming:
-
-```yaml
-responses:
-  '200':
-    content:
-      application/x-ndjson:
-        schema:
-          type: string
-          format: binary
-```
-
-## Testing Generated Code
-
-### Unit Testing Controllers
-
-```go
-func TestGetUser(t *testing.T) {
-    mockDB := &mockDriver.DB{}
-    controller := NewUserController(mockDB)
-    
-    mockDB.On("GetUser", mock.Anything, "123").Return(&User{
-        ID:    "123",
-        Email: "test@example.com",
-        Name:  "Test User",
-    }, nil)
-    
-    res, err := controller.GetUser(context.Background(), api.GetUserParams{
-        ID: "123",
-    })
-    
-    require.NoError(t, err)
-    user, ok := res.(*api.User)
-    require.True(t, ok)
-    assert.Equal(t, "test@example.com", user.Email)
-}
-```
-
-### Integration Testing
-
-```go
-func TestUserAPI(t *testing.T) {
-    // Create test server
-    srv := setupTestServer(t)
-    
-    // Create ogen client
-    client, err := api.NewClient(srv.URL)
-    require.NoError(t, err)
-    
-    // Test API call
-    user, err := client.GetUser(context.Background(), api.GetUserParams{
-        ID: "123",
-    })
-    require.NoError(t, err)
-    assert.Equal(t, "test@example.com", user.Email)
-}
-```
-
-## Best Practices
-
-### 1. Schema Design
-- Use `$ref` for reusable schemas
-- Define clear validation rules
-- Use appropriate formats (uuid, email, date-time)
-- Document all endpoints and schemas
-
-### 2. Controller Implementation
-- Keep controllers thin - delegate to services
-- Handle all error cases explicitly
-- Use context for cancellation
-- Return appropriate HTTP status codes
-
-### 3. Code Organization
-```
-internal/
-├── api/v1/          # Generated code (don't edit)
-├── controller/      # Controller implementations
-│   ├── user.go
-│   ├── auth.go
-│   └── ...
-├── service/         # Business logic
-└── storage/         # Data layer
-```
-
-### 4. Versioning
-- Version your API in the path (`/api/v1/`)
-- Keep old versions during migration
-- Use feature flags for gradual rollout
+Use `make test-all` when the API change depends on real PostgreSQL behavior and
+`make race` when it changes lifecycle or middleware.
 
 ## Troubleshooting
 
-### Common Issues
+If generation changes more than expected:
 
-#### Generation Fails
-```bash
-# Check OpenAPI spec is valid
-npx @openapitools/openapi-generator-cli validate -i api/openapi.yml
+1. confirm only `api/openapi.yml`, `generate.go`, `go.mod`, or generator
+   dependencies changed;
+2. run `make generate` again;
+3. inspect `git diff -- internal/api/v1`; and
+4. run `make generate-check`.
 
-# Check ogen version
-go list -m github.com/ogen-go/ogen
+If the controller no longer implements the generated contract, inspect:
+
+```sh
+rg 'type Handler interface' internal/api/v1
+go test ./internal/controller
 ```
 
-#### Type Mismatch
-- Ensure OpenAPI types match Go types
-- Use correct formats (int32, int64, float, double)
-- Check optional vs required fields
+If `make generate-check` reports drift, regenerate from the source. Never patch
+an `oas_*_gen.go` file by hand.
 
-#### Missing Implementation
-```
-controller does not implement api.Handler
-```
-- Run `make generate` after spec changes
-- Implement all required methods
-- Check method signatures match exactly
+Related guidance:
 
-### Debugging Tips
-
-1. **Check generated interfaces**
-   ```bash
-   grep "type Handler interface" internal/api/v1/oas_interfaces_gen.go
-   ```
-
-2. **Validate implementation**
-   ```go
-   var _ api.Handler = (*Controller)(nil) // Compile-time check
-   ```
-
-3. **Review generated schemas**
-   - Check `oas_schemas_gen.go` for type definitions
-   - Verify optional types are handled correctly
-
-## Advanced Topics
-
-### Custom Middleware
-
-```go
-func loggingMiddleware(next api.Handler) api.Handler {
-    return api.HandlerFunc(func(ctx context.Context, req interface{}) (interface{}, error) {
-        start := time.Now()
-        res, err := next.Handle(ctx, req)
-        log.Printf("Request took %v", time.Since(start))
-        return res, err
-    })
-}
-```
-
-### Security Schemes
-
-```yaml
-components:
-  securitySchemes:
-    bearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
-
-security:
-  - bearerAuth: []
-```
-
-### Custom Validation
-
-```go
-func (c *Controller) ValidateRequest(req api.Request) error {
-    // Custom business logic validation
-    if req.Amount > c.maxAmount {
-        return errors.New("amount exceeds limit")
-    }
-    return nil
-}
-```
-
-## Related Documentation
-
-- [Ogen Documentation](https://ogen.dev)
-- [OpenAPI Specification](https://swagger.io/specification/)
-- [project-context.md](project-context.md) - Project overview
-
----
-
-*This guide ensures consistent, type-safe API development using ogen code generation from OpenAPI specifications.*
+- [OpenAPI specification](https://spec.openapis.org/oas/latest.html)
+- [ogen documentation](https://ogen.dev/)
+- [project context](project-context.md)
+- [module/platform boundaries](../architecture/module-platform-boundaries.md)

@@ -19,7 +19,8 @@ Provide a single source of truth for feature requirements, ensuring alignment be
 
 ### Creating New Features
 
-Use the AI-powered feature agent configured in `docs/ai/prompts/feature.md` to:
+Use the documentation-agent guidance in
+[`docs/ai/prompts/documentation.md`](../ai/prompts/documentation.md) to:
 
 - Gather specific, bounded business and user requirements
 - Create user stories following "As a [user], I want [goal] so that [benefit]" format
@@ -148,11 +149,11 @@ Features integrate with the overall development workflow:
 
 ## Related Documentation
 
-- `docs/ai/templates/feature.md` - Feature template structure
-- `docs/ai/prompts/feature.md` - AI agent configuration
-- `docs/plans/` - Implementation plans derived from features
-- `docs/development/project-context.md` - Project overview
-- `docs/architecture/` - Technical architecture
+- [Feature template](../ai/templates/feature.md)
+- [Documentation-agent guidance](../ai/prompts/documentation.md)
+- [Implementation plans](../plans/)
+- [Project overview](../development/project-context.md)
+- [Technical architecture](../architecture/)
 
 ---
 

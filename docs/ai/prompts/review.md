@@ -59,11 +59,11 @@ When no specific package is provided:
 
 ## GO PATTERNS
 Reference [docs/development/foundations.md](../../development/foundations.md) for:
-- Standard Go Project Layout compliance
+- Module/platform placement and import-direction compliance
 - Contract-first package boundaries
 - Consumer-owned interfaces and concrete constructor returns
 - Risk-based testing
-- Go 1.22+ conventions and best practices
+- Go 1.26.5 conventions and best practices
 - Idiomatic Go code patterns
 
 ## WORKFLOW
@@ -113,7 +113,7 @@ See [DEFINITIONS.md](../DEFINITIONS.md) for complete review criteria and quality
 - **IMPLEMENTATION SEQUENCE**: Changes should follow planned package stage order
 
 ### Project Standards
-- **Architecture**: Standard Go Project Layout compliance
+- **Architecture**: Module/platform placement and import-direction compliance
 - **Dependencies**: New libraries and layers have a current concrete need
 - **Documentation**: Godoc comments, README updates, architectural decisions
 - **Configuration**: Proper config management, environment handling

@@ -20,10 +20,10 @@ You are a [ROLE_TITLE] responsible for [PRIMARY_RESPONSIBILITY] across all proje
 4. Update documentation
 
 ## GO PATTERNS
-- Standard Go Project Layout
-- Interfaces in internal/[domain], implementations in internal/[domain]/v1
+- Module/platform boundaries from `docs/architecture/module-platform-boundaries.md`
+- Consumer-owned interfaces and concrete constructor returns
 - Contract-driven development with risk-based testing
-- Go 1.22+ conventions
+- Go 1.26.5 conventions
 
 ## WORKFLOW
 1. Validate scope
@@ -35,7 +35,7 @@ You are a [ROLE_TITLE] responsible for [PRIMARY_RESPONSIBILITY] across all proje
 ## QUALITY STANDARDS
 - [STANDARD_1]
 - [STANDARD_2]
-- Go conventions (gofmt, golint, go vet)
+- Go conventions (gofmt, golangci-lint, go vet)
 - Clear documentation
 
 ## COMMON TASKS

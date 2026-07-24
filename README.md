@@ -108,6 +108,26 @@ curl --fail http://localhost:8080/api/v1/healthz/readiness
 curl --fail http://localhost:8080/metrics
 ```
 
+Use the seeded email and the configured or generated password to exercise the
+authentication slice:
+
+```sh
+curl --fail-with-body \
+  --header 'Content-Type: application/json' \
+  --data '{"email":"admin@example.com","password":"<seed-password>"}' \
+  http://localhost:8080/api/v1/login
+
+# Copy the token field from the login response.
+curl --fail-with-body \
+  --header 'Authorization: Bearer <token>' \
+  http://localhost:8080/api/v1/me
+```
+
+Login returns the same 401 response for an unknown email and a wrong password.
+Successful responses carry a JWT in the JSON `token` field; `/me` accepts it in
+the standard bearer header. Exceeding the configured per-client login limit
+returns 429 with `Retry-After`.
+
 Stop the service with Ctrl-C, then stop PostgreSQL while preserving its named
 data volume:
 
@@ -158,11 +178,12 @@ are never included in validation errors or logs.
 | `make test-unit` | Run tests that do not require external services. |
 | `make test-integration` | Run integration tests with disposable external services. |
 | `make test-all` | Run unit and integration test tiers. |
-| `make race` | Run all Go tests with the race detector. |
+| `make race` | Run the default Go suite with the race detector. |
 | `make cover` | Run unit and integration tests; report and gate maintained-code coverage. |
 | `make generate` | Regenerate ogen and sqlc output. |
 | `make generate-check` | Fail if committed generated code is stale. |
 | `make architecture-check` | Verify module, domain, platform, and transport boundaries. |
+| `make docs-check` | Verify documentation links, commands, paths, and Go version. |
 | `make dev-up` | Start local PostgreSQL and wait for health. |
 | `make dev-run` | Start PostgreSQL, migrate, seed, and serve using `.env`. |
 | `make dev-down` | Stop local services without deleting database data. |
@@ -238,8 +259,9 @@ when Docker is unavailable. CI requires Docker and treats startup failure as a
 failed integration run.
 
 The [testing strategy](docs/guidelines/testing-strategy.md) describes project
-conventions. Database behavior is primarily isolated behind mocks and test
-doubles; use a disposable PostgreSQL instance for end-to-end validation.
+conventions. Unit tests use narrow fakes where appropriate; integration and
+application-lifecycle tests use disposable PostgreSQL containers for behavior
+that mocks cannot prove.
 
 ## Deployment notes
 

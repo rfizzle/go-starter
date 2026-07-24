@@ -7,7 +7,7 @@ This document defines Go-specific coding standards, patterns, and conventions fo
 ## Language Standards
 
 ### Version Requirements
-- **Go 1.22+** required for all development
+- **Go 1.26.5** required for all development (from `go.mod`)
 - **One module per repository**
 - **Standard library preference** over external dependencies when functionality is equivalent
 
@@ -157,9 +157,9 @@ func Worker(ctx context.Context, input <-chan Task, output chan<- Result) {
 ## Testing Standards
 
 ### Test Organization
-- **Table-driven tests** for multiple test cases
-- **Subtests** for logical grouping
-- **Test helpers** for common setup/teardown
+- **Table-driven tests** when cases share behavior and the table is clearer
+- **Subtests** when their grouping improves failure output
+- **Test helpers** only when they reduce setup noise without hiding behavior
 
 ```go
 func TestFunction(t *testing.T) {
@@ -204,7 +204,7 @@ func TestFunction(t *testing.T) {
 - **Use descriptive subtest names** in table-driven tests
 
 ### Mock and Stub Usage
-- **Test against interfaces** when possible
+- **Test observable contracts** at the narrowest stable boundary
 - **Use dependency injection** for testability
 - **Minimal mocking** - prefer real implementations when fast and reliable
 
@@ -248,9 +248,8 @@ package user
 
 ### Memory Management
 - **Avoid unnecessary allocations** in hot paths
-- **Reuse slices and maps** when possible
-- **Use object pools** for frequently allocated objects
 - **Profile before optimizing**
+- **Preallocate or reuse memory** only when measurement or known bounds justify it
 
 ### Efficient Patterns
 ```go
@@ -290,7 +289,7 @@ result := builder.String()
 Before submitting code, ensure:
 - [ ] All exported items have godoc comments
 - [ ] Error handling follows project conventions
-- [ ] Tests cover happy path and error cases
+- [ ] Tests protect acceptance criteria, contracts, regressions, boundaries, or named risks
 - [ ] Code follows Go naming conventions
 - [ ] Interfaces are minimal and focused
 - [ ] Context is properly threaded through operations

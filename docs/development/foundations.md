@@ -1,211 +1,125 @@
 # Go Project Development Foundations
 
-This document outlines core principles, patterns, and workflows for Go development following Standard Go Project Layout.
+These are the project-specific foundations for working in Go Starter. The
+repository requires Go 1.26.5, as declared in `go.mod`.
 
----
+## Package ownership
 
-## Project Structure
+The repository uses a module/platform layout, not a generic directory template:
 
-This project follows the Standard Go Project Layout:
-
-```
-project/
-├── cmd/                    # Main applications  
-├── internal/               # Private application and library code
-├── pkg/                    # Library code safe for external use
-├── api/                    # API definitions (OpenAPI, protobuf)
-├── web/                    # Web application specific components
-├── configs/                # Configuration file templates
-├── docs/                   # Design and user documents
-├── scripts/                # Scripts for build, install, analysis
-├── test/                   # Additional external test apps and data
-└── vendor/                 # Application dependencies (optional)
-```
-
----
-
-## Go Standards
-
-### Language & Version
-- **Go 1.22+** required
-- **One module per repository**
-- **Standard library preference** over external dependencies
-
-### Interface Strategy
-Follow the interface pattern defined in [docs/guidelines/interface-pattern.md](../guidelines/interface-pattern.md):
-- **Document package contracts** before choosing implementation structure
-- **Define small interfaces** only at real substitution or consumer seams
-- **Keep one implementation** directly in its contract package
-- **Keep multiple real implementations** in named subdirectories
-
-### Package & Naming
-- **Short, lowercase names** - no underscores or mixedCaps
-- **Clear, descriptive names** for functions and variables
-- **Godoc comments** on all exported items
-
-### Error Handling
-- **Explicit error returns** - no exceptions
-- **Wrap errors** with context using `fmt.Errorf("context: %w", err)`
-- **Never ignore errors** with `_`
-
----
-
-## Development Workflow
-
-### Contract-Driven Development
-1. **Bound the behavior** with acceptance criteria and non-goals
-2. **Select verification** for meaningful contracts, boundaries, regressions, and risks
-3. **Write the smallest implementation** that satisfies the contract
-4. **Refactor only when it reduces total reasoning or maintenance cost**
-
-### Quality Gates
-- **gofmt** - Proper formatting
-- **golangci-lint** - Linting and conventions
-- **go vet** - Static analysis
-- **go test** - All tests passing
-
-### Git Workflow
-- **Atomic commits** - One logical change per commit
-- **Conventional commit messages** - Clear, descriptive
-- **Feature branches** for major changes
-- **Clean history** before merging
-
----
-
-## Code Patterns
-
-### Context Usage
-```go
-// Always accept context as first parameter
-func ServiceMethod(ctx context.Context, params Params) error {
-    select {
-    case <-ctx.Done():
-        return ctx.Err()
-    default:
-        // implementation
-    }
-}
+```text
+api/                         OpenAPI source
+cmd/                         Cobra commands and process concerns
+internal/
+  api/v1/                    generated ogen transport
+  app/                       composition root and runtime lifecycle
+  auth/                      JWT and generated security edge
+  cli/                       command support
+  controller/                transport/domain mapping
+  domain/                    shared infrastructure-free business contracts
+  modules/<capability>/      business behavior and adapters
+  platform/<capability>/     technical infrastructure
+  templateinit/              standalone initializer implementation
+tools/initialize/            initializer entrypoint
+web/                         embedded static placeholder
 ```
 
-### Interface Design
-```go
-// Define in internal/<domain>/interfaces.go
-type Repository interface {
-    Create(ctx context.Context, item Item) error
-    GetByID(ctx context.Context, id string) (Item, error)
-}
+Apply the complete
+[module/platform boundary decision](../architecture/module-platform-boundaries.md):
 
-// Single implementation in internal/<domain>/repository.go
-type repository struct {
-    db Database
-}
+- domain imports no other application package;
+- platform imports neither domain nor modules;
+- modules never import generated transport;
+- generated transport stays at edge packages and the composition root;
+- controllers map types and delegate behavior; and
+- catch-all packages such as `utils`, `helpers`, `common`, or `shared` are not
+  allowed.
 
-func NewRepository(db Database) Repository {
-    return &repository{db: db}
-}
+## Contract-first package design
+
+Document a package's purpose, non-goals, inputs, outputs, bounds, errors,
+concurrency guarantees, and resource ownership before adding abstraction.
+
+An interface is justified by a real substitution boundary, multiple
+implementations, or a consumer that needs a narrower seam. Prefer
+consumer-defined interfaces and concrete constructor returns. One natural
+implementation stays in its owning package; multiple real variants may use
+clearly named subpackages.
+
+See [interface-pattern.md](../guidelines/interface-pattern.md) for examples from
+the current codebase.
+
+## Context, errors, and resources
+
+- Accept `context.Context` first for blocking, I/O, or cancellable work.
+- Propagate the caller's context rather than replacing it.
+- Derive bounded timeouts at system boundaries.
+- Return and wrap errors with useful operation context.
+- Translate infrastructure errors to the smallest business-facing contract at
+  the adapter boundary.
+- Do not include secrets, credentials, database URIs, or raw internal failures
+  in public responses.
+- Pair every acquired resource or background goroutine with explicit cleanup.
+
+Do not add retries, caching, queues, fallback behavior, or concurrency without
+a documented failure mode and bound.
+
+## Generated boundaries
+
+`api/openapi.yml` is the HTTP contract. `make generate` writes ogen output to
+`internal/api/v1/`.
+
+Migrations and SQL query files under
+`internal/platform/database/postgres/` are the PostgreSQL sources.
+`make generate` writes sqlc output to the nested `db/` package.
+
+Generated files are reviewable artifacts but never hand-edited. Use
+`make generate-check` to prove committed output matches its sources.
+
+## Test selection
+
+Tests protect useful behavior, not test counts. Add a test for an acceptance
+criterion, public contract, meaningful boundary, significant failure mode,
+regression, or security/concurrency/persistence invariant.
+
+Choose the narrowest stable test that can catch the defect:
+
+| Risk | Test |
+| --- | --- |
+| isolated decision or validation | unit/package test |
+| HTTP mapping or status contract | controller or HTTP integration test |
+| SQL, migration, constraint, lock, scan, or transaction | real PostgreSQL integration test |
+| lifecycle across CLI, app, listener, and database | focused end-to-end test |
+| shared concurrent state | deterministic test plus race detector |
+
+Do not test generated code, trivial assignments, third-party behavior, or
+private call order. See [testing-strategy.md](../guidelines/testing-strategy.md).
+
+## Development loop
+
+```sh
+make generate       # only when generator inputs changed
+make fmt            # when Go or YAML changed
+make test-unit      # focused/default package behavior
+make check          # repository fast gates
+make race           # concurrency/lifecycle risk
+make test-integration # real external-boundary risk
 ```
 
-### Error Handling
-```go
-func Process(data []byte) (*Result, error) {
-    if len(data) == 0 {
-        return nil, fmt.Errorf("empty data: %w", ErrInvalidInput)
-    }
-    // implementation
-    return result, nil
-}
-```
+`make check` includes architecture, documentation, generation, formatting,
+vet, lint, and unit checks. `make cover` reports total and maintained-code
+coverage; its threshold is a regression floor, not a reason to add low-value
+tests.
 
-### Table-Driven Tests
-```go
-func TestFunction(t *testing.T) {
-    tests := []struct {
-        name    string
-        input   Input
-        want    Output
-        wantErr bool
-    }{
-        // test cases
-    }
-    
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            got, err := Function(tt.input)
-            if (err != nil) != tt.wantErr {
-                t.Errorf("Function() error = %v, wantErr %v", err, tt.wantErr)
-                return
-            }
-            if !reflect.DeepEqual(got, tt.want) {
-                t.Errorf("Function() = %v, want %v", got, tt.want)
-            }
-        })
-    }
-}
-```
+## Simplicity rules
 
----
+- Implement only approved behavior and explicit acceptance criteria.
+- Prefer the standard library and existing project patterns.
+- Keep code explicit and local until a stable concept warrants extraction.
+- Do not add a package, dependency, interface, option, or extension point for a
+  hypothetical future consumer.
+- Preserve small local duplication when an abstraction would hide behavior.
+- Explain constraints and reasons in comments; do not narrate obvious code.
 
-## Anti-Patterns to Avoid
-
-### Go-Specific
-- **Goroutine leaks** - Always ensure exit paths
-- **Mutex in structs** - Prefer channels for communication
-- **Init() abuse** - Keep minimal and deterministic
-
-### General
-- **Scope creep** - Stay within declared boundaries
-- **Assumption making** - Ask for clarification
-- **Over-engineering** - Start simple, add complexity when needed
-- **Tests for tests' sake** - Add tests only for a contract, boundary, regression, or named risk
-
----
-
-## Quality Standards
-
-### Code Quality
-- **Idiomatic Go** - Follow community conventions
-- **Performance aware** - No unnecessary allocations
-- **Concurrency safe** - Proper shared state handling
-- **Comprehensive errors** - Appropriate error management
-
-### Documentation Quality  
-- **Clear purpose** - Write for humans
-- **Contract coverage** - Explain public behavior, bounds, and reasons
-- **Runnable examples** - Include where helpful
-- **Stay current** - Keep docs synced with code
-
-### Change Quality
-- **Backwards compatible** - Unless major version bump
-- **Gradual deprecation** - Well-communicated deprecation path
-- **Integration tested** - Works with existing codebase
-
----
-
-## Success Metrics
-
-### Universal
-- **Quality gates pass** - All checks green
-- **Useful tests** - Each test protects a meaningful behavior or risk
-- **Documentation current** - Changes properly documented
-- **Clean integration** - Works smoothly with existing code
-
-### Go-Specific
-- **Idiomatic code** - Follows Go conventions
-- **No performance regressions** - Efficient implementations
-- **Concurrency safety** - Thread-safe where needed
-- **Proper error handling** - Comprehensive error management
-- **Clean package design** - Focused responsibilities
-
----
-
-## Reference Links
-
-- **Go Style Guide**: https://google.github.io/styleguide/go/
-- **Effective Go**: https://go.dev/doc/effective_go
-- **Go Project Layout**: https://github.com/golang-standards/project-layout
-- **Testing in Go**: https://go.dev/doc/tutorial/add-a-test
-- **Go Modules**: https://go.dev/doc/modules/
-
----
-
-*This document provides foundational knowledge for all developers working on Go projects. For specific implementation guidelines, see the related documentation in `docs/guidelines/` and `docs/architecture/`.*
+These rules are enforced by review and, where practical, by
+`make architecture-check` and `make docs-check`.

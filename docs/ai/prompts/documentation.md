@@ -81,9 +81,9 @@ Documentation Gap → Plan Mode (organize) → User Approval → Edit Mode (writ
 
 ## GO PATTERNS
 Reference project guidelines for:
-- Standard Go Project Layout structure
+- Module/platform placement and import direction
 - Interface-implementation pattern documentation
-- Go 1.22+ conventions and examples
+- Go 1.26.5 conventions and examples
 - Proper godoc formatting and structure
 
 ## QUALITY STANDARDS

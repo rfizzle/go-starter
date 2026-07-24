@@ -54,7 +54,7 @@
 - [ ] **Testing**: Each test protects a named contract, regression, boundary, or risk
 
 ### Project Standards
-- [ ] **Architecture**: Standard Go Project Layout compliance
+- [ ] **Architecture**: Module/platform placement and import-direction compliance
 - [ ] **Dependencies**: New dependencies and layers have current concrete justification
 - [ ] **Documentation**: Godoc comments, README updates, architectural decisions
 - [ ] **Configuration**: Proper config management, environment handling

@@ -1,6 +1,9 @@
 # Code Reviews
 
-This directory contains code review documentation and outputs for the Go project using Standard Go Project Layout.
+This directory contains point-in-time code review records for the Go project.
+Current architecture guidance lives in
+[`docs/architecture/`](../architecture/README.md); historical findings may cite
+paths or behavior that no longer exist.
 
 ## Purpose
 

@@ -17,6 +17,8 @@ Core development documentation for engineers working on this codebase.
 - **[project-context.md](development/project-context.md)** - Project overview, architecture, tech stack, and workflows
 - **[foundations.md](development/foundations.md)** - Core Go principles, patterns, and best practices
 - **[environment.md](development/environment.md)** - Development environment setup, tools, and troubleshooting
+- **[database.md](development/database.md)** - PostgreSQL, sqlc, migrations, repositories, and integration testing
+- **[ogen-workflow.md](development/ogen-workflow.md)** - OpenAPI-first generation and controller workflow
 
 ### 📁 guidelines/
 Specific development guidelines and standards for consistent code quality.
@@ -92,15 +94,18 @@ shared infrastructure-free contracts. The composition root lives in
 2. **Generate Code**: Run `make generate`
 3. **Select Verification**: Map requirements and risks to the narrowest effective checks
 4. **Implement**: Make the smallest change that satisfies the approved contract
-5. **Quality Checks**: Run `make architecture-check`, then `make fmt lint test`
+5. **Quality Checks**: Run focused tests, then `make check`
 6. **Build**: Run `make build`
 
 ### Key Commands
-- `make build` - Build multi-platform binaries
-- `make test` - Run all tests
+- `make build` - Build the local binary in `bin/`
+- `make test` - Run tests that do not require external services
+- `make test-integration` - Run disposable-service integration tests
+- `make test-all` - Run both test tiers
 - `make lint` - Code quality checks
 - `make fmt` - Format code
 - `make generate` - Regenerate API code
+- `make docs-check` - Validate documentation links, commands, paths, and Go version
 - `make ci` - CI pipeline checks
 
 ## For AI Agents
@@ -128,7 +133,7 @@ When adding new documentation:
 
 ## Version Information
 
-- **Go Version**: 1.22+ required
+- **Go Version**: 1.26.5 (from `go.mod`)
 - **Project Type**: REST API service
 - **Architecture**: OpenAPI-first with ogen code generation
 - **Database**: PostgreSQL with pgx driver

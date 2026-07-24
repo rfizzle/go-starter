@@ -76,7 +76,9 @@ PostgreSQL.
 
 - `make architecture-check` verifies package placement and import direction.
 - `make generate-check` detects stale ogen and sqlc output.
-- `make test`, `make lint`, and `make check` cover behavior and static quality.
+- `make test` runs the default no-external-service suite;
+  `make test-integration` covers disposable external boundaries; and
+  `make check` covers the fast behavior and static-quality gates.
 - `make race` is required for concurrency, lifecycle, middleware, or database
   changes.
 
