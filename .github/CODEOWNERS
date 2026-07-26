@@ -1,0 +1,7 @@
+# Code owners are requested for review automatically. Replace the owner below
+# with your own GitHub user or team after cloning this template; the
+# initializer does not rewrite GitHub account names.
+#
+# Syntax: https://docs.github.com/articles/about-code-owners
+
+* @rfizzle

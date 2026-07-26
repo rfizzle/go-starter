@@ -1,0 +1,61 @@
+name: Bug report
+description: Report incorrect or unexpected behavior in Go Starter.
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report a suspected vulnerability here. Follow
+        [SECURITY.md](https://github.com/rfizzle/go-starter/blob/master/SECURITY.md)
+        instead and keep exploit details out of public issues.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What happens, and what did you expect instead?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Minimal commands, configuration, or request sequence that shows the problem.
+      placeholder: |
+        1. make build
+        2. ./bin/gostarter serve ...
+        3. curl ...
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs or output
+      description: Relevant command output, logs, or stack traces. Redact secrets and credentials.
+      render: text
+    validations:
+      required: false
+  - type: input
+    id: revision
+    attributes:
+      label: Revision
+      description: Commit SHA or release tag the behavior was observed on.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Operating system, architecture, Go version, and PostgreSQL version.
+      placeholder: linux/amd64, go1.26.5, postgres 18
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I ran `make check` on the affected revision.
+          required: false
+        - label: I searched existing issues for a duplicate.
+          required: true

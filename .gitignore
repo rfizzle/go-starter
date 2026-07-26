@@ -15,8 +15,8 @@
 # Test binary, built with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
-*.out
+# Output of the go coverage tool
+coverage*.out
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
@@ -26,6 +26,9 @@ go.work
 
 # Local application configuration
 .env
+
+# Marker written by the one-time template initializer (make init)
+.template-initialized
 
 # Jetbrains IDE
 .idea/

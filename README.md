@@ -1,5 +1,9 @@
 # Go Starter
 
+[![CI](https://github.com/rfizzle/go-starter/actions/workflows/ci.yml/badge.svg)](https://github.com/rfizzle/go-starter/actions/workflows/ci.yml)
+[![Go 1.26.5](https://img.shields.io/badge/Go-1.26.5-00ADD8?logo=go&logoColor=white)](go.mod)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+
 Go Starter is an OpenAPI-first foundation for PostgreSQL-backed HTTP services.
 It provides a small example domain and the operational plumbing that most Go
 services need, while keeping the API contract, generated transport code, domain
@@ -13,6 +17,24 @@ The module currently requires Go 1.26.5. Its main stack is:
 - JWT bearer authentication
 - Zap logging, Prometheus metrics, and optional OpenTelemetry export
 - testify and pgxmock for tests
+
+[AGENTS.md](AGENTS.md) carries the repository rules — architecture boundaries,
+engineering and testing policy, and the task-to-skill routing table — for both
+humans and coding agents.
+
+## Contents
+
+- [What is included](#what-is-included)
+- [Initialize a new project](#initialize-a-new-project)
+- [Five-minute quickstart](#five-minute-quickstart)
+- [Configuration](#configuration)
+- [Core commands](#core-commands)
+- [Architecture map](#architecture-map)
+- [API and generation workflow](#api-and-generation-workflow)
+- [Testing tiers](#testing-tiers)
+- [Deployment notes](#deployment-notes)
+- [AI-assisted development](#ai-assisted-development)
+- [Contributing and security](#contributing-and-security)
 
 ## What is included
 
@@ -42,14 +64,19 @@ environment prefix, container metadata, OpenAPI metadata, examples, and
 documentation:
 
 ```sh
-go run ./tools/initialize \
-  --module example.com/acme/orders \
-  --app-name "Acme Orders" \
-  --binary orders-api \
-  --env-prefix ORDERS \
-  --image registry.example.com/acme/orders-api \
-  --description "Order processing API"
+make init \
+  module=example.com/acme/orders \
+  app-name='Acme Orders' \
+  binary=orders-api \
+  env-prefix=ORDERS \
+  image=registry.example.com/acme/orders-api \
+  description='Order processing API'
 ```
+
+`make init` wraps `go run ./tools/initialize` and reports which value is
+missing before invoking it; the underlying command accepts the same values as
+`--module`, `--app-name`, `--binary`, `--env-prefix`, `--image`, and
+`--description` flags.
 
 The module, application name, binary name, environment prefix, and untagged OCI
 image name are required; the description defaults to `<application name>
@@ -170,6 +197,7 @@ are never included in validation errors or logs.
 | Command | Purpose |
 | --- | --- |
 | `make help` | List supported targets. |
+| `make init` | Rewrite the template identity once; see [Initialize a new project](#initialize-a-new-project). |
 | `make tools` | Install the repository-pinned development tools. |
 | `make env` | Report installed and required tool versions. |
 | `make build` | Build `bin/gostarter` without changing source files. |
@@ -340,7 +368,9 @@ project. Keep personal overrides in the ignored `.claude/settings.local.json`.
 
 ## Contributing and security
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow. Report
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the development workflow and
+[CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for participation expectations.
+Notable changes are summarized in [CHANGELOG.md](CHANGELOG.md). Report
 suspected vulnerabilities according to [SECURITY.md](SECURITY.md), without
 placing sensitive details in a public issue.
 

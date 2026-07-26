@@ -5,6 +5,8 @@ and consistent with the OpenAPI-first workflow.
 
 ## Before you start
 
+Participation is governed by [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+
 Read [AGENTS.md](AGENTS.md) for repository rules and the
 [README quickstart](README.md#five-minute-quickstart) for prerequisites. Run
 `make tools` to install the pinned development toolchain, `make env` to verify
@@ -36,7 +38,10 @@ Never edit ogen files under `internal/api/v1/` or sqlc files under
 Use a conventional commit subject such as `feat(auth): add token rotation` or
 `fix(storage): preserve transaction errors`. Keep pull requests small, explain
 the user-visible outcome, identify verification performed, and call out
-migrations, compatibility concerns, or follow-up work.
+migrations, compatibility concerns, or follow-up work. The pull request
+template in `.github/PULL_REQUEST_TEMPLATE.md` lists the expected checks; add
+an entry to [CHANGELOG.md](CHANGELOG.md) when a change requires action from
+someone using the template.
 
 Do not include credentials, private vulnerability details, generated build
 artifacts, or unrelated worktree changes. Follow [SECURITY.md](SECURITY.md) for

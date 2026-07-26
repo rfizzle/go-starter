@@ -38,7 +38,7 @@ else
 	RESET   :=
 endif
 
-.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -77,6 +77,26 @@ clean_vendor: ## Remove built binaries
 	@rm -fr ./vendor/*
 
 ## Development:
+# Variable names mirror the initializer flags. They are lowercase (like
+# `make migration name=`) so that `app-name` cannot collide with the APP_NAME
+# build variable above.
+INIT_USAGE=make init module=example.com/acme/orders app-name='Acme Orders' binary=orders-api env-prefix=ORDERS image=registry.example.com/acme/orders-api [description='Order processing API']
+
+init: ## Initialize this clone once (required: module app-name binary env-prefix image; optional: description)
+	@test -n "$(module)" || { echo "${RED}module is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
+	@test -n "$(app-name)" || { echo "${RED}app-name is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
+	@test -n "$(binary)" || { echo "${RED}binary is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
+	@test -n "$(env-prefix)" || { echo "${RED}env-prefix is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
+	@test -n "$(image)" || { echo "${RED}image is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
+	@echo "${MAGENTA}Initializing template identity...${RESET}"
+	@$(GOCMD) run ./tools/initialize \
+		--module "$(module)" \
+		--app-name "$(app-name)" \
+		--binary "$(binary)" \
+		--env-prefix "$(env-prefix)" \
+		--image "$(image)" \
+		$(if $(description),--description "$(description)")
+
 tools: ## Install the exact development tool versions (set TOOL_BIN to isolate)
 	@TOOL_BIN="$(TOOL_BIN)" ./scripts/bootstrap-tools.bash
 
