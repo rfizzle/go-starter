@@ -19,28 +19,26 @@ COVERAGE_PROFILE=coverage.out
 COVERAGE_MAINTAINED_PROFILE=coverage.maintained.out
 TOOL_BIN?=
 
+# Both branches define the same variables. The fallback assigns a truly empty
+# value (no quotes): `:= ""` would expand to two literal characters and print
+# them, which is what plain terminals and CI logs get.
 ifneq (,$(findstring 256color, ${TERM}))
 	RED     := $(shell tput -Txterm setaf 1)
 	GREEN   := $(shell tput -Txterm setaf 2)
 	YELLOW  := $(shell tput -Txterm setaf 3)
-	BLUE    := $(shell tput -Txterm setaf 4)
 	MAGENTA := $(shell tput -Txterm setaf 5)
 	CYAN    := $(shell tput -Txterm setaf 6)
-	WHITE   := $(shell tput -Txterm setaf 7)
 	RESET   := $(shell tput -Txterm sgr0)
 else
-	BLACK        := ""
-	RED          := ""
-	GREEN        := ""
-	YELLOW       := ""
-	LIGHTPURPLE  := ""
-	PURPLE       := ""
-	BLUE         := ""
-	WHITE        := ""
-	RESET        := ""
+	RED     :=
+	GREEN   :=
+	YELLOW  :=
+	MAGENTA :=
+	CYAN    :=
+	RESET   :=
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
