@@ -5,63 +5,62 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
 const (
 	defaultUID = "abc12345678"
 )
 
-func TestNewSubjectContext(t *testing.T) {
+// The subject carrier is exercised through WithSubject/GetSubjectFromContext,
+// the pair the generated-transport edge actually calls.
+func TestWithSubjectRoundTrip(t *testing.T) {
 	ctx := context.Background()
-	authService, err := NewService(context.Background(), &mockValidator{}, Logger(zap.NewNop()))
-	assert.NotNil(t, authService)
-	assert.Nil(t, err)
-	if err != nil {
-		return
-	}
-	svc := authService.(*service)
-	newCtx, err := newAuthSubjectContext(ctx, svc.contextKey, defaultUID)
-	assert.NotNil(t, newCtx)
-	assert.Nil(t, err)
-	assert.NotEqual(t, ctx, newCtx, "context should be different")
-}
 
-func TestNewSubjectContext_InvalidType(t *testing.T) {
-	ctx := context.Background()
-	authService, err := NewService(context.Background(), &mockValidator{}, Logger(zap.NewNop()))
-	assert.NotNil(t, authService)
-	assert.Nil(t, err)
-	if err != nil {
-		return
-	}
-	svc := authService.(*service)
-	newCtx, expectedErr := newAuthSubjectContext(ctx, svc.contextKey, "")
-	assert.Nil(t, newCtx)
-	assert.NotNil(t, expectedErr)
-	authErr, err := GetError(expectedErr)
-	assert.NotNil(t, authErr)
-	assert.Nil(t, err)
-	assert.Equal(t, authErr.Err, ErrEmptySubject)
-}
-
-func TestNewSubjectContextWithCustomKey(t *testing.T) {
-	ctx := context.Background()
-	authService, err := NewService(context.Background(), &mockValidator{}, Logger(zap.NewNop()), ContextKey("custom"))
-	assert.NotNil(t, authService)
-	assert.Nil(t, err)
-	if err != nil {
-		return
-	}
-	newCtx, err := newAuthSubjectContext(ctx, "custom", defaultUID)
-	assert.NotNil(t, newCtx)
-	assert.Nil(t, err)
+	newCtx, err := WithSubject(ctx, "custom", defaultUID)
+	assert.NoError(t, err)
 	assert.NotEqual(t, ctx, newCtx, "context should be different")
-	subject, err := subjectFromContext(newCtx, "custom")
-	assert.NotEmpty(t, subject)
-	assert.Nil(t, err)
+
+	subject, err := GetSubjectFromContext(newCtx, "custom")
+	assert.NoError(t, err)
 	assert.Equal(t, defaultUID, subject)
-	failSubject, err := subjectFromContext(newCtx, "default")
-	assert.Empty(t, failSubject)
-	assert.NotNil(t, err)
+}
+
+func TestWithSubjectRejectsEmptySubject(t *testing.T) {
+	newCtx, err := WithSubject(context.Background(), "custom", "")
+	assert.Nil(t, newCtx)
+
+	authErr, getErr := GetError(err)
+	assert.NoError(t, getErr)
+	assert.Equal(t, ErrEmptySubject, authErr.Err)
+}
+
+func TestGetSubjectFromContextMissing(t *testing.T) {
+	ctx, err := WithSubject(context.Background(), "custom", defaultUID)
+	assert.NoError(t, err)
+
+	// A key that was never written must not fall back to another key's subject.
+	subject, err := GetSubjectFromContext(ctx, "default")
+	assert.Empty(t, subject)
+	assert.ErrorIs(t, err, ErrMissingKeyFromSubjectContext)
+
+	// A context that carries no subject at all is distinguishable.
+	subject, err = GetSubjectFromContext(context.Background(), "custom")
+	assert.Empty(t, subject)
+	assert.ErrorIs(t, err, ErrMissingSubjectContext)
+}
+
+// A derived context must not mutate a map still visible through its parent.
+func TestWithSubjectDoesNotMutateParent(t *testing.T) {
+	parent, err := WithSubject(context.Background(), "first", defaultUID)
+	assert.NoError(t, err)
+
+	child, err := WithSubject(parent, "second", "other")
+	assert.NoError(t, err)
+
+	subject, err := GetSubjectFromContext(child, "first")
+	assert.NoError(t, err)
+	assert.Equal(t, defaultUID, subject)
+
+	_, err = GetSubjectFromContext(parent, "second")
+	assert.ErrorIs(t, err, ErrMissingKeyFromSubjectContext)
 }

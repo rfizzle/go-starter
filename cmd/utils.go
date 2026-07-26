@@ -47,17 +47,8 @@ func resolveConfig() (*config.Application, error) {
 	return cfg, nil
 }
 
-func persistentPreRunHook(fn func(cmd *cobra.Command, args []string)) func(cmd *cobra.Command, args []string) {
-	return func(cmd *cobra.Command, args []string) {
-		if cmd.HasParent() {
-			cmd.Parent().PersistentPreRun(cmd.Parent(), args)
-		}
-		if fn != nil {
-			fn(cmd, args)
-		}
-	}
-}
-
+// persistentPreRunEHook chains a command's PersistentPreRunE onto its parent's,
+// which cobra otherwise replaces rather than composes.
 func persistentPreRunEHook(fn func(cmd *cobra.Command, args []string) error) func(cmd *cobra.Command, args []string) error {
 	return func(cmd *cobra.Command, args []string) error {
 		if cmd.HasParent() {

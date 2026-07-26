@@ -10,6 +10,7 @@ linters:
     - gosec
     - govet
     - staticcheck
+    - unused
   exclusions:
     generated: lax
     presets:

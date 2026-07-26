@@ -64,16 +64,6 @@ func subjectFromContext(ctx context.Context, key string) (string, error) {
 	return s, nil
 }
 
-// newSubjectContext creates a new context for a subject using the service contextKey.
-func (s *service) newSubjectContext(ctx context.Context, subject string) (context.Context, error) {
-	return newAuthSubjectContext(ctx, s.contextKey, subject)
-}
-
-// subjectFromContext returns a context with a subject map if present using the service contextKey.
-func (s *service) subjectFromContext(ctx context.Context) (string, error) {
-	return subjectFromContext(ctx, s.contextKey)
-}
-
 // GetSubjectFromContext is a public function to get subject from context with a specific key
 func GetSubjectFromContext(ctx context.Context, key string) (string, error) {
 	return subjectFromContext(ctx, key)
