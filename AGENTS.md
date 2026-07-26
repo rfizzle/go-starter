@@ -23,6 +23,41 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
 - **CI pipeline**: `make ci` - Run the read-only validation workflow
 - **Docker**: `make docker` - Build Docker container using build scripts
+- **Skill validation**: `make skills-check` - Validate the skill library and its discovery links
+- **Agent wiring**: `make agents-setup` - Regenerate the `.claude/` discovery symlinks
+
+## Skills
+
+Reusable task guidance lives in `.agents/skills/`, the canonical client-neutral
+library described in [.agents/skills/README.md](.agents/skills/README.md). Each skill is a
+directory holding a portable `SKILL.md`.
+
+`.claude/skills/` and `.claude/agents/` contain **relative** symlinks back into
+that library and into `docs/ai/prompts/`, so a clone gets working discovery
+without copies that drift. `make agents-setup` regenerates them idempotently and
+`make skills-check` validates the library and fails on a missing, misdirected, or
+dangling link. Never copy a skill into `.claude/`; edit the canonical directory.
+
+Route by task type; load the narrowest skill that covers the change:
+
+| Task type | Skill | Verification |
+| --- | --- | --- |
+| Package placement, cross-cutting move, import direction | `go-project-layout`, `project-conventions` | `make architecture-check` |
+| New or behaviorally changed business module | `backend-spec` | `make test` |
+| Struct, interface, and constructor design | `golang-structs-interfaces`, `golang-design-patterns` | `make lint` |
+| Naming, formatting, comments | `golang-naming`, `golang-code-style` | `make fmt-check` |
+| Error definition, wrapping, translation | `golang-error-handling` | `make lint` |
+| Goroutines, channels, locks, cancellation | `golang-concurrency`, `golang-context` | `make race` |
+| Repositories, queries, migrations | `golang-database` | `make test-integration` |
+| Test design and coverage | `golang-testing` | `make test-all` |
+| Cobra commands and Viper configuration | `golang-spf13-cobra`, `golang-spf13-viper` | `make build` |
+| Logs, metrics, traces, profiling | `golang-observability` | `make test` |
+| Security-sensitive or nil-prone code | `golang-security`, `golang-safety` | `make vuln` |
+| Profiling and optimization | `golang-benchmark`, `golang-performance` | `go test -bench=. ./...` |
+| Debugging a defect | `golang-troubleshooting` | `make test` |
+| Authoring or editing a skill | `agent-skills` | `make skills-check` |
+
+Finish any of these with `make check`.
 
 ## Project Architecture
 

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make:*)",
+      "Bash(go build:*)",
+      "Bash(go test:*)",
+      "Bash(go vet:*)",
+      "Bash(go list:*)",
+      "Bash(go doc:*)",
+      "Bash(gofmt:*)",
+      "Bash(goimports:*)",
+      "Bash(golangci-lint run:*)",
+      "Bash(node .agents/skills/scripts/validate-skills.mjs:*)",
+      "Bash(./scripts/check-architecture.bash)",
+      "Bash(./scripts/check-docs.bash)",
+      "Bash(./scripts/check-env.bash)",
+      "Bash(./scripts/setup-agents.bash:*)",
+      "Bash(git status:*)",
+      "Bash(git diff:*)",
+      "Bash(git log:*)",
+      "Bash(git show:*)"
+    ],
+    "deny": []
+  }
+}

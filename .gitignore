@@ -40,5 +40,8 @@ bin/
 dist/
 
 # AI Agents
-.claude
+# .claude/ ships with the template: the shared settings baseline and the
+# relative skill/agent discovery links belong in version control. Only personal
+# overrides stay local.
+.claude/settings.local.json
 .aider

@@ -40,7 +40,7 @@ else
 	RESET        := ""
 endif
 
-.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools fmt fmt-check lint architecture-check docs-check check test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -81,6 +81,10 @@ clean_vendor: ## Remove built binaries
 ## Development:
 tools: ## Install the exact development tool versions (set TOOL_BIN to isolate)
 	@TOOL_BIN="$(TOOL_BIN)" ./scripts/bootstrap-tools.bash
+
+agents-setup: ## Regenerate the relative .claude skill and agent discovery links
+	@echo "${MAGENTA}Regenerating agent discovery links...${RESET}"
+	@./scripts/setup-agents.bash
 
 dev-up: ## Start local PostgreSQL and wait until it is healthy
 	@docker compose up --detach --wait postgres
@@ -131,7 +135,13 @@ architecture-check: ## Verify module, domain, platform, and generated-transport 
 docs-check: ## Verify documentation links, commands, paths, and Go version
 	@./scripts/check-docs.bash
 
-check: architecture-check docs-check generate-check fmt-check lint test ## Run all fast validation checks
+skills-check: ## Validate the portable skill library and its discovery links
+	@command -v node >/dev/null 2>&1 || { echo "${RED}node not found. Install Node.js to validate the skill library.${RESET}"; exit 1; }
+	@echo "${MAGENTA}Validating skill library...${RESET}"
+	@node .agents/skills/scripts/validate-skills.mjs
+	@./scripts/setup-agents.bash --check
+
+check: architecture-check docs-check skills-check generate-check fmt-check lint test ## Run all fast validation checks
 
 ## Dependencies:
 tidy: ## Rebuild go.mod with only required dependencies

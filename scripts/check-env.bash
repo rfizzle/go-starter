@@ -111,6 +111,8 @@ check_command gofmt
 check_command git
 check_command make
 check_command docker
+# make skills-check runs the Node-based skill-library validator.
+check_command node
 
 if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
   report_present "docker compose" "present" "present"

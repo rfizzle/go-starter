@@ -184,6 +184,8 @@ are never included in validation errors or logs.
 | `make generate-check` | Fail if committed generated code is stale. |
 | `make architecture-check` | Verify module, domain, platform, and transport boundaries. |
 | `make docs-check` | Verify documentation links, commands, paths, and Go version. |
+| `make skills-check` | Validate the agent skill library and its discovery links. |
+| `make agents-setup` | Regenerate the relative `.claude/` skill and agent links. |
 | `make dev-up` | Start local PostgreSQL and wait for health. |
 | `make dev-run` | Start PostgreSQL, migrate, seed, and serve using `.env`. |
 | `make dev-down` | Stop local services without deleting database data. |
@@ -313,6 +315,25 @@ Profiling is disabled by default and should remain private when enabled.
 A production Compose stack and deployment manifests are not included. Validate
 the image, health probes, secret delivery, CORS policy, migration job,
 observability, and rollback strategy in your target platform.
+
+## AI-assisted development
+
+[AGENTS.md](AGENTS.md) is the entry point for coding agents: it states the
+architecture boundaries, the engineering and testing policy, and which skill to
+load for a given task. `CLAUDE.md` includes it, so Claude Code picks it up
+automatically.
+
+The skills themselves ship with the template in
+[`.agents/skills/`](.agents/skills/README.md), a client-neutral library that
+follows the [Agent Skills specification](https://agentskills.io/specification).
+`.claude/skills/` and `.claude/agents/` hold relative symlinks into that library
+and into `docs/ai/prompts/`, so discovery works in a fresh clone. Regenerate the
+links with `make agents-setup` after adding a skill; `make skills-check` runs as
+part of `make check` and fails on an invalid skill or a broken link. It needs
+Node.js on `PATH`.
+
+`.claude/settings.json` is the committed permission baseline shared by the
+project. Keep personal overrides in the ignored `.claude/settings.local.json`.
 
 ## Contributing and security
 
