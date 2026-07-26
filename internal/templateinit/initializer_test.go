@@ -110,6 +110,47 @@ func TestInitializeRefusesDirtyWorktreeAndPreservesUntrackedFiles(t *testing.T) 
 	}
 }
 
+// TestInitializeWithBinaryNameContainingTemplateToken guards the rewrite against
+// cascading substitution: the substituted names below all contain "starter", so a
+// replacement pass that rescans its own output doubles the prefix (mymystarter).
+// Initialization cannot be repeated, which makes that corruption unrecoverable.
+func TestInitializeWithBinaryNameContainingTemplateToken(t *testing.T) {
+	root := newTemplateRepository(t)
+	cfg := Config{
+		Root:            root,
+		ModulePath:      "example.com/acme/mystarter",
+		ApplicationName: "My Starter",
+		BinaryName:      "mystarter",
+		EnvPrefix:       "MYSTARTER",
+		ImageName:       "registry.example.com/acme/mystarter",
+		Description:     "My starter service",
+	}
+	if err := Initialize(context.Background(), cfg); err != nil {
+		t.Fatalf("Initialize() error = %v", err)
+	}
+
+	for _, path := range trackedPaths(t, root) {
+		if skipTrackedPath(filepath.ToSlash(path)) {
+			continue
+		}
+		contents, err := os.ReadFile(filepath.Join(root, path))
+		if err != nil {
+			t.Fatalf("ReadFile(%q) error = %v", path, err)
+		}
+		if strings.Contains(string(contents), "my"+cfg.BinaryName) {
+			t.Errorf("%s = %q, want no cascaded binary name", path, contents)
+		}
+	}
+
+	assertFileContains(t, filepath.Join(root, "Makefile"), `APP_NAME="`+cfg.BinaryName+`"`)
+	assertFileContains(t, filepath.Join(root, "Makefile"), `APP_PACKAGE="`+cfg.ModulePath+`"`)
+	assertFileContains(t, filepath.Join(root, "Makefile"), "go build -o bin/linux/"+cfg.BinaryName)
+	assertFileContains(t, filepath.Join(root, ".goreleaser.yaml"), "project_name: "+cfg.BinaryName)
+	assertFileContains(t, filepath.Join(root, "build", "docker", "Dockerfile"), "-o /out/"+cfg.BinaryName+" .")
+	assertFileContains(t, filepath.Join(root, "build", "docker", "Dockerfile.release"), "${TARGETPLATFORM}/"+cfg.BinaryName+" /app")
+	assertFileContains(t, filepath.Join(root, "scripts", "docker-build.bash"), `APPLICATION_NAME="${APPLICATION_NAME:-`+cfg.BinaryName+`}"`)
+}
+
 func TestNormalizeAndValidate(t *testing.T) {
 	valid := Config{
 		ModulePath:      "example.com/acme/orders/v2",

@@ -11,6 +11,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"regexp"
+	"slices"
 	"strconv"
 	"strings"
 	"unicode/utf8"
@@ -336,15 +337,17 @@ func planChanges(root string, paths []string, cfg Config) ([]fileChange, error) 
 	return changes, nil
 }
 
+type replacement struct {
+	old string
+	new string
+}
+
 func rewrite(path string, contents []byte, cfg Config) ([]byte, error) {
 	text := string(contents)
 	sourceURL := "https://" + cfg.ModulePath
 	annotationKey := "io." + sanitizeAnnotation(cfg.ModulePath) + ".environment"
 
-	replacements := []struct {
-		old string
-		new string
-	}{
+	replacements := []replacement{
 		{defaultImageName, cfg.ImageName},
 		{"https://" + defaultModulePath + ".git", sourceURL + ".git"},
 		{"https://" + defaultModulePath, sourceURL},
@@ -356,19 +359,21 @@ func rewrite(path string, contents []byte, cfg Config) ([]byte, error) {
 		{defaultBinaryName, cfg.BinaryName},
 		{defaultProjectSlug, cfg.BinaryName},
 	}
-	for _, replacement := range replacements {
-		text = strings.ReplaceAll(text, replacement.old, replacement.new)
-	}
 
 	switch filepath.ToSlash(path) {
 	case ".goreleaser.yaml", "Makefile", "build/docker/Dockerfile",
 		"build/docker/Dockerfile.release", "scripts/docker-build.bash":
-		text = strings.ReplaceAll(text, defaultReleaseName, cfg.BinaryName)
+		replacements = append(replacements, replacement{defaultReleaseName, cfg.BinaryName})
 	case ".dockerignore":
-		text = strings.ReplaceAll(text, "/"+defaultReleaseName, "/"+cfg.BinaryName)
+		replacements = append(replacements, replacement{"/" + defaultReleaseName, "/" + cfg.BinaryName})
 	case "README.md":
-		text = strings.ReplaceAll(text, "dist/"+defaultReleaseName+"-image.tar", "dist/"+cfg.BinaryName+"-image.tar")
+		replacements = append(replacements, replacement{
+			"dist/" + defaultReleaseName + "-image.tar",
+			"dist/" + cfg.BinaryName + "-image.tar",
+		})
 	}
+
+	text = applyReplacements(text, replacements)
 
 	description := strconv.Quote(cfg.Description)
 	switch filepath.ToSlash(path) {
@@ -391,6 +396,38 @@ func rewrite(path string, contents []byte, cfg Config) ([]byte, error) {
 		updated = formatted
 	}
 	return updated, nil
+}
+
+// applyReplacements rewrites text in one left-to-right pass, so text produced by
+// a replacement is never rescanned. At each position the longest matching token
+// wins. Both properties are required because the template identifiers overlap
+// (gostarter, go-starter, starter) and the substituted names may themselves
+// contain a template token: sequential ReplaceAll passes would rewrite their own
+// output, turning a --binary mystarter into mymystarter.
+func applyReplacements(text string, replacements []replacement) string {
+	ordered := slices.Clone(replacements)
+	slices.SortStableFunc(ordered, func(a, b replacement) int {
+		return len(b.old) - len(a.old)
+	})
+
+	var rewritten strings.Builder
+	rewritten.Grow(len(text))
+	for index := 0; index < len(text); {
+		matched := false
+		for _, candidate := range ordered {
+			if candidate.old != "" && strings.HasPrefix(text[index:], candidate.old) {
+				rewritten.WriteString(candidate.new)
+				index += len(candidate.old)
+				matched = true
+				break
+			}
+		}
+		if !matched {
+			rewritten.WriteByte(text[index])
+			index++
+		}
+	}
+	return rewritten.String()
 }
 
 func replaceLine(text, oldLine, newLine string) string {
