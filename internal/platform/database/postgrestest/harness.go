@@ -4,10 +4,12 @@ package postgrestest
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/url"
 	"os"
 	"strings"
+	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -26,15 +28,160 @@ const (
 	databaseUser  = "gostarter_test"
 	databasePass  = "gostarter_test"
 	cleanupBudget = 10 * time.Second
+	startupBudget = 2 * time.Minute
 )
 
+// errProviderUnavailable reports that no healthy container provider exists.
+// Tests skip on it unless GOSTARTER_REQUIRE_DOCKER=1 demands a container.
+var errProviderUnavailable = errors.New("docker provider is unavailable")
+
 // Harness owns one disposable PostgreSQL container and its administrator pool.
-// Create isolated databases through Database or EmptyDatabase rather than
-// connecting tests to the administrator database.
+// One harness serves a whole test binary; isolation comes from Database and
+// EmptyDatabase, which create a distinct database per call. Never connect a
+// test to the administrator database.
 type Harness struct {
 	adminURL  *url.URL
 	adminPool *pgxpool.Pool
 	sequence  atomic.Uint64
+}
+
+// shared is the test binary's single harness. It is started by the first
+// Shared call and released by RunMain once the package's tests complete.
+var shared struct {
+	mu      sync.Mutex
+	started bool
+	harness *Harness
+	stop    func()
+	err     error
+}
+
+// RunMain runs a package's tests with one shared PostgreSQL container rather
+// than one per test. Integration-test packages install it as their TestMain:
+//
+//	func TestMain(m *testing.M) {
+//		os.Exit(postgrestest.RunMain(m))
+//	}
+//
+// The container starts on the first Shared call, so a run that selects no
+// harness-backed test starts nothing.
+func RunMain(m *testing.M) int {
+	defer stopShared()
+	return m.Run()
+}
+
+// Shared returns the test binary's harness, starting its container on first
+// use. The calling package must install RunMain as its TestMain. When Docker
+// is unavailable the test skips, unless GOSTARTER_REQUIRE_DOCKER=1 makes an
+// unusable provider fatal instead.
+func Shared(t *testing.T) *Harness {
+	t.Helper()
+
+	shared.mu.Lock()
+	defer shared.mu.Unlock()
+
+	if !shared.started {
+		shared.started = true
+		shared.harness, shared.stop, shared.err = startShared()
+	}
+	if shared.err != nil {
+		if errors.Is(shared.err, errProviderUnavailable) {
+			t.Skipf("skipping integration test: %v", shared.err)
+		}
+		t.Fatalf("start shared PostgreSQL test container: %v", shared.err)
+	}
+	return shared.harness
+}
+
+func startShared() (*Harness, func(), error) {
+	if !dockerRequired() {
+		if err := providerHealth(); err != nil {
+			return nil, nil, fmt.Errorf("%w: %w", errProviderUnavailable, err)
+		}
+	}
+
+	startupCtx, cancel := context.WithTimeout(context.Background(), startupBudget)
+	defer cancel()
+
+	container, err := tcpostgres.Run(
+		startupCtx,
+		postgresImage,
+		tcpostgres.WithDatabase("postgres"),
+		tcpostgres.WithUsername(databaseUser),
+		tcpostgres.WithPassword(databasePass),
+		tcpostgres.BasicWaitStrategies(),
+		testcontainers.WithLabels(map[string]string{
+			"com.gostarter.test-harness": "postgres",
+		}),
+	)
+	// TerminateContainer tolerates a nil container, so it also covers a
+	// partially started container reported alongside an error.
+	terminate := func() {
+		if err := testcontainers.TerminateContainer(container); err != nil {
+			fmt.Fprintf(os.Stderr, "terminate PostgreSQL test container: %v\n", err)
+		}
+	}
+	if err != nil {
+		terminate()
+		return nil, nil, fmt.Errorf("start PostgreSQL test container: %w", err)
+	}
+
+	adminURI, err := container.ConnectionString(startupCtx, "sslmode=disable")
+	if err != nil {
+		terminate()
+		return nil, nil, fmt.Errorf("resolve PostgreSQL test container connection string: %w", err)
+	}
+	adminURL, err := url.Parse(adminURI)
+	if err != nil {
+		terminate()
+		return nil, nil, fmt.Errorf("parse PostgreSQL test container connection string: %w", err)
+	}
+	adminPool, err := pgxpool.New(startupCtx, adminURI)
+	if err != nil {
+		terminate()
+		return nil, nil, fmt.Errorf("open PostgreSQL test administrator pool: %w", err)
+	}
+	if err := adminPool.Ping(startupCtx); err != nil {
+		adminPool.Close()
+		terminate()
+		return nil, nil, fmt.Errorf("ping PostgreSQL test container: %w", err)
+	}
+
+	harness := &Harness{
+		adminURL:  adminURL,
+		adminPool: adminPool,
+	}
+	return harness, func() {
+		adminPool.Close()
+		terminate()
+	}, nil
+}
+
+func stopShared() {
+	shared.mu.Lock()
+	defer shared.mu.Unlock()
+
+	if shared.stop != nil {
+		shared.stop()
+		shared.stop = nil
+	}
+	shared.harness = nil
+}
+
+// providerHealth reports whether a container provider can serve this binary.
+// Provider construction panics on some misconfigured hosts, which must read as
+// an unavailable provider rather than crash the test binary.
+func providerHealth() (err error) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			err = fmt.Errorf("container provider panicked: %v", recovered)
+		}
+	}()
+
+	provider, err := testcontainers.ProviderDocker.GetProvider()
+	if err != nil {
+		return fmt.Errorf("resolve container provider: %w", err)
+	}
+	return provider.Health(context.Background())
 }
 
 // Database is an isolated PostgreSQL database and its caller-owned pool. The
@@ -50,58 +197,6 @@ type Database struct {
 type Statement struct {
 	SQL  string
 	Args []any
-}
-
-// New starts a disposable PostgreSQL container. When Docker is unavailable,
-// local integration tests skip with Testcontainers' provider diagnostic.
-// Setting GOSTARTER_REQUIRE_DOCKER=1 disables that skip so CI fails instead.
-func New(t *testing.T) *Harness {
-	t.Helper()
-
-	if !dockerRequired() {
-		testcontainers.SkipIfProviderIsNotHealthy(t)
-	}
-
-	startupCtx, cancel := context.WithTimeout(t.Context(), 2*time.Minute)
-	defer cancel()
-
-	container, err := tcpostgres.Run(
-		startupCtx,
-		postgresImage,
-		tcpostgres.WithDatabase("postgres"),
-		tcpostgres.WithUsername(databaseUser),
-		tcpostgres.WithPassword(databasePass),
-		tcpostgres.BasicWaitStrategies(),
-		testcontainers.WithLabels(map[string]string{
-			"com.gostarter.test-harness": "postgres",
-		}),
-	)
-	testcontainers.CleanupContainer(t, container)
-	if err != nil {
-		t.Fatalf("start PostgreSQL test container: %v", err)
-	}
-
-	adminURI, err := container.ConnectionString(startupCtx, "sslmode=disable")
-	if err != nil {
-		t.Fatalf("resolve PostgreSQL test container connection string: %v", err)
-	}
-	adminURL, err := url.Parse(adminURI)
-	if err != nil {
-		t.Fatalf("parse PostgreSQL test container connection string: %v", err)
-	}
-	adminPool, err := pgxpool.New(startupCtx, adminURI)
-	if err != nil {
-		t.Fatalf("open PostgreSQL test administrator pool: %v", err)
-	}
-	t.Cleanup(adminPool.Close)
-	if err := adminPool.Ping(startupCtx); err != nil {
-		t.Fatalf("ping PostgreSQL test container: %v", err)
-	}
-
-	return &Harness{
-		adminURL:  adminURL,
-		adminPool: adminPool,
-	}
 }
 
 // Database creates a migrated database isolated from every other harness

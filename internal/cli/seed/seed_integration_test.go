@@ -3,6 +3,7 @@
 package seed_test
 
 import (
+	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -14,8 +15,12 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 )
 
+func TestMain(m *testing.M) {
+	os.Exit(postgrestest.RunMain(m))
+}
+
 func TestSeeder_RunIsIdempotentAgainstPostgres(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 	firstUsers := []seed.UserSeed{{
 		Email:     "seeded@example.com",

@@ -5,6 +5,7 @@ package postgres_test
 import (
 	"context"
 	"errors"
+	"os"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -16,8 +17,12 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 )
 
+func TestMain(m *testing.M) {
+	os.Exit(postgrestest.RunMain(m))
+}
+
 func TestMigrateEmptyDatabaseToCurrentSchemaIsIdempotent(t *testing.T) {
-	database := postgrestest.New(t).EmptyDatabase(t)
+	database := postgrestest.Shared(t).EmptyDatabase(t)
 	client, err := postgres.Open(
 		t.Context(),
 		postgres.WithPool(database.Pool),
@@ -59,7 +64,7 @@ func TestMigrateEmptyDatabaseToCurrentSchemaIsIdempotent(t *testing.T) {
 }
 
 func TestMigrateSerializesConcurrentPostgresAttempts(t *testing.T) {
-	database := postgrestest.New(t).EmptyDatabase(t)
+	database := postgrestest.Shared(t).EmptyDatabase(t)
 	testMigrations := fstest.MapFS{
 		"migrations/00001_serialization_probe.sql": {
 			Data: []byte(`-- +goose Up
@@ -125,7 +130,7 @@ DROP TABLE migration_serialization_probe;
 }
 
 func TestMigrateHonorsCanceledContext(t *testing.T) {
-	database := postgrestest.New(t).EmptyDatabase(t)
+	database := postgrestest.Shared(t).EmptyDatabase(t)
 	pool, err := pgxpool.New(t.Context(), database.URI)
 	if err != nil {
 		t.Fatalf("pgxpool.New() error: %v", err)

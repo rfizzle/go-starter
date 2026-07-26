@@ -4,6 +4,7 @@ package user_test
 
 import (
 	"errors"
+	"os"
 	"testing"
 	"time"
 
@@ -16,8 +17,12 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 )
 
+func TestMain(m *testing.M) {
+	os.Exit(postgrestest.RunMain(m))
+}
+
 func TestRepository_CreateAndReadAgainstPostgres(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 
 	created, err := repository.Create(t.Context(), domain.CreateUserParams{
@@ -41,7 +46,7 @@ func TestRepository_CreateAndReadAgainstPostgres(t *testing.T) {
 }
 
 func TestRepository_CredentialByEmailAgainstPostgres(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 
 	created, err := repository.Create(t.Context(), domain.CreateUserParams{
@@ -60,7 +65,7 @@ func TestRepository_CredentialByEmailAgainstPostgres(t *testing.T) {
 }
 
 func TestRepository_CredentialByEmailNotFoundAgainstPostgres(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 
 	_, err := repository.CredentialByEmail(t.Context(), "missing@example.com")
@@ -68,7 +73,7 @@ func TestRepository_CredentialByEmailNotFoundAgainstPostgres(t *testing.T) {
 }
 
 func TestRepository_ListUsesDynamicFiltersAgainstPostgres(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 	base := time.Date(2026, time.July, 1, 12, 0, 0, 0, time.UTC)
 
@@ -99,7 +104,7 @@ func TestRepository_ListUsesDynamicFiltersAgainstPostgres(t *testing.T) {
 }
 
 func TestRepository_CreatePreservesUniqueConstraintError(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 	params := domain.CreateUserParams{Email: "duplicate@example.com", PasswordHash: "hash"}
 
@@ -116,7 +121,7 @@ func TestRepository_CreatePreservesUniqueConstraintError(t *testing.T) {
 }
 
 func TestRepository_WithinTxCommitsAndRollsBackAgainstPostgres(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 	repository := user.NewRepository(database.Pool)
 
 	err := repository.WithinTx(t.Context(), func(txRepository *user.Repository) error {

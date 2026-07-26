@@ -8,6 +8,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -22,6 +23,10 @@ import (
 )
 
 const lifecycleWait = 10 * time.Second
+
+func TestMain(m *testing.M) {
+	os.Exit(postgrestest.RunMain(m))
+}
 
 type applicationFixture struct {
 	application *App
@@ -50,7 +55,7 @@ func (clock *applicationClock) Advance(duration time.Duration) {
 }
 
 func TestApplicationLifecycle(t *testing.T) {
-	harness := postgrestest.New(t)
+	harness := postgrestest.Shared(t)
 
 	t.Run("serves probes and rejects unauthenticated requests before graceful shutdown", func(t *testing.T) {
 		fixture := newApplicationFixture(t, harness.Database(t).URI)

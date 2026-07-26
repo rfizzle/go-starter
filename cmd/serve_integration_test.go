@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"net"
+	"os"
 	"strings"
 	"testing"
 
@@ -13,8 +14,12 @@ import (
 	"go.uber.org/zap"
 )
 
+func TestMain(m *testing.M) {
+	os.Exit(postgrestest.RunMain(m))
+}
+
 func TestServeCommand_RealApplicationStartupFailureUsesCobraErrorPath(t *testing.T) {
-	database := postgrestest.New(t).Database(t)
+	database := postgrestest.Shared(t).Database(t)
 
 	blocker, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

@@ -5,6 +5,7 @@ package health_test
 import (
 	"context"
 	"errors"
+	"os"
 	"sync/atomic"
 	"testing"
 	"time"
@@ -16,8 +17,12 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/health"
 )
 
+func TestMain(m *testing.M) {
+	os.Exit(postgrestest.RunMain(m))
+}
+
 func TestAggregatorTracksRealPostgresAvailability(t *testing.T) {
-	databaseURI := postgrestest.New(t).EmptyDatabase(t).URI
+	databaseURI := postgrestest.Shared(t).EmptyDatabase(t).URI
 
 	newPool := func() *pgxpool.Pool {
 		t.Helper()

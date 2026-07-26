@@ -4,14 +4,29 @@ package postgrestest
 
 import (
 	"errors"
+	"os"
 	"testing"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+func TestMain(m *testing.M) {
+	os.Exit(RunMain(m))
+}
+
+// TestSharedReusesOneContainer protects the one-container-per-test-binary
+// contract: a second call must hand back the running harness instead of
+// starting another PostgreSQL container.
+func TestSharedReusesOneContainer(t *testing.T) {
+	first := Shared(t)
+	if second := Shared(t); second != first {
+		t.Fatalf("Shared() returned %p then %p, want one shared harness", first, second)
+	}
+}
+
 func TestHarnessCreatesMigratedIsolatedDatabases(t *testing.T) {
-	harness := New(t)
+	harness := Shared(t)
 	first := harness.Database(t)
 	second := harness.Database(t)
 
@@ -67,7 +82,7 @@ func TestHarnessCreatesMigratedIsolatedDatabases(t *testing.T) {
 }
 
 func TestHarnessSupportsEmptyDatabaseAndAtomicFixtures(t *testing.T) {
-	harness := New(t)
+	harness := Shared(t)
 	empty := harness.EmptyDatabase(t)
 
 	var tableName string
