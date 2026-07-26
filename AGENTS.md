@@ -21,7 +21,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Coverage**: `make cover` - Run tests and write a coverage profile
 - **Vulnerability scan**: `make vuln` - Scan dependencies with govulncheck
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
-- **CI pipeline**: `make ci` - Run the read-only validation workflow
+- **CI pipeline**: `make ci` - Run the read-only validation workflow (`check` plus `vuln`)
 - **Docker**: `make docker` - Build Docker container using build scripts
 - **Skill validation**: `make skills-check` - Validate the skill library and its discovery links
 - **Agent wiring**: `make agents-setup` - Regenerate the `.claude/` discovery symlinks

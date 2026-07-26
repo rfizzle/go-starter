@@ -182,7 +182,7 @@ vuln: ## Scan dependencies for known vulnerabilities
 	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || { echo "${RED}govulncheck not found. Run: make tools${RESET}"; exit 1; }
 	@$(GOVULNCHECK) $(PROJECT_PACKAGES)
 
-ci: check ## Run the read-only validation workflow used by CI
+ci: check vuln ## Run the read-only validation workflow used by CI (check + vuln)
 
 generate: sqlc ## Run go generate (ogen) and sqlc
 	@echo "${MAGENTA}Running golang generations...${RESET}"

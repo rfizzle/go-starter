@@ -194,6 +194,7 @@ are never included in validation errors or logs.
 | `make docker` | Build the current container image. |
 | `make container-check` | Validate the amd64/arm64 release and container configuration. |
 | `make vuln` | Scan Go dependencies with `govulncheck`. |
+| `make ci` | Run the read-only validation workflow: `make check` plus `make vuln`. |
 
 `make tools` reads exact versions from `scripts/tool-versions.env`. Set
 `TOOL_BIN` to install into an isolated directory; otherwise tools are installed
@@ -275,8 +276,10 @@ It requires Docker with Buildx and the pinned Syft tool installed by
 `/app serve`.
 
 Pushing a valid `vX.Y.Z` semantic-version tag (optionally with a prerelease
-suffix) runs the least-privilege release workflow. Build metadata suffixes are
-not accepted because `+` is not valid in an OCI image tag. GoReleaser generates
+suffix) runs the least-privilege release workflow. Tag pushes do not trigger
+`ci.yml`, so the release job runs `make ci` itself and refuses to publish when
+those gates fail. Build metadata suffixes are not accepted because `+` is not
+valid in an OCI image tag. GoReleaser generates
 the changelog and GitHub Release assets and publishes the `linux/amd64` and
 `linux/arm64` image to
 `ghcr.io/rfizzle/go-starter` with the release tag. Stable releases also update

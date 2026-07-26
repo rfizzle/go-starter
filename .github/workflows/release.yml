@@ -42,16 +42,15 @@ jobs:
           go-version-file: go.mod
           cache: true
           cache-dependency-path: go.sum
-      - name: Install pinned release tools
-        shell: bash
+      - name: Install pinned development tools
         run: |
-          source scripts/tool-versions.env
-          mkdir -p "${RUNNER_TEMP}/go-tools"
-          GOBIN="${RUNNER_TEMP}/go-tools" \
-            go install "${GORELEASER_MODULE}@${GORELEASER_VERSION}"
-          GOBIN="${RUNNER_TEMP}/go-tools" \
-            go install "${SYFT_MODULE}@${SYFT_VERSION}"
           echo "${RUNNER_TEMP}/go-tools" >> "${GITHUB_PATH}"
+          make tools TOOL_BIN="${RUNNER_TEMP}/go-tools"
+      - name: Check
+        # A tag push does not trigger ci.yml, so the release job runs the same
+        # read-only gates itself. Without this a tag publishes binaries and
+        # images that no workflow run ever validated.
+        run: make ci
       - name: Check GoReleaser configuration
         run: goreleaser check
       - name: Log in to the GitHub container registry
