@@ -14,7 +14,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     permissions:
+      # attestations/id-token back the build-provenance steps below; both are
+      # required for Sigstore keyless signing through GitHub's attestation API.
+      attestations: write
       contents: write
+      id-token: write
       packages: write
     steps:
       - name: Check out repository
@@ -61,3 +65,32 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: goreleaser release --clean
+      - name: Attest released archive provenance
+        # subject-checksums attests every entry in the checksum manifest, so
+        # the archives and their SBOMs are all covered by one statement.
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-checksums: dist/checksums.txt
+      - name: Read published image digest
+        id: image
+        shell: bash
+        # GoReleaser writes dist/digests.txt after pushing the image. Every
+        # tag of one build shares the multi-platform index digest, so the
+        # distinct set must be a single value.
+        run: |
+          if [[ ! -s dist/digests.txt ]]; then
+            echo "::error::dist/digests.txt is missing or empty; cannot attest the image"
+            exit 1
+          fi
+          mapfile -t digests < <(awk '{ print $1 }' dist/digests.txt | sort -u)
+          if ((${#digests[@]} != 1)); then
+            echo "::error::expected one image digest, found ${#digests[@]}: ${digests[*]}"
+            exit 1
+          fi
+          echo "digest=sha256:${digests[0]}" >> "${GITHUB_OUTPUT}"
+      - name: Attest published image provenance
+        uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4.1.1
+        with:
+          subject-name: ghcr.io/rfizzle/go-starter
+          subject-digest: ${{ steps.image.outputs.digest }}
+          push-to-registry: true

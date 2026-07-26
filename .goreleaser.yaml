@@ -19,6 +19,9 @@ builds:
       - arm64
     flags:
       - -mod=vendor
+      # Parity with build/docker/Dockerfile: a released binary and a locally
+      # built image embed the same machine-independent paths.
+      - -trimpath
     ldflags:
       - -s -w
       - -X {{.ModulePath}}/cmd.ApplicationName=starter

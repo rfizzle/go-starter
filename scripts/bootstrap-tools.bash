@@ -38,5 +38,6 @@ install_tool syft "${SYFT_MODULE}" "${SYFT_VERSION}"
 install_tool sqlc "${SQLC_MODULE}" "${SQLC_VERSION}"
 install_tool goose "${GOOSE_MODULE}" "${GOOSE_VERSION}"
 install_tool govulncheck "${GOVULNCHECK_MODULE}" "${GOVULNCHECK_VERSION}"
+install_tool gitleaks "${GITLEAKS_MODULE}" "${GITLEAKS_VERSION}"
 
 printf 'Pinned development tools are installed in %s\n' "${tool_bin}"

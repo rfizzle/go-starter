@@ -129,6 +129,7 @@ if command -v go >/dev/null 2>&1; then
   check_go_tool sqlc "${SQLC_MODULE}" "${SQLC_VERSION}"
   check_go_tool goose "${GOOSE_MODULE}" "${GOOSE_VERSION}"
   check_go_tool govulncheck "${GOVULNCHECK_MODULE}" "${GOVULNCHECK_VERSION}"
+  check_go_tool gitleaks "${GITLEAKS_MODULE}" "${GITLEAKS_VERSION}"
 
   ogen_version="$(
     cd -- "${PROJECT_DIR}" &&

@@ -13,6 +13,8 @@ use the focused guide for the boundary you are changing.
 3. [foundations.md](foundations.md) — project-specific Go and package rules
 4. [ogen-workflow.md](ogen-workflow.md) — OpenAPI and generated transport
 5. [database.md](database.md) — PostgreSQL, sqlc, squirrel, and migrations
+6. [ci-contract.md](ci-contract.md) — what each workflow enforces and how to
+   reproduce it locally
 
 The accepted package-placement rules live in
 [module-platform-boundaries.md](../architecture/module-platform-boundaries.md).
@@ -32,6 +34,8 @@ make test-all           # Run both test tiers
 make race               # Run the Go suite with the race detector
 make cover              # Report and gate maintained-code coverage
 make check              # Run the fast read-only repository gates
+make secrets-check      # Scan the full git history for committed secrets
+make ci                 # Run the gates CI enforces (check + secrets-check + vuln)
 make build              # Build bin/gostarter for the current platform
 ```
 

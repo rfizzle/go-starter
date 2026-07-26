@@ -29,6 +29,11 @@ change.
    infrastructure changes.
 8. Confirm `git diff --check` is clean and review the staged diff.
 
+`make ci` runs the same read-only gates the pipeline enforces. The
+[CI contract](docs/development/ci-contract.md) records what each workflow
+checks, how release provenance is produced, and how to reproduce a failure
+locally.
+
 Never edit ogen files under `internal/api/v1/` or sqlc files under
 `internal/platform/database/postgres/db/` directly. The
 [ogen workflow](docs/development/ogen-workflow.md),

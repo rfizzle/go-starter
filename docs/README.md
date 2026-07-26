@@ -20,6 +20,7 @@ Core development documentation for engineers working on this codebase.
 - **[environment.md](development/environment.md)** - Development environment setup, tools, and troubleshooting
 - **[database.md](development/database.md)** - PostgreSQL, sqlc, migrations, repositories, and integration testing
 - **[ogen-workflow.md](development/ogen-workflow.md)** - OpenAPI-first generation and controller workflow
+- **[ci-contract.md](development/ci-contract.md)** - What each GitHub Actions workflow enforces, release provenance, and tool-pin maintenance
 
 ### 📁 guidelines/
 Specific development guidelines and standards for consistent code quality.
@@ -126,7 +127,8 @@ shared infrastructure-free contracts. The composition root lives in
 - `make fmt` - Format code
 - `make generate` - Regenerate API code
 - `make docs-check` - Validate documentation links, commands, paths, and Go version
-- `make ci` - CI pipeline checks
+- `make secrets-check` - Scan the git history for committed secrets
+- `make ci` - CI pipeline checks (see [development/ci-contract.md](development/ci-contract.md))
 
 ## For AI Agents
 

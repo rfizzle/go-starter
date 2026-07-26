@@ -18,6 +18,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
+          # `make secrets-check` scans commits, so a shallow clone would only
+          # ever inspect the tip and silently pass.
+          fetch-depth: 0
           persist-credentials: false
       - name: Set up Go
         uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
@@ -31,6 +34,8 @@ jobs:
           make tools TOOL_BIN="${RUNNER_TEMP}/go-tools"
       - name: Check
         run: make check
+      - name: Scan for committed secrets
+        run: make secrets-check
       - name: Scan for known vulnerabilities
         run: make vuln
       - name: Test with race detector
@@ -61,3 +66,33 @@ jobs:
         run: make docker
       - name: Build release snapshot
         run: make release-snapshot
+
+  cross-build:
+    # GoReleaser ships darwin and windows binaries, but every other gate runs
+    # on Linux. Compiling on the real runners catches a build-tag or
+    # syscall-level break before a tag push turns it into a broken release.
+    # Tests stay Linux-only: they need Docker for the integration tier.
+    name: Cross-platform build
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - macos-latest
+          - windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - name: Set up Go
+        uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
+        with:
+          go-version-file: go.mod
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Build all packages
+        # Not `make build`: make is not part of the default windows-latest
+        # image, and this job only needs to prove the tree compiles.
+        run: go build ./...

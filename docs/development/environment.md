@@ -11,7 +11,7 @@ This guide covers the supported local service workflow. See the root
 - Docker with the Compose plugin
 
 Install and validate the additional tools used by generation, formatting,
-linting, release, migrations, and vulnerability scanning:
+linting, release, migrations, and vulnerability and secret scanning:
 
 ```sh
 make tools
@@ -30,6 +30,11 @@ PATH="/absolute/path/to/project-tools:${PATH}" make env
 
 ogen remains pinned as a module dependency in `go.mod` and is run through
 `go generate`, so it is not installed as a separate binary.
+
+Dependabot does not watch `scripts/tool-versions.env` — none of its configured
+ecosystems can see a `go install` target declared in a shell environment file.
+Review those pins periodically; the [CI contract](ci-contract.md) describes the
+review.
 
 ## First run
 

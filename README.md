@@ -222,7 +222,8 @@ are never included in validation errors or logs.
 | `make docker` | Build the current container image. |
 | `make container-check` | Validate the amd64/arm64 release and container configuration. |
 | `make vuln` | Scan Go dependencies with `govulncheck`. |
-| `make ci` | Run the read-only validation workflow: `make check` plus `make vuln`. |
+| `make secrets-check` | Scan the full git history for committed secrets with `gitleaks`. |
+| `make ci` | Run the read-only validation workflow: `make check`, `make secrets-check`, and `make vuln`. |
 
 `make tools` reads exact versions from `scripts/tool-versions.env`. Set
 `TOOL_BIN` to install into an isolated directory; otherwise tools are installed
@@ -282,6 +283,7 @@ The [ogen workflow guide](docs/development/ogen-workflow.md) and
 - Concurrency-sensitive changes: `make race`.
 - Coverage report and gate: `make cover` (fails below the floor in `scripts/coverage-baseline.env`).
 - Dependency vulnerability scan: `make vuln`.
+- Committed-secret scan: `make secrets-check`.
 
 Integration tests use the
 [PostgreSQL test harness](internal/platform/database/postgrestest/README.md),
@@ -314,6 +316,16 @@ the changelog and GitHub Release assets and publishes the `linux/amd64` and
 the `latest` image tag. Git tags are the only release-version source; untagged
 local container builds use a commit-derived `0.0.0-dev.*` version. The OpenAPI
 `info.version` describes the API contract and is intentionally independent.
+
+The release job then attests build provenance for the published archives and
+the container image, so a consumer can verify what built an artifact:
+
+```sh
+gh attestation verify <downloaded-archive>.zip --repo <owner>/<repository>
+gh attestation verify oci://ghcr.io/rfizzle/go-starter:v1.2.3 --repo <owner>/<repository>
+```
+
+The [CI contract](docs/development/ci-contract.md) documents every workflow gate.
 
 The Docker build also accepts an explicit multi-platform output. For example,
 after creating `dist/`, this writes an OCI archive without publishing it:

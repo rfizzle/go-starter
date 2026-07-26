@@ -1,0 +1,10 @@
+# Secret-scanning configuration for `make secrets-check`.
+#
+# The upstream default rule set is the baseline; this file only records the
+# narrow, reviewed exceptions that are documentation rather than credentials.
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Skill-library Markdown ships illustrative bad-example credentials, not real ones."
+paths = ['''^\.agents/skills/.*\.md$''']

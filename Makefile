@@ -6,6 +6,7 @@ GOTEST=$(GOCMD) test
 GOVET=$(GOCMD) vet
 GOGENERATE=$(GOCMD) generate
 GOVULNCHECK=govulncheck
+GITLEAKS=gitleaks
 GOFMT=gofmt
 GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
@@ -38,7 +39,7 @@ else
 	RESET   :=
 endif
 
-.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
 
 all: help
 
@@ -200,7 +201,14 @@ vuln: ## Scan dependencies for known vulnerabilities
 	@command -v $(GOVULNCHECK) >/dev/null 2>&1 || { echo "${RED}govulncheck not found. Run: make tools${RESET}"; exit 1; }
 	@$(GOVULNCHECK) $(PROJECT_PACKAGES)
 
-ci: check vuln ## Run the read-only validation workflow used by CI (check + vuln)
+secrets-check: ## Scan the full git history for committed secrets
+	@command -v $(GITLEAKS) >/dev/null 2>&1 || { echo "${RED}gitleaks not found. Run: make tools${RESET}"; exit 1; }
+	@echo "${MAGENTA}Scanning git history for secrets...${RESET}"
+	@# --redact keeps a detected value out of the (public) CI log; the report
+	@# still names the commit, file, and line needed to fix it.
+	@$(GITLEAKS) git --config .gitleaks.toml --redact --no-banner .
+
+ci: check secrets-check vuln ## Run the read-only validation workflow used by CI (check + secrets-check + vuln)
 
 generate: sqlc ## Run go generate (ogen) and sqlc
 	@echo "${MAGENTA}Running golang generations...${RESET}"

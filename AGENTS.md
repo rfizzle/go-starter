@@ -20,8 +20,9 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Race condition testing**: `make race` - Run the default Go suite with the race detector
 - **Coverage**: `make cover` - Run both test tiers, write a coverage profile, and fail below the maintained-code floor (`MAINTAINED_COVERAGE_MIN` in `scripts/coverage-baseline.env`, currently 75%)
 - **Vulnerability scan**: `make vuln` - Scan dependencies with govulncheck
+- **Secret scan**: `make secrets-check` - Scan the full git history with gitleaks
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
-- **CI pipeline**: `make ci` - Run the read-only validation workflow (`check` plus `vuln`)
+- **CI pipeline**: `make ci` - Run the read-only validation workflow (`check`, `secrets-check`, and `vuln`); see [docs/development/ci-contract.md](docs/development/ci-contract.md) for what each workflow enforces
 - **Docker**: `make docker` - Build Docker container using build scripts
 - **Skill validation**: `make skills-check` - Validate the skill library and its discovery links
 - **Agent wiring**: `make agents-setup` - Regenerate the `.claude/` discovery symlinks
