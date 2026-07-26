@@ -19,7 +19,6 @@ COPY vendor ./vendor/
 COPY main.go generate.go ./
 COPY cmd ./cmd/
 COPY internal ./internal/
-COPY pkg ./pkg/
 COPY web ./web/
 
 RUN test -n "${TARGETOS}" \

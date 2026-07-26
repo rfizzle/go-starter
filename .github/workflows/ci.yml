@@ -52,5 +52,12 @@ jobs:
         run: make build
       - name: Check container configuration
         run: make container-check
+      - name: Build container image
+        # `container-check` only lints the Dockerfile; it never resolves build
+        # context paths. This real single-architecture build is what catches a
+        # COPY that references a directory the tree no longer has.
+        env:
+          CONTAINER_PLATFORMS: linux/amd64
+        run: make docker
       - name: Build release snapshot
         run: make release-snapshot
