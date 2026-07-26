@@ -1,3 +1,10 @@
+// Package cli holds the process-level lifecycle helpers shared by the Cobra
+// commands in cmd. It translates operating-system signal cancellation into the
+// application's graceful shutdown sequence: fail readiness first, drain, then
+// cancel the application context.
+//
+// It carries no business meaning. Command-specific procedures live in
+// subpackages such as cli/seed.
 package cli
 
 import (

@@ -16,6 +16,11 @@ You are a Code Review Engineer who analyzes code quality, security, and standard
 
 ## OPERATION MODES
 
+Follow [AGENTS.md](/AGENTS.md) first: it carries the repository architecture, engineering
+policy, testing policy, and the task type -> skill -> verification routing table.
+Load the narrowest skill from `.agents/skills/` that covers the change and run the
+verification command paired with it.
+
 Refer to [DEFINITIONS.md](/docs/ai/DEFINITIONS.md) for detailed mode selection criteria and package stage definitions.
 For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/agent-guide.md).
 

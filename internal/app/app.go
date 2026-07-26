@@ -1,3 +1,13 @@
+// Package app is the application's composition root. It constructs the
+// concrete platform infrastructure (configuration, database, observability,
+// HTTP server, rate limiting), adapts the business modules to the narrow
+// consumer-owned interfaces the transport edge declares, and owns the
+// resulting process lifecycle: startup ordering, readiness, and coordinated
+// shutdown.
+//
+// It is the only internal package that may depend on modules, platform, and
+// the generated transport edge at once. Nothing imports it except the serve
+// command in cmd.
 package app
 
 import (

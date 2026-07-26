@@ -174,7 +174,7 @@ are never included in validation errors or logs.
 | `make env` | Report installed and required tool versions. |
 | `make build` | Build `bin/gostarter` without changing source files. |
 | `make check` | Run generation drift, formatting, vet, lint, and test checks. |
-| `make test` | Run tests that do not require external services. |
+| `make test` | Alias for `make test-unit`. |
 | `make test-unit` | Run tests that do not require external services. |
 | `make test-integration` | Run integration tests with disposable external services. |
 | `make test-all` | Run unit and integration test tiers. |

@@ -1,192 +1,130 @@
 # AI Agent Definitions and Standards
 
-This document defines core concepts, terminology, and decision criteria used across all AI agents in this project.
+Shared terminology and decision criteria for the role agents in
+[`prompts/`](prompts/). The authoritative engineering policy, testing policy,
+and skill routing live in [AGENTS.md](../../AGENTS.md); this document only
+names the concepts those agents refer to.
 
 ## Core Concepts
 
 ### Package Stages
 
-**Definition**: A package stage represents a complete, testable, and deployable unit of functionality that can be independently validated.
+**Definition**: A package stage is a complete, testable unit of work scoped to
+one package, which can be validated and committed on its own.
 
 **Completion Criteria**:
-- All code compiles without errors
-- Required unit and integration tests pass
+- Code compiles without errors
+- The required test tiers pass (`make test-unit`, plus `make test-integration`
+  or `make test-all` when the risk warrants it)
 - Linting and formatting standards met
-- Documentation updated
-- OpenAPI spec updated if API changes made
+- Package documentation updated for new or materially changed contracts
+- OpenAPI spec updated if API behavior changed
 - Generated code is current according to `make generate-check`
 
 **Stage Boundaries**:
-- **Single Feature Package**: One complete feature with all its components (API, business logic, storage, tests)
-- **Single Bug Fix Package**: Complete resolution of a specific bug including tests and documentation
-- **Single Refactor Package**: Complete refactoring of a specific component or pattern
+- **Feature stage**: one package's share of a feature — contract, behavior, and
+  tests
+- **Bug fix stage**: complete resolution of one defect, including a regression
+  test at a stable boundary
+- **Refactor stage**: complete refactoring of a specific component or pattern
 
-### Agent Mode Selection
+### Plan Step and Execution Step
 
-#### Plan Mode vs Edit Mode - Definitive Criteria
+Each role agent supports planning and execution. This is a workflow
+distinction, not a model choice — which model runs which step is a client-side
+decision and is not specified in this repository.
 
-**Plan Mode (Opus) - Default Choice**
-Use Plan Mode as the default for any non-trivial task. Plan Mode should be used when:
+**Plan first when**:
+- The change spans multiple files, packages, or components
+- Architectural or placement decisions are required
+- The territory is unfamiliar
+- The risk is high: security, persistence, concurrency, or breaking changes
+- The requester asked for an approach before edits
 
-**Always Use Plan Mode For**:
-- **All new features** (documentation → planning → implementation)
-- **Complex modifications** (architecture, refactoring, system changes)
-- **Unfamiliar territory** (new domains, patterns, or technologies)
-- **High-risk changes** (security, performance, breaking changes)
-- **Multi-step processes** (anything requiring multiple actions)
-- **When in doubt** (better to plan than assume)
+**Execute directly when**:
+- The change is mechanical and decision-free (typo, version bump, single
+  configuration value)
+- An approved plan already covers the work
+- The requester explicitly asked for immediate execution on a simple task
 
-**Specific Plan Mode Scenarios**:
-- User request involves multiple files or components
-- Implementation requires architectural decisions
-- Dependencies between changes need coordination
-- Risk of breaking existing functionality is high
-- User explicitly asks for a plan or strategy
-- Complex bug analysis required
-
-**Edit Mode (Sonnet) - Limited Use**
-Use Edit Mode only for clearly simple tasks:
-
-**Edit Mode Only For**:
-- **Simple typo fixes** (single character or word changes)
-- **Version number updates** (clear, mechanical changes)
-- **Following approved plans** (when plan mode was already used)
-- **Trivial updates** (adding a single line of documentation)
-- **Configuration tweaks** (known, low-risk changes)
-
-**Specific Edit Mode Scenarios**:
-- User explicitly requests edit mode ("just fix this typo")
-- Following an existing detailed plan or specification
-- Task is genuinely trivial (< 5 minutes, single file, no decisions)
-- Emergency hot fixes (but plan mode still preferred)
-
-**Decision Framework**:
+**Decision framework**:
 ```
-Is this a trivial, mechanical change with zero decisions required?
-├─ YES → Edit Mode (rare)
-└─ NO → Plan Mode (default)
+Trivial, mechanical, no decisions required?
+├─ Yes → execute directly
+└─ No  → plan, get approval, then execute
 
-Is the user explicitly requesting immediate execution?
-├─ YES → Edit Mode (if truly simple)
-└─ NO → Plan Mode (default)
-
-When unsure → Always use Plan Mode
+Unsure → plan
 ```
-
-**Plan → Review → Edit Pattern**:
-```
-Step a: Agent (Plan Mode with Opus) → Present strategy and approach
-         ↓
-Step b: User Review → Provide feedback and approval  
-         ↓
-Step c: Agent (Edit Mode with Sonnet) → Execute approved plan
-```
-
-**Why Plan Mode First**:
-- **See before you leap**: Understand what will be done before execution
-- **Feedback opportunity**: Refine approach based on user input
-- **Prevent rework**: Avoid misunderstood requirements
-- **Strategic thinking**: Leverage Opus for comprehensive analysis
-- **Quality assurance**: Better outcomes through deliberate planning
 
 ### Template Validation Levels
 
-#### Level 1: Existence Check
-- Verify template file exists at expected path
-- Suitable for optional templates or fallback scenarios
+- **Level 1 — Existence**: the template file exists at the expected path.
+  Suitable for optional templates with a fallback.
+- **Level 2 — Structure**: the template contains its required sections. Use for
+  templates an agent's output depends on.
+- **Level 3 — Completeness**: all required placeholders are present and match
+  current usage. Use for templates that directly shape deliverable quality.
 
-#### Level 2: Content Structure Check
-- Verify template contains required sections/placeholders
-- Validate template format and syntax
-- Use for critical templates that must be properly structured
+## Terminology
 
-#### Level 3: Content Completeness Check
-- Verify all required placeholders are present
-- Validate template follows current patterns
-- Cross-reference with actual usage patterns
-- Use for templates that directly affect output quality
-
-## Agent Terminology
-
-### Standard Terms
-
-- **Implementation Plan**: Detailed breakdown of tasks needed to complete a feature or fix
-- **Package Review**: Review of all changes within a single package stage
-- **Feature Specification**: Formal document describing feature requirements and implementation approach
-- **Quality Gate**: Checkpoint where code must meet all quality standards before proceeding
-- **Handoff Criteria**: Conditions that must be met before passing work to another agent
+- **Skill**: a portable task guide in `.agents/skills/`, loaded on demand and
+  paired with a verification command in the AGENTS.md routing table
+- **Role agent**: a scoped subagent defined in `docs/ai/prompts/` and surfaced
+  through `.claude/agents/`
+- **Implementation Plan**: an ordered task breakdown for a feature or fix,
+  stored in `docs/plans/`
+- **Feature Specification**: the approved statement of behavior, acceptance
+  criteria, and non-goals, stored in `docs/features/`
+- **Package Review**: review of all changes within a single package stage
+- **Quality Gate**: a check that must pass before work proceeds
+- **Handoff Criteria**: conditions that must hold before passing work on
 
 ### Workflow States
 
-- **Planning**: Analyzing requirements and creating implementation strategy
-- **Implementing**: Actively writing code and making changes
-- **Reviewing**: Analyzing code quality and providing feedback
-- **Documenting**: Creating or updating documentation
-- **Validating**: Running tests and quality checks
-
-## Error Handling Standards
-
-### Template Missing
-```
-⚠️ Template not found at [path]. Using fallback approach:
-[description of fallback behavior]
-```
-
-### Template Malformed
-```
-⚠️ Template at [path] is malformed. Issues found:
-- [specific issues]
-Using minimal template structure instead.
-```
-
-### Mode Selection Conflict
-```
-🤔 This task could use either Plan or Edit mode. 
-Based on [criteria], I'm choosing [mode]. 
-Would you prefer the other approach?
-```
+**Planning** · **Implementing** · **Reviewing** · **Documenting** ·
+**Validating**
 
 ## Quality Standards Reference
 
 ### Code Quality Gates
-1. **Compilation**: Code must compile without errors
-2. **Testing**: The required unit and integration tiers pass (`make test-unit`,
+1. **Compilation**: code must compile without errors
+2. **Testing**: the required unit and integration tiers pass (`make test-unit`,
    plus `make test-integration` or `make test-all` when the risk requires it)
-3. **Repository checks**: Architecture, documentation, generation, formatting,
-   vet, lint, and unit checks pass (`make check`)
+3. **Repository checks**: architecture, documentation, skill-library,
+   generation, formatting, vet, lint, and unit checks pass (`make check`)
 4. **Race checks**: `make race` passes for concurrency, lifecycle, middleware,
    storage, or test-infrastructure changes
-5. **Generation**: Generated code is current (`make generate-check`)
+5. **Generation**: generated code is current (`make generate-check`)
+6. **Coverage**: `make cover` clears the maintained-code floor in
+   `scripts/coverage-baseline.env`
 
 ### Documentation Requirements
-- Public APIs must have godoc comments
-- Complex functions require implementation comments
+- Nontrivial packages carry a package doc comment describing their contract
+- Exported symbols have godoc comments
 - README updates for user-facing changes
 - OpenAPI spec updates for API changes
 
 ### Review Criteria Priority
-1. **Correctness**: Code works as intended
-2. **Security**: No security vulnerabilities introduced
-3. **Performance**: No significant performance regressions
-4. **Maintainability**: Code follows project patterns and is readable
-5. **Testing**: Tests protect the changed contracts, regressions, boundaries, and risks
 
-## Inter-Agent Communication
+Mirrors the priority order in AGENTS.md:
 
-### Handoff Requirements
+1. **Correctness and safety**
+2. **Approved acceptance criteria**
+3. **Simplicity and clarity**
+4. **Maintainability**
+5. **Performance, extensibility, and reuse** — only when required or supported
+   by evidence
+
+## Handoff Requirements
+
 When one agent hands work to another, include:
-- Summary of completed work
-- Current state of the codebase
-- Outstanding issues or concerns
-- Next steps or recommendations
+- a summary of completed work and the state of the working tree
+- outstanding issues, blockers, or open decisions
+- the acceptance criteria the next step must satisfy
+- the verification commands already run and their results
 
-### Status Communication Format
-```
-📋 Status: [current activity]
-📦 Package Stage: [stage description]
-✅ Completed: [list of completed tasks]
-⏳ In Progress: [current task]
-📋 Next: [upcoming tasks]
-```
+## Failure Reporting
 
-This standardized vocabulary ensures consistent communication and behavior across all AI agents.
+An agent that cannot meet a gate reports the failure and stops. It does not
+lower the bar, skip verification, or narrow the requested scope on its own.
+Report the command, its output, and what remains unfinished.

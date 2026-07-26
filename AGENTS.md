@@ -7,7 +7,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 ### Essential Commands
 - **Build**: `make build` - Build the local binary in `bin/`
 - **Check**: `make check` - Run architecture, documentation, generation, formatting, vet, lint, and unit checks
-- **Test**: `make test` - Run tests that do not require external services
+- **Test**: `make test` - Run tests that do not require external services (alias for `make test-unit`)
 - **Lint**: `make lint` - Run go vet and golangci-lint for code quality checks
 - **Format**: `make fmt` - Format Go code with gofmt, goimports, and YAML files with yamlfmt
 - **Generate**: `make generate` - Regenerate ogen and sqlc output from their sources
@@ -18,7 +18,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Dependencies**: `make tidy` (rebuild go.mod), `make vendor` (sync to vendor/)
 - **Environment check**: `make env` - Validate development environment setup
 - **Race condition testing**: `make race` - Run the default Go suite with the race detector
-- **Coverage**: `make cover` - Run tests and write a coverage profile
+- **Coverage**: `make cover` - Run both test tiers, write a coverage profile, and fail below the maintained-code floor (`MAINTAINED_COVERAGE_MIN` in `scripts/coverage-baseline.env`, currently 75%)
 - **Vulnerability scan**: `make vuln` - Scan dependencies with govulncheck
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
 - **CI pipeline**: `make ci` - Run the read-only validation workflow (`check` plus `vuln`)

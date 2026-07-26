@@ -1,3 +1,13 @@
+// Package controller maps the generated OpenAPI transport in internal/api/v1
+// onto business behavior. It is a quarantined edge: it decodes requests,
+// resolves the authenticated subject, and translates business errors into the
+// bounded responses the specification defines.
+//
+// It owns no business logic. Its collaborators — user lookup, credential
+// authentication, token validation and issuance, readiness — are small
+// consumer-owned interfaces declared here and satisfied by concrete types
+// constructed in internal/app, so this package never imports a business
+// module.
 package controller
 
 import (

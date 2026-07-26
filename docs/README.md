@@ -7,13 +7,14 @@ Welcome to the Go Starter project documentation. This index provides a comprehen
 1. **New to the project?** Start with [development/project-context.md](development/project-context.md)
 2. **Setting up development?** See [development/environment.md](development/environment.md)
 3. **Understanding Go patterns?** Read [development/foundations.md](development/foundations.md)
-4. **Working with AI agents?** Check [ai/README.md](ai/README.md)
+4. **Working with AI agents?** Read [AGENTS.md](../AGENTS.md), then [ai/README.md](ai/README.md)
 
 ## Documentation Structure
 
 ### 📁 development/
 Core development documentation for engineers working on this codebase.
 
+- **[README.md](development/README.md)** - Development documentation overview
 - **[project-context.md](development/project-context.md)** - Project overview, architecture, tech stack, and workflows
 - **[foundations.md](development/foundations.md)** - Core Go principles, patterns, and best practices
 - **[environment.md](development/environment.md)** - Development environment setup, tools, and troubleshooting
@@ -23,6 +24,7 @@ Core development documentation for engineers working on this codebase.
 ### 📁 guidelines/
 Specific development guidelines and standards for consistent code quality.
 
+- **[README.md](guidelines/README.md)** - Guideline index and scope
 - **[go-standards.md](guidelines/go-standards.md)** - Go-specific coding standards and conventions
 - **[interface-pattern.md](guidelines/interface-pattern.md)** - Consumer-owned interface and implementation guidance
 - **[testing-strategy.md](guidelines/testing-strategy.md)** - Risk-based testing and contract verification
@@ -30,30 +32,48 @@ Specific development guidelines and standards for consistent code quality.
 ### 📁 architecture/
 Architectural decisions, patterns, and system design documentation.
 
+- **[README.md](architecture/README.md)** - Architecture documentation overview
 - **[module-platform-boundaries.md](architecture/module-platform-boundaries.md)** - Accepted package placement, dependency direction, and enforcement
 - **[current-state.md](architecture/current-state.md)** - Implemented runtime and package map
 
 ### 📁 features/
 Feature specifications and requirements documentation.
 
+- **[README.md](features/README.md)** - How feature documents are written and reviewed
 - Feature documents follow the template in [ai/templates/feature.md](ai/templates/feature.md)
 - Each feature includes user stories, acceptance criteria, and technical requirements
 
 ### 📁 plans/
 Implementation plans created from feature specifications.
 
+- **[README.md](plans/README.md)** - Plan conventions and lifecycle
 - Plans follow the template in [ai/templates/plan.md](ai/templates/plan.md)
 - Include task breakdowns, technical approaches, and risk assessments
 
+### 📁 reviews/
+Point-in-time code review records. These are historical artifacts, not current
+guidance — they are excluded from the documentation linter's freshness checks.
+
+- **[README.md](reviews/README.md)** - Review workflow and document conventions
+- **[2026-07-03-starter-hardening-review.md](reviews/2026-07-03-starter-hardening-review.md)** - Starter hardening review
+
 ### 📁 ai/
-AI agent documentation, prompts, and templates for consistent AI interactions.
+Supporting material for AI-assisted work. [AGENTS.md](../AGENTS.md) holds the
+authoritative rules and the task type → skill → verification routing table; the
+skill library itself lives in [`.agents/skills/`](../.agents/skills/README.md).
+
+- **[README.md](ai/README.md)** - How AGENTS.md, skills, role agents, and templates fit together
+- **[agent-guide.md](ai/agent-guide.md)** - Role agent scopes and handoff points
+- **[workflow-shortcuts.md](ai/workflow-shortcuts.md)** - Common multi-step task patterns
+- **[DEFINITIONS.md](ai/DEFINITIONS.md)** - Shared terminology and quality gates
 
 #### ai/prompts/
-AI agent role definitions and scope boundaries.
+Role agent definitions, surfaced to Claude Code as relative symlinks under `.claude/agents/`.
 
 - **[documentation.md](ai/prompts/documentation.md)** - Documentation and feature-specification agent
 - **[planning.md](ai/prompts/planning.md)** - Senior engineer agent for implementation planning
 - **[review.md](ai/prompts/review.md)** - Code review agent for quality assurance
+- **[development.md](ai/prompts/development.md)** - Implementation and bug-fix agent
 
 #### ai/templates/
 Reusable templates for creating consistent documentation.
@@ -61,10 +81,8 @@ Reusable templates for creating consistent documentation.
 - **[README.md](ai/templates/README.md)** - Template usage guide
 - **[feature.md](ai/templates/feature.md)** - Feature specification template
 - **[plan.md](ai/templates/plan.md)** - Implementation plan template
+- **[review.md](ai/templates/review.md)** - Code review report template
 - **[prompt.md](ai/templates/prompt.md)** - AI agent prompt template
-
-#### ai/
-- **[README.md](ai/README.md)** - AI system overview and agent coordination
 
 ## Key Concepts
 
@@ -75,8 +93,10 @@ This project follows an OpenAPI-first approach where:
 3. Changes start with the OpenAPI specification
 
 ### Package Contracts and Implementations
-Every nontrivial package has a documented contract. An interface is added only for a real
-substitution boundary or a consumer that needs a narrower seam:
+Every nontrivial package documents its contract in a package doc comment; generated
+packages (`internal/api/v1`, `internal/platform/database/postgres/db`) are exempt because
+their sources define the contract. An interface is added only for a real substitution
+boundary or a consumer that needs a narrower seam:
 - Keep one natural implementation in the contract package
 - Keep multiple real implementations in named subpackages
 - Prefer small consumer-owned interfaces and concrete constructor returns
@@ -111,10 +131,11 @@ shared infrastructure-free contracts. The composition root lives in
 ## For AI Agents
 
 ### Navigation Tips
-1. Start with [ai/README.md](ai/README.md) for AI system overview
-2. Use [development/project-context.md](development/project-context.md) for project understanding
-3. Follow templates in [ai/templates/](ai/templates/) for consistent documentation
-4. Check agent prompts in [ai/prompts/](ai/prompts/) for scope definitions
+1. Start with [AGENTS.md](../AGENTS.md) — it is authoritative and carries the task type → skill → verification routing table
+2. Load the narrowest applicable skill from [`.agents/skills/`](../.agents/skills/README.md)
+3. Use [development/project-context.md](development/project-context.md) for project understanding
+4. See [ai/README.md](ai/README.md) for how the role agents and templates fit around AGENTS.md
+5. Follow templates in [ai/templates/](ai/templates/) for consistent documentation
 
 ### Best Practices
 - Always reference specific file paths when discussing code

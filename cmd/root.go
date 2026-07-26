@@ -1,3 +1,10 @@
+// Package cmd defines the Cobra command tree and the process-level concerns
+// around it: configuration file and environment binding through Viper, logger
+// construction, and the build metadata linked in at release time.
+//
+// Commands own argument validation and process exit behavior only. Each one
+// assembles its dependencies through internal/app or a focused composition
+// root of its own and then hands off; no business logic lives here.
 package cmd
 
 import (

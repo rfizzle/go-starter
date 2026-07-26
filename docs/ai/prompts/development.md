@@ -15,10 +15,15 @@ You are a Development Engineer specializing in implementation, bug fixes, and co
 
 ## OPERATION MODES
 
+Follow [AGENTS.md](/AGENTS.md) first: it carries the repository architecture, engineering
+policy, testing policy, and the task type -> skill -> verification routing table.
+Load the narrowest skill from `.agents/skills/` that covers the change and run the
+verification command paired with it.
+
 Refer to [DEFINITIONS.md](/docs/ai/DEFINITIONS.md) for detailed mode selection criteria.
 For agent responsibilities and handoff guidance, see [agent-guide.md](/docs/ai/agent-guide.md).
 
-### Plan Mode (Opus)
+### Plan Step
 **Use when**: Complex implementation, multiple packages, architectural changes, or user explicitly requests planning
 
 When in plan mode:
@@ -29,7 +34,7 @@ When in plan mode:
 5. **DO NOT execute** any code changes
 6. **Wait for approval** before proceeding to edit mode
 
-### Edit Mode (Sonnet) 
+### Execution Step
 **Use when**: User approves plan, straightforward implementation, or direct bug fixes
 
 When in edit mode:

@@ -1,351 +1,103 @@
 # Workflow Shortcuts
 
-Quick workflows for common development tasks using the 4-agent system with plan/edit modes.
+Common multi-step patterns for AI-assisted work. Each step still loads the
+narrowest applicable skill and runs the verification command that
+[AGENTS.md](../../AGENTS.md) pairs with it.
 
-## Quick Reference
+## Express patterns
 
-### 🚀 Express Workflows (Edit Mode)
+Single agent, straight to execution:
 
-**Simple Bug Fix**
-```
-Development Agent (edit) → Fix issue directly
-```
+| Task | Agent | Skill | Verify |
+| --- | --- | --- | --- |
+| Simple bug fix | Development | `golang-troubleshooting` | `make test` |
+| Documentation update | Documentation | — | `make docs-check` |
+| Quick code review | Review | area-specific | — |
+| Naming or formatting cleanup | Development | `golang-naming`, `golang-code-style` | `make fmt-check` |
 
-**Update Documentation**  
-```
-Documentation Agent (edit) → Make changes directly
-```
+## Guided patterns
 
-**Quick Code Review**
-```
-Review Agent (edit) → Analyze and provide feedback
-```
+Plan first, then execute after approval.
 
-### 🎯 Guided Workflows (Plan → Edit)
+### New feature
 
-**New Feature Development**
 ```
-1. Documentation Agent (plan) → Create feature spec
-2. Planning Agent (plan) → Break down implementation  
-3. Development Agent (plan) → Design approach
-4. Development Agent (edit) → Implement code
-5. Review Agent (edit) → Validate work
+1. Documentation → feature spec in docs/features/     (skill: backend-spec)
+2. Planning      → package-scoped plan in docs/plans/ (skill: go-project-layout)
+3. Development   → design the approach, get approval
+4. Development   → implement                          (skill: per AGENTS.md routing)
+5. Review        → validate against the plan          (verify: make check)
 ```
 
-**Major Refactoring**
+### Major refactor
+
 ```
-1. Review Agent (plan) → Analyze current state
-2. Planning Agent (plan) → Create refactoring strategy  
-3. Development Agent (plan) → Design new structure
-4. Development Agent (edit) → Execute changes
-5. Review Agent (edit) → Validate improvements
-```
-
-## Common Task Patterns
-
-### Feature Implementation
-
-#### 📋 From User Request
-```
-User: "I need user authentication for the API"
-
-Step 1a: Documentation Agent (plan mode)
-→ "Plan the feature specification for user authentication"
-→ Agent presents: Problem statement, user stories structure, acceptance criteria approach
-
-Step 1b: User reviews plan and provides feedback
-→ "Add mobile app considerations"
-→ "Include performance requirements"
-
-Step 1c: Documentation Agent (edit mode)
-→ Creates actual feature specification in docs/features/
-
-Step 2a: Planning Agent (plan mode)  
-→ "Plan implementation for the authentication feature"
-→ Agent presents: Package stages, task organization, risk areas
-
-Step 2b: User reviews plan and provides feedback
-→ "Break auth into smaller tasks"
-→ "Add security testing phase"
-
-Step 2c: Planning Agent (edit mode)
-→ Creates implementation plan document in docs/plans/
-
-Step 3a: Development Agent (plan mode)
-→ "Plan the implementation approach for this plan"
-→ Agent presents: Technical approach, phase strategy, implementation sequence
-
-Step 3b: User reviews and approves approach
-
-Step 3c: Development Agent (edit mode)
-→ Implements the authentication feature
-
-Step 4: Review Agent (edit mode)
-→ Reviews the authentication implementation
+1. Review      → analyze the current state
+2. Planning    → sequencing, risks, rollback
+3. Development → design the new structure   (skills: go-project-layout, project-conventions)
+4. Development → execute in package-sized steps
+5. Review      → confirm boundaries hold    (verify: make architecture-check, make check)
 ```
 
-#### ⚡ From Existing Spec
+### Complex defect
+
 ```
-If you already have a feature specification:
-
-Step 1a: Planning Agent (plan mode)
-→ "Plan implementation from this feature spec"
-→ Agent presents: Task breakdown strategy, package stages, delivery phases
-
-Step 1b: User reviews and provides feedback
-
-Step 1c: Planning Agent (edit mode)
-→ Creates implementation plan document in docs/plans/
-
-Step 2a: Development Agent (plan mode)
-→ "Plan the implementation approach for this plan"
-→ Agent presents: Technical strategy, phase approach
-
-Step 2b: User reviews and approves
-
-Step 2c: Development Agent (edit mode)
-→ Implements the feature
-
-Step 3: Review Agent (edit mode)
-→ Reviews the implementation
+1. Review      → reproduce and locate       (skill: golang-troubleshooting)
+2. Development → design the fix and a regression test at a stable boundary
+3. Development → implement                  (verify: make test, make race if concurrent)
+4. Review      → confirm the regression test fails without the fix
 ```
 
-### Bug Fixes
+### API change
 
-#### 🐛 Simple Fix
 ```
-User: "Fix this typo in the login error message"
-
-Development Agent (edit mode)
-→ "Fix the typo in [file location]"
-```
-
-#### 🔍 Complex Issue
-```
-User: "Users are experiencing intermittent login failures"
-
-Step 1: Review Agent (plan mode)
-→ "Analyze the login system for potential issues"
-
-Step 2: Development Agent (plan mode)  
-→ "Design fix approach for the identified issues"
-
-Step 3: Development Agent (edit mode)
-→ "Implement the fixes"
-
-Step 4: Review Agent (edit mode)
-→ "Verify the fixes resolve the issues"
+1. Edit api/openapi.yml — the specification is the source of truth
+2. make generate                            (never edit internal/api/v1 by hand)
+3. Development → map transport to domain in internal/controller/
+4. Verify: make generate-check, make check
 ```
 
-### Documentation Tasks
+### Database change
 
-#### 📝 New Documentation
 ```
-User: "Create API documentation for the new endpoints"
-
-Step 1a: Documentation Agent (plan mode)
-→ "Plan comprehensive API documentation for the endpoints"
-→ Agent presents: Documentation structure, sections to include, code examples needed
-
-Step 1b: User reviews plan and provides feedback
-→ "Add authentication examples"
-→ "Include error handling patterns"
-
-Step 1c: Documentation Agent (edit mode)
-→ Creates the API documentation with all requested elements
+1. Planning    → migration strategy and backfill, if any
+2. Development → migration, queries, repository (skill: golang-database)
+3. make generate — regenerate sqlc output
+4. Verify: make test-integration
 ```
 
-#### ✏️ Complex Documentation Updates
+## Choosing an entry point
+
 ```
-User: "Restructure the README to be more user-friendly"
-
-Step 1a: Documentation Agent (plan mode)
-→ "Plan README restructuring for better user experience"
-→ Agent presents: New structure, content organization, sections to add/remove
-
-Step 1b: User reviews plan and provides feedback
-
-Step 1c: Documentation Agent (edit mode)
-→ Implements the README restructuring
+Is the work already specified?
+├─ No  → Documentation agent, plan mode
+└─ Yes → Is the sequencing clear?
+         ├─ No  → Planning agent
+         └─ Yes → Development agent
 ```
 
-#### ⚡ Simple Documentation Updates
 ```
-User: "Update the README with new installation steps"
-
-Documentation Agent (edit mode)
-→ Updates README with new installation instructions
-(Simple updates can skip plan mode)
+Is the change mechanical, single-file, and decision-free?
+├─ Yes → execute directly
+└─ No  → plan first, get approval, then execute
 ```
 
-### Code Reviews
+## Referencing prior work
 
-#### 🔎 Standard Review (Simple)
+Point an agent at existing artifacts instead of re-deriving them:
+
 ```
-User: "Review my changes for the user profile feature"
-
-Review Agent (edit mode)
-→ Reviews the user profile feature implementation directly
-(Standard reviews can often skip plan mode)
-```
-
-#### 🏗️ Complex Architecture Review
-```
-User: "Review this major system redesign"
-
-Step 1a: Review Agent (plan mode)
-→ "Plan systematic review of the system redesign"
-→ Agent presents: Review strategy, areas to analyze, quality criteria to check
-
-Step 1b: User reviews plan and provides feedback
-→ "Focus on security implications"
-→ "Check performance impact"
-
-Step 1c: Review Agent (edit mode)
-→ Executes the comprehensive architectural review
+"Follow the plan in docs/plans/<name>.md"
+"Apply the findings from docs/reviews/<name>.md"
+"Match the pattern in internal/modules/user/"
 ```
 
-#### 🔍 Security/Performance Review
-```
-User: "Review this code for security vulnerabilities"
+## When something goes wrong
 
-Step 1a: Review Agent (plan mode)
-→ "Plan security-focused review approach"
-→ Agent presents: Security areas to check, vulnerability patterns to look for
-
-Step 1b: User reviews and approves approach
-
-Step 1c: Review Agent (edit mode)
-→ Performs detailed security review
-```
-
-## Mode Selection Shortcuts
-
-### 🎯 Default: Plan Mode First
-**Start with Plan Mode unless the task is clearly simple**
-- Present approach and get approval before executing
-- Allows for feedback and refinement
-- Prevents rework from misunderstood requirements
-- Maximizes Opus strategic thinking capabilities
-
-### Always Use Plan Mode For:
-- **All new features** (documentation → planning → implementation)
-- **Complex modifications** (architecture, refactoring, system changes)
-- **Unfamiliar territory** (new domains, patterns, or technologies)
-- **High-risk changes** (security, performance, breaking changes)
-- **Multi-step processes** (anything requiring multiple actions)
-- **When in doubt** (better to plan than assume)
-
-### Edit Mode Only For:
-- **Simple typo fixes** (single character or word changes)
-- **Version number updates** (clear, mechanical changes)
-- **Following approved plans** (when plan mode was already used)
-- **Trivial updates** (adding a single line of documentation)
-- **Configuration tweaks** (known, low-risk changes)
-
-### Plan → Review → Edit Pattern:
-```
-Step a: Agent (Plan Mode with Opus) → Present strategy and approach
-         ↓
-Step b: User Review → Provide feedback and approval  
-         ↓
-Step c: Agent (Edit Mode with Sonnet) → Execute approved plan
-```
-
-### When to Skip Plan Mode:
-- User explicitly requests edit mode: "just fix this typo"
-- Following an existing detailed plan or specification
-- Task is genuinely trivial (< 5 minutes, single file, no decisions)
-- Emergency hot fixes (but plan mode still preferred)
-
-## Agent Handoff Shortcuts
-
-### Natural Handoff Chain
-```
-📝 Documentation → 📋 Planning → 💻 Development → 🔍 Review
-```
-
-### Quick Handoffs
-```
-"I need this reviewed" → Review Agent
-"I need this implemented" → Development Agent  
-"I need this planned" → Planning Agent
-"I need this documented" → Documentation Agent
-```
-
-## Prompt Templates
-
-### Plan Mode Requests
-```
-"Plan [task description]"
-"Design approach for [requirement]"  
-"Analyze [system/code] for [purpose]"
-"Create strategy for [goal]"
-```
-
-### Edit Mode Requests
-```  
-"Implement [specific task]"
-"Fix [specific issue]"
-"Update [specific file/section]"
-"Create [specific deliverable]"
-```
-
-### Mode Switching
-```
-"Switch to edit mode and implement this plan"
-"Execute the approach we just designed"  
-"Proceed with implementation"
-```
-
-## Time-Saving Tips
-
-### 💡 Batch Similar Tasks
-Group related tasks for the same agent:
-```
-Documentation Agent (plan):
-- Plan README updates
-- Plan API documentation  
-- Plan user guide improvements
-→ Then execute all in edit mode
-```
-
-### 🔄 Use Existing Artifacts
-Reference previous work:
-```
-"Use the plan from docs/plans/2024-01-15-auth.md"
-"Follow the pattern from the user-service implementation"
-"Apply the review feedback from docs/reviews/2024-01-14.md"
-```
-
-### ⚡ Skip Planning for Routine Tasks
-Use edit mode directly for:
-- Dependency updates
-- Version bumps  
-- Configuration tweaks
-- Documentation typos
-- Simple bug fixes
-
-### 🎯 Combine Modes Strategically
-```
-Complex Feature = Plan Mode → Edit Mode
-Simple Task = Edit Mode Only
-Unknown Complexity = Start Plan Mode
-```
-
-## Troubleshooting Workflows
-
-### Agent Says "Wrong Mode"
-→ Switch modes or pick different agent
-
-### Agent Says "Out of Scope"  
-→ Check agent selection guide, use recommended agent
-
-### Stuck in Planning
-→ Ask agent to "switch to edit mode and implement"
-
-### Implementation Fails
-→ Go back to plan mode, reassess approach
-
-### Quality Issues
-→ Use Review Agent to identify problems, then Development Agent to fix
+| Symptom | Response |
+| --- | --- |
+| Agent refuses the task as out of scope | Check [agent-guide.md](agent-guide.md) and switch to the agent that owns it |
+| Plan keeps growing | Cut it to the acceptance criteria; record the rest as non-goals |
+| Verification fails | Stop, report the output, do not commit — see AGENTS.md, Change Completion |
+| Change drifts beyond the request | Revert the excess; scope reduction is the requester's call |
+| Generated file needs a change | Change its source (`api/openapi.yml`, `queries/`) and regenerate |
