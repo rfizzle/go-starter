@@ -58,6 +58,11 @@ jobs:
       - name: Check GoReleaser configuration
         run: goreleaser check
       - name: Log in to the GitHub container registry
+        # GoReleaser's dockers_v2 pipeline drives Docker Buildx directly and
+        # has no Podman backend, so release image packaging is the one
+        # workflow step that still uses Docker. Every developer-facing
+        # container workflow runs on Podman; revisit this boundary if
+        # GoReleaser gains Podman support.
         env:
           REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: echo "${REGISTRY_TOKEN}" | docker login ghcr.io --username "${GITHUB_ACTOR}" --password-stdin

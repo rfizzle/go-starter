@@ -117,9 +117,9 @@ Use [environment.md](environment.md) for the supported Compose flow. The
 shortest diagnostics are:
 
 ```sh
-docker compose config
-docker compose ps
-docker compose logs postgres
+podman compose config
+podman compose ps
+podman compose logs postgres
 ```
 
 Use `make dev-reset` only when intentionally deleting the named local

@@ -23,7 +23,9 @@ documentation_files() {
 current_guidance_files() {
   documentation_files | while IFS= read -r file; do
     case "${file#${project_dir}/}" in
-      docs/reviews/*)
+      # Reviews and the changelog are historical records; they may name
+      # retired targets and paths without making them current guidance.
+      docs/reviews/* | CHANGELOG.md)
         ;;
       *)
         printf '%s\n' "${file}"
@@ -105,6 +107,7 @@ required_paths=(
   "internal/platform/database/postgres/db"
   "internal/platform/database/postgres/migrations"
   "internal/platform/database/postgres/queries"
+  "scripts/container-build.bash"
   "scripts/coverage-baseline.env"
   "scripts/tool-versions.env"
   "sqlc.yaml"
@@ -118,7 +121,7 @@ for required_path in "${required_paths[@]}"; do
   fi
 done
 
-retired_pattern='Dockerfile\.dev|pkg/config|internal/platform/(middleware|web)|make (clean-gen|test-cover|test-race)'
+retired_pattern='Dockerfile\.dev|pkg/config|internal/platform/(middleware|web)|make (clean-gen|test-cover|test-race|docker)|docker compose |docker-build\.bash|GOSTARTER_REQUIRE_DOCKER'
 while IFS= read -r file; do
   while IFS= read -r retired_reference; do
     report "${file#${project_dir}/}: retired reference: ${retired_reference}"

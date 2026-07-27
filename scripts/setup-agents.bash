@@ -46,7 +46,7 @@ linked_skills() {
   for entry in "${project_dir}"/.agents/skills/*/; do
     name="$(basename -- "${entry}")"
     case "${name}" in
-      backend-spec | go-project-layout | project-conventions | agent-skills | golang-*)
+      backend-spec | go-project-layout | podman-operations | project-conventions | agent-skills | golang-*)
         printf '%s\n' "${name}"
         ;;
     esac

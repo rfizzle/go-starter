@@ -50,6 +50,10 @@ sboms:
   - id: archive
     artifacts: archive
 
+# dockers_v2 drives Docker Buildx directly and has no Podman backend, so
+# release image packaging is the repository's one retained Docker dependency.
+# Every developer-facing container workflow uses Podman; on a Podman-only host
+# build the non-image artifacts with `--skip=docker`.
 dockers_v2:
   - id: starter
     ids:

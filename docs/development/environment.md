@@ -8,7 +8,8 @@ This guide covers the supported local service workflow. See the root
 
 - Go 1.26.5 (the version declared in `go.mod`)
 - Make
-- Docker with the Compose plugin
+- Podman 4.7+ with a Compose provider (`podman compose` delegates to
+  `podman-compose` or a Compose v2 `docker-compose` binary on `PATH`)
 
 Install and validate the additional tools used by generation, formatting,
 linting, release, migrations, and vulnerability and secret scanning:
@@ -30,6 +31,24 @@ PATH="/absolute/path/to/project-tools:${PATH}" make env
 
 ogen remains pinned as a module dependency in `go.mod` and is run through
 `go generate`, so it is not installed as a separate binary.
+
+## Container engine
+
+Podman is the repository's container engine: it runs the local PostgreSQL
+Compose service, builds images (`make container`), and backs the
+testcontainers-based integration tier. On Linux, enable the rootless API
+socket once so testcontainers can reach the engine, and export its address:
+
+```sh
+systemctl --user enable --now podman.socket
+export DOCKER_HOST="unix://$(podman info --format '{{.Host.RemoteSocket.Path}}')"
+export TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED=true
+```
+
+On macOS, create and start the Podman machine once with `podman machine init`
+and `podman machine start`; it serves the API socket automatically. The
+`podman-operations` skill in `.agents/skills/` documents the complete
+workflow, including multi-architecture builds and the GoReleaser boundary.
 
 Dependabot does not watch `scripts/tool-versions.env` — none of its configured
 ecosystems can see a `go install` target declared in a shell environment file.
@@ -174,8 +193,8 @@ binary.
 Inspect container and health-check state:
 
 ```sh
-docker compose ps
-docker compose logs postgres
+podman compose ps
+podman compose logs postgres
 ```
 
 If port 5432 is already in use, stop the conflicting local PostgreSQL instance
@@ -184,8 +203,11 @@ or change both the Compose port mapping and `GOSTARTER_DATABASE_URI`.
 To validate the Compose model without starting containers:
 
 ```sh
-docker compose config
+podman compose config
 ```
+
+If `podman compose` reports that no compose provider is available, install
+`podman-compose` or a Compose v2 `docker-compose` binary.
 
 For generated code, tests, linting, and release commands, use the targets listed
 by `make help`.

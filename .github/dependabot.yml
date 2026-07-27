@@ -34,6 +34,8 @@ updates:
           - patch
     labels:
       - dependencies
+  # The docker and docker-compose ecosystems track the Dockerfile and Compose
+  # file formats, not an engine; they cover the images Podman builds and runs.
   - package-ecosystem: docker
     directory: /build/docker
     schedule:

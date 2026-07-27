@@ -127,7 +127,7 @@ Each invariant in §4 should have at least one line here.
 
 ### Unit (pgxmock / pure)
 - [ ] ...
-### Integration (real PostgreSQL via Docker Compose)
+### Integration (real PostgreSQL in a disposable container)
 - [ ] ...
 
 ## 8. Open Questions

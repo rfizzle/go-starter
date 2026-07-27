@@ -23,7 +23,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Secret scan**: `make secrets-check` - Scan the full git history with gitleaks
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
 - **CI pipeline**: `make ci` - Run the read-only validation workflow (`check`, `secrets-check`, and `vuln`); see [docs/development/ci-contract.md](docs/development/ci-contract.md) for what each workflow enforces
-- **Docker**: `make docker` - Build Docker container using build scripts
+- **Container image**: `make container` - Build the container image with Podman using build scripts
 - **Skill validation**: `make skills-check` - Validate the skill library and its discovery links
 - **Agent wiring**: `make agents-setup` - Regenerate the `.claude/` discovery symlinks
 
@@ -56,6 +56,7 @@ Route by task type; load the narrowest skill that covers the change:
 | Security-sensitive or nil-prone code | `golang-security`, `golang-safety` | `make vuln` |
 | Profiling and optimization | `golang-benchmark`, `golang-performance` | `go test -bench=. ./...` |
 | Debugging a defect | `golang-troubleshooting` | `make test` |
+| Container engine setup, compose services, image builds, testcontainers plumbing | `podman-operations` | `make container` |
 | Authoring or editing a skill | `agent-skills` | `make skills-check` |
 
 Finish any of these with `make check`.
@@ -107,7 +108,7 @@ and the `go-project-layout` skill for the complete placement and review rules.
 4. **Generate code**: run `make generate` to update generated API and SQL code
 5. **Implement transport mapping**: update `internal/controller/` without moving business logic into it
 6. **Verify boundaries and behavior**: run focused tests, then `make check`
-7. **Build**: use `make build` for a local binary or `make release-snapshot` for release archives
+7. **Build**: use `make build` for a local binary, `make container` for a Podman-built image, or `make release-snapshot` for release archives
 
 ### Middleware Stack
 The web server includes these middleware layers (in order):

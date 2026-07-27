@@ -32,8 +32,8 @@ const (
 )
 
 // errProviderUnavailable reports that no healthy container provider exists.
-// Tests skip on it unless GOSTARTER_REQUIRE_DOCKER=1 demands a container.
-var errProviderUnavailable = errors.New("docker provider is unavailable")
+// Tests skip on it unless GOSTARTER_REQUIRE_CONTAINERS=1 demands a container.
+var errProviderUnavailable = errors.New("container provider is unavailable")
 
 // Harness owns one disposable PostgreSQL container and its administrator pool.
 // One harness serves a whole test binary; isolation comes from Database and
@@ -70,9 +70,9 @@ func RunMain(m *testing.M) int {
 }
 
 // Shared returns the test binary's harness, starting its container on first
-// use. The calling package must install RunMain as its TestMain. When Docker
-// is unavailable the test skips, unless GOSTARTER_REQUIRE_DOCKER=1 makes an
-// unusable provider fatal instead.
+// use. The calling package must install RunMain as its TestMain. When no
+// container engine is reachable the test skips, unless
+// GOSTARTER_REQUIRE_CONTAINERS=1 makes an unusable provider fatal instead.
 func Shared(t *testing.T) *Harness {
 	t.Helper()
 
@@ -93,7 +93,7 @@ func Shared(t *testing.T) *Harness {
 }
 
 func startShared() (*Harness, func(), error) {
-	if !dockerRequired() {
+	if !containersRequired() {
 		if err := providerHealth(); err != nil {
 			return nil, nil, fmt.Errorf("%w: %w", errProviderUnavailable, err)
 		}
@@ -168,8 +168,11 @@ func stopShared() {
 }
 
 // providerHealth reports whether a container provider can serve this binary.
-// Provider construction panics on some misconfigured hosts, which must read as
-// an unavailable provider rather than crash the test binary.
+// testcontainers speaks the Docker-compatible API that rootless Podman serves,
+// so ProviderDocker covers the repository's Podman engine through DOCKER_HOST
+// or the default socket. Provider construction panics on some misconfigured
+// hosts, which must read as an unavailable provider rather than crash the
+// test binary.
 func providerHealth() (err error) {
 	defer func() {
 		if recovered := recover(); recovered != nil {
@@ -289,8 +292,8 @@ func (d *Database) ApplyFixture(ctx context.Context, statements ...Statement) er
 	return nil
 }
 
-func dockerRequired() bool {
-	return strings.TrimSpace(strings.ToLower(os.Getenv("GOSTARTER_REQUIRE_DOCKER"))) == "1"
+func containersRequired() bool {
+	return strings.TrimSpace(strings.ToLower(os.Getenv("GOSTARTER_REQUIRE_CONTAINERS"))) == "1"
 }
 
 func testDatabaseName(testName string, sequence uint64) string {

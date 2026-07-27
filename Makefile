@@ -39,7 +39,7 @@ else
 	RESET   :=
 endif
 
-.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot docker container-check check-goreleaser
+.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
 
 all: help
 
@@ -106,10 +106,10 @@ agents-setup: ## Regenerate the relative .claude skill and agent discovery links
 	@./scripts/setup-agents.bash
 
 dev-up: ## Start local PostgreSQL and wait until it is healthy
-	@docker compose up --detach --wait postgres
+	@podman compose up --detach --wait postgres
 
 dev-down: ## Stop local services while preserving PostgreSQL data
-	@docker compose down --remove-orphans
+	@podman compose down --remove-orphans
 
 dev-run: dev-up ## Migrate, seed, and run the service using .env
 	@test -f .env || { echo "${RED}.env not found. Run: cp .env.example .env${RESET}"; exit 1; }
@@ -119,8 +119,8 @@ dev-run: dev-up ## Migrate, seed, and run the service using .env
 
 dev-reset: ## Delete local PostgreSQL data and start a fresh database
 	@echo "${YELLOW}Deleting the local PostgreSQL volume and all of its data...${RESET}"
-	@docker compose down --volumes --remove-orphans
-	@docker compose up --detach --wait postgres
+	@podman compose down --volumes --remove-orphans
+	@podman compose up --detach --wait postgres
 
 ## Format:
 fmt: ## Run gofmt on all source files
@@ -242,16 +242,14 @@ release-snapshot: check-goreleaser ## Build a nonpublishing release snapshot in 
 	@echo "${MAGENTA}Building snapshot release archives...${RESET}"
 	@$(GORELEASER) release --clean --skip=publish,announce --auto-snapshot
 
-## Docker:
-docker: ## Use the dockerfile to build the container
-	@echo "${MAGENTA}Building docker image...${RESET}"
-	@./scripts/docker-build.bash
+## Container:
+container: ## Build the container image with Podman
+	@echo "${MAGENTA}Building container image with Podman...${RESET}"
+	@./scripts/container-build.bash
 
-container-check: check-goreleaser ## Validate container and release architecture configuration
+container-check: check-goreleaser ## Validate release and container packaging configuration
 	@echo "${MAGENTA}Checking GoReleaser configuration...${RESET}"
 	@$(GORELEASER) check
-	@echo "${MAGENTA}Checking amd64 and arm64 container configuration...${RESET}"
-	@docker buildx build --check --platform linux/amd64,linux/arm64 -f build/docker/Dockerfile .
 
 ## Help:
 help: ## Show this help.

@@ -27,8 +27,9 @@ Use a small hand-written function-field fake; do not mock pgx underneath busines
 
 ## Integration tests
 
-Use the repository's Docker Compose PostgreSQL service for integration coverage. Run real
-migrations and test behavior pgxmock cannot prove:
+Use the repository's disposable PostgreSQL containers (Podman-backed
+testcontainers harness) for integration coverage. Run real migrations and test
+behavior pgxmock cannot prove:
 
 - constraints and indexes
 - `FOR UPDATE SKIP LOCKED`
@@ -38,9 +39,13 @@ migrations and test behavior pgxmock cannot prove:
 
 ```bash
 make generate
-make dev-up
+make test-integration
+# or a focused run:
 go test -tags integration ./internal/platform/database/... ./internal/modules/...
 ```
+
+The harness provisions its own container through the Podman API socket; no
+separately started service is required.
 
 ## Coverage matrix
 

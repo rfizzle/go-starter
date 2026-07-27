@@ -40,9 +40,18 @@ jobs:
         run: make vuln
       - name: Test with race detector
         run: make race
+      - name: Start the Podman API socket
+        # testcontainers speaks the Docker-compatible API, which rootless
+        # Podman serves once its user socket is running. Ryuk (the
+        # testcontainers reaper) needs the privileged flag under rootless
+        # Podman.
+        run: |
+          systemctl --user enable --now podman.socket
+          echo "DOCKER_HOST=unix://$(podman info --format '{{.Host.RemoteSocket.Path}}')" >> "${GITHUB_ENV}"
+          echo "TESTCONTAINERS_RYUK_CONTAINER_PRIVILEGED=true" >> "${GITHUB_ENV}"
       - name: Coverage
         env:
-          GOSTARTER_REQUIRE_DOCKER: "1"
+          GOSTARTER_REQUIRE_CONTAINERS: "1"
         run: make cover
       - name: Upload coverage artifacts
         if: always()
@@ -58,12 +67,13 @@ jobs:
       - name: Check container configuration
         run: make container-check
       - name: Build container image
-        # `container-check` only lints the Dockerfile; it never resolves build
-        # context paths. This real single-architecture build is what catches a
-        # COPY that references a directory the tree no longer has.
+        # `container-check` only validates the GoReleaser packaging
+        # configuration. This real single-architecture Podman build is what
+        # proves the Dockerfile against the tree — for example a COPY that
+        # references a directory the tree no longer has.
         env:
           CONTAINER_PLATFORMS: linux/amd64
-        run: make docker
+        run: make container
       - name: Build release snapshot
         run: make release-snapshot
 
@@ -71,7 +81,7 @@ jobs:
     # GoReleaser ships darwin and windows binaries, but every other gate runs
     # on Linux. Compiling on the real runners catches a build-tag or
     # syscall-level break before a tag push turns it into a broken release.
-    # Tests stay Linux-only: they need Docker for the integration tier.
+    # Tests stay Linux-only: they need Podman for the integration tier.
     name: Cross-platform build
     runs-on: ${{ matrix.os }}
     timeout-minutes: 20

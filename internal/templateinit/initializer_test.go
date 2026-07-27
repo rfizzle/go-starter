@@ -148,7 +148,7 @@ func TestInitializeWithBinaryNameContainingTemplateToken(t *testing.T) {
 	assertFileContains(t, filepath.Join(root, ".goreleaser.yaml"), "project_name: "+cfg.BinaryName)
 	assertFileContains(t, filepath.Join(root, "build", "docker", "Dockerfile"), "-o /out/"+cfg.BinaryName+" .")
 	assertFileContains(t, filepath.Join(root, "build", "docker", "Dockerfile.release"), "${TARGETPLATFORM}/"+cfg.BinaryName+" /app")
-	assertFileContains(t, filepath.Join(root, "scripts", "docker-build.bash"), `APPLICATION_NAME="${APPLICATION_NAME:-`+cfg.BinaryName+`}"`)
+	assertFileContains(t, filepath.Join(root, "scripts", "container-build.bash"), `APPLICATION_NAME="${APPLICATION_NAME:-`+cfg.BinaryName+`}"`)
 }
 
 func TestNormalizeAndValidate(t *testing.T) {
@@ -255,7 +255,7 @@ Run ./bin/gostarter or use ghcr.io/rfizzle/go-starter.
 		"LICENSE":                        "historical attribution: " + defaultModulePath + "\n",
 		"internal/api/v1/oas_cfg_gen.go": "package v1\n",
 		"internal/platform/database/postgres/db/db.go":          "package db\n",
-		"scripts/docker-build.bash":                             `APPLICATION_NAME="${APPLICATION_NAME:-starter}"` + "\n",
+		"scripts/container-build.bash":                          `APPLICATION_NAME="${APPLICATION_NAME:-starter}"` + "\n",
 		"docs/development/environment.md":                       "Use GOSTARTER_DATABASE_URI for gostarter.\n",
 		"docs/development/ogen-workflow.md":                     "Import github.com/rfizzle/go-starter/internal/api/v1.\n",
 		"internal/platform/observability/observability.go":      `const serviceName = "go-starter"` + "\n",

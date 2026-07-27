@@ -19,9 +19,13 @@ then runs the same commands a contributor runs, which is why
 ### ci.yml
 
 The `Validate` job runs, in order: `make check`, `make secrets-check`,
-`make vuln`, `make race`, `make cover` (with `GOSTARTER_REQUIRE_DOCKER=1`, so a
-container failure is an error rather than a skip), `make build`,
-`make container-check`, `make docker`, and `make release-snapshot`.
+`make vuln`, `make race`, `make cover` (with `GOSTARTER_REQUIRE_CONTAINERS=1`,
+so a container failure is an error rather than a skip), `make build`,
+`make container-check`, `make container`, and `make release-snapshot`.
+
+Before `make cover`, the job enables the runner's rootless Podman API socket
+and exports `DOCKER_HOST` (plus the privileged Ryuk flag) so the
+testcontainers-backed integration tier talks to Podman.
 
 `make check` itself is the fast read-only bundle: `make architecture-check`,
 `make docs-check`, `make skills-check`, `make generate-check`,
@@ -36,7 +40,7 @@ gate runs on Linux, so this is the only step that would catch a build-tag or
 platform-specific break before a tag turns it into a broken release. It runs
 `go build ./...` rather than `make build`: `make` is not part of the default
 Windows runner image, and proving the tree compiles is the whole point. Tests
-stay Linux-only because the integration tier needs Docker.
+stay Linux-only because the integration tier needs Podman.
 
 There is no Go N-1 matrix leg. `go.mod` requires an exact patch release, so a
 runner pinned to an older minor version would download the required toolchain
@@ -46,7 +50,12 @@ N-1 leg meaningful is a language-support decision, not a CI one.
 ### release.yml
 
 A tag push does not trigger `ci.yml`, so the release job re-runs the read-only
-gates itself through `make ci` and refuses to publish when they fail. After
+gates itself through `make ci` and refuses to publish when they fail.
+
+Release image packaging is the repository's one retained Docker dependency:
+GoReleaser's `dockers_v2` pipeline drives Docker Buildx directly and has no
+Podman backend, so this job logs in to the registry with Docker on the runner.
+Every developer-facing container workflow uses Podman. After
 `goreleaser release`, two provenance attestations are generated with
 `actions/attest-build-provenance`:
 
@@ -103,6 +112,8 @@ make env
 make ci
 ```
 
-Add `make race` and `make cover` when the failure is in those steps; both need
-Docker for the integration tier. `make container-check`, `make docker`, and
-`make release-snapshot` reproduce the container and release-packaging steps.
+Add `make race` and `make cover` when the failure is in those steps; the
+integration tier needs a reachable Podman socket (see the
+[environment guide](environment.md)). `make container-check`,
+`make container`, and `make release-snapshot` reproduce the container and
+release-packaging steps.

@@ -128,7 +128,7 @@ env | grep API_KEY
 - Disk full or read-only filesystem
 - File permissions changed
 - OOM killer terminated a dependency (database, cache, sidecar)
-- Docker/K8s: wrong image tag, missing env var, resource limits, liveness probe misconfigured
+- Containers/K8s: wrong image tag, missing env var, resource limits, liveness probe misconfigured
 - Third-party SDK or library upgrade with breaking behavioral change
 - Locale, timezone, or encoding mismatch between systems
 - Connection pool exhaustion (database, HTTP, gRPC)

@@ -70,7 +70,7 @@ func TestParseStatus(t *testing.T) {
 
 - Use pgxmock for repository SQL, arguments, scanning, errors, and transaction behavior.
 - Use `//go:build integration` for tests requiring PostgreSQL, object storage, or other
-  Docker Compose services.
+  containerized services.
 - Use unique IDs and cleanup so integration tests can run repeatedly and concurrently.
 - Test real PostgreSQL behavior for constraints, migrations, locking, and query semantics.
 

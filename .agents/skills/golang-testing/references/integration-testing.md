@@ -29,13 +29,13 @@ enter ordinary unit-test compilation.
 
 ## Infrastructure
 
-Use the repository's Docker Compose services and Make target. Do not create a second
-per-package Compose stack unless the project deliberately adopts that pattern.
+Use the repository's containerized test infrastructure (a Podman-backed
+testcontainers harness) and Make target. Do not create a second per-package
+container stack unless the project deliberately adopts that pattern.
 
 ```bash
 make generate
-make docker-up
-make go-test-integration
+make test-integration
 ```
 
 Use environment-provided test DSNs and credentials. Never point tests at production or a

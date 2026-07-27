@@ -212,7 +212,7 @@ Rules of thumb:
   constructor receives concrete implementations. The module cannot tell whether it is
   using a cloud service or a fake.
 - **The payoff is testability.** Every seam is a place a unit test can inject a fake, so
-  module tests avoid unnecessary Docker or network dependencies and end-to-end wiring is
+  module tests avoid unnecessary container or network dependencies and end-to-end wiring is
   exercised once at the composition root.
 - **When to skip it.** A module that only touches its own `domain` repository interface
   already has its port. Reserve Rule 10 for infrastructure that is not a shared domain
@@ -234,8 +234,8 @@ Use this when planning a new module (enumerate the seams up front) and when revi
       interface or an established shared `domain` contract?
 - [ ] Are concrete clients constructed in `app/` and injected? Use `rg` for
       `storage.New`, `sql.Open`, or SDK constructors inside business logic.
-- [ ] Can each unit be tested with a fake for every seam, without Docker or live network
-      services?
+- [ ] Can each unit be tested with a fake for every seam, without containers or live
+      network services?
 - [ ] Are ports named for behavior and kept unexported unless a sibling package genuinely needs them?
 
 ## Verifying the layout

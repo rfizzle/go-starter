@@ -99,7 +99,8 @@ make release-snapshot
 
 ## Five-minute quickstart
 
-You need Git, Go 1.26.5, Make, and Docker (or another way to run PostgreSQL).
+You need Git, Go 1.26.5, Make, and Podman with a Compose provider (or another
+way to run PostgreSQL).
 
 Clone the repository, verify the toolchain, build the binary, and inspect the
 available commands:
@@ -219,8 +220,8 @@ are never included in validation errors or logs.
 | `make dev-down` | Stop local services without deleting database data. |
 | `make dev-reset` | Delete local database data and start PostgreSQL fresh. |
 | `make release-snapshot` | Build local release archives in `dist/`. |
-| `make docker` | Build the current container image. |
-| `make container-check` | Validate the amd64/arm64 release and container configuration. |
+| `make container` | Build the current container image with Podman. |
+| `make container-check` | Validate the release and container packaging configuration. |
 | `make vuln` | Scan Go dependencies with `govulncheck`. |
 | `make secrets-check` | Scan the full git history for committed secrets with `gitleaks`. |
 | `make ci` | Run the read-only validation workflow: `make check`, `make secrets-check`, and `make vuln`. |
@@ -287,9 +288,12 @@ The [ogen workflow guide](docs/development/ogen-workflow.md) and
 
 Integration tests use the
 [PostgreSQL test harness](internal/platform/database/postgrestest/README.md),
-which starts an isolated container and skips locally with a clear diagnostic
-when Docker is unavailable. CI requires Docker and treats startup failure as a
-failed integration run.
+which starts an isolated container through the Podman API socket and skips
+locally with a clear diagnostic when no container engine is reachable. CI sets
+`GOSTARTER_REQUIRE_CONTAINERS=1` and treats startup failure as a failed
+integration run. See the
+[development environment guide](docs/development/environment.md) for the
+one-time Podman socket setup.
 
 The [testing strategy](docs/guidelines/testing-strategy.md) describes project
 conventions. Unit tests use narrow fakes where appropriate; integration and
@@ -300,10 +304,13 @@ that mocks cannot prove.
 
 `make release-snapshot` uses `.goreleaser.yaml` to produce explicit amd64 and
 arm64 archives, checksums, archive SBOMs, and nonpublishing container images.
-It requires Docker with Buildx and the pinned Syft tool installed by
-`make tools`. `make docker` builds only the local architecture from
-`build/docker/Dockerfile`; both final images run as a non-root user and invoke
-`/app serve`.
+Its image step is the repository's one retained Docker dependency: GoReleaser's
+`dockers_v2` pipeline drives Docker Buildx directly and has no Podman backend.
+On a Podman-only host, build everything except the images with
+`goreleaser release --clean --auto-snapshot --skip=publish,announce,docker`.
+`make container` builds only the local architecture from
+`build/docker/Dockerfile` with rootless Podman; both final images run as a
+non-root user and invoke `/app serve`.
 
 Pushing a valid `vX.Y.Z` semantic-version tag (optionally with a prerelease
 suffix) runs the least-privilege release workflow. Tag pushes do not trigger
@@ -327,19 +334,21 @@ gh attestation verify oci://ghcr.io/rfizzle/go-starter:v1.2.3 --repo <owner>/<re
 
 The [CI contract](docs/development/ci-contract.md) documents every workflow gate.
 
-The Docker build also accepts an explicit multi-platform output. For example,
-after creating `dist/`, this writes an OCI archive without publishing it:
+The Podman build also supports multi-platform manifest lists and an OCI
+archive export. For example, after creating `dist/`, this builds both release
+platforms and writes an OCI archive without publishing it (the non-native
+platform needs binfmt emulation via `qemu-user-static`):
 
 ```sh
 CONTAINER_PLATFORMS=linux/amd64,linux/arm64 \
-  CONTAINER_OUTPUT=type=oci,dest=dist/starter-image.tar \
-  make docker
+  CONTAINER_ARCHIVE=dist/starter-image.tar \
+  make container
 ```
 
 Both base-image tags are pinned to multi-platform index digests. Dependabot
 checks the Dockerfile weekly. Review a proposed tag and digest together, confirm
 that the Go builder version still agrees with `go.mod`, then run
-`make container-check` and `make docker` before merging the update.
+`make container-check` and `make container` before merging the update.
 
 Run `/app migrate up` as a deployment job before starting application replicas.
 The command applies pending embedded migrations under a PostgreSQL session

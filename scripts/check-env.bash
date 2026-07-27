@@ -110,14 +110,16 @@ check_go
 check_command gofmt
 check_command git
 check_command make
-check_command docker
+check_command podman
 # make skills-check runs the Node-based skill-library validator.
 check_command node
 
-if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
-  report_present "docker compose" "present" "present"
+# `podman compose` delegates to an external Compose provider (podman-compose
+# or a Compose v2 docker-compose binary); `version` fails when none is found.
+if command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+  report_present "podman compose" "present" "present"
 else
-  report_missing "docker compose" "present"
+  report_missing "podman compose" "present"
 fi
 
 if command -v go >/dev/null 2>&1; then
