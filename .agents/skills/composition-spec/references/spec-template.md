@@ -5,6 +5,8 @@
 ## Purpose
 
 What the composition does, where it appears, and when to keep the layout inline instead.
+**Generic or specific:** state which, and if specific, the one-line high-value or
+extreme-UX reason it isn't generalized.
 
 ## Children
 

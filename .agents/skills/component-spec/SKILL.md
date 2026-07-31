@@ -25,7 +25,20 @@ implementation all live in this one folder so they review and version as a unit.
 `<PascalName>` is the component name in PascalCase (e.g. `Button`, `DatePicker`).
 (To use a central spec store instead, change this one path to `specs/<PascalName>.md`.)
 
+## Generic-first policy
+Default to a **generic** component: parameterized props, no hard-coded copy or domain
+data shape, usable across more than one screen. Before drafting a new spec, scan
+`web/src/lib/components/` for an existing component whose purpose already fits — extend
+it with a variant or prop rather than spec a new one. Only spec a **specific (typed)**
+one-off when the interaction is high-value or extreme enough (a primary conversion step,
+a safety-critical control, a signature brand moment) that generalizing it would visibly
+compromise that experience. Record the reason in Purpose (Section 1) when specific.
+
 ## Procedure
+0. Check the existing component inventory in `web/src/lib/components/` for a component
+   that already covers this need, or could with a new variant/prop. Stop and use that
+   path instead of a new spec unless there is a real substitution boundary this component
+   doesn't meet.
 1. Read `references/spec-template.md` and fill EVERY section. No section may be omitted.
 2. Identify the governing native semantic or **ARIA APG pattern**. Open the official
    source routed from `../a11y-review/references/wcag22-aa-checklist.md`, record its URL,
@@ -59,6 +72,9 @@ structurally invalid — so an unapproved spec can never ship silently.
 
 ## Gate (hard fail)
 - Spec written to `web/src/lib/components/<PascalName>/<PascalName>.spec.md`.
+- Existing component inventory checked; no existing component/variant already covers this.
+- If the component is specific rather than generic, Purpose states the high-value or
+  extreme-UX reason generalizing it wasn't viable.
 - Every template section present and non-placeholder.
 - A named native semantic or APG pattern, governing source, and full keyboard model.
 - A named backing primitive (or explicit justified fallback).

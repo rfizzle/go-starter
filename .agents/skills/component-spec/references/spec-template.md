@@ -7,6 +7,8 @@
 
 ## 1. Purpose
 - What it is, when to use, when NOT to use (and what to use instead).
+- **Generic or specific:** state which, and if specific, the one-line high-value or
+  extreme-UX reason it isn't generalized.
 
 ## 2. Anatomy
 - Named parts (e.g. root, trigger, content, label, icon, indicator).

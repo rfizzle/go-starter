@@ -19,6 +19,10 @@ Tokens this feature requires. Flag any that are missing from the current `@theme
 
 ## 3. Component Inventory
 
+Default every new unit to generic (parameterized, reusable). Classify a unit as
+specific only when the interaction is high-value or extreme enough that generalizing it
+would visibly harm the target UX, and record why in the "Why specific" column.
+
 ### Existing (reuse as-is)
 | Component | Path | Used for |
 |-----------|------|----------|
@@ -29,15 +33,23 @@ Tokens this feature requires. Flag any that are missing from the current `@theme
 |-----------|------|---------------|
 | `DataTable` | `components/display/DataTable.svelte` | Add row-expansion support |
 
-### New Components (atomic — `component-spec` → `a11y-review` → `component-build`)
+### New Generic Components (atomic — `component-spec` → `a11y-review` → `component-build`)
 | Component | Brief | APG pattern | Backing primitive |
 |-----------|-------|-------------|-------------------|
 | `CommandPreview` | Inline code block with copy button | none (static) | none |
 
-### New Compositions (multi-component — `composition-spec` → `composition-build`)
+### New Specific Components (atomic, one-off — same pipeline)
+| Component | Brief | APG pattern | Backing primitive | Why specific |
+|-----------|-------|-------------|-------------------|---------------|
+
+### New Generic Compositions (multi-component, reusable — `composition-spec` → `composition-build`)
 | Composition | Brief | Children |
 |-------------|-------|----------|
 | `SessionHeader` | Page header with metadata chips and actions | StatusIndicator, UserChip, TimeAgo, Button |
+
+### New Specific Compositions (multi-component, one-off — same pipeline)
+| Composition | Brief | Children | Why specific |
+|-------------|-------|----------|---------------|
 
 ## 4. Data Requirements
 | Source | Endpoint / Store | Shape | Notes |

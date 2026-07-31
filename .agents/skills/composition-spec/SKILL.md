@@ -18,9 +18,19 @@ web/src/lib/compositions/<PascalName>/<PascalName>.spec.md
 
 Use [the composition template](references/spec-template.md).
 
+## Generic-first policy
+Default to a **generic** composition: parameterized props and children, reusable across
+more than one view or data shape. Before drafting a new spec, check
+`web/src/lib/compositions/` for an existing composition that already fits, or that could
+with a new prop/slot — extend it rather than spec a new one. Only spec a **specific
+(typed)** one-off when the flow is high-value or extreme enough that generalizing it
+would visibly harm that experience, and record the reason in Purpose.
+
 ## Procedure
 
-1. Read the governing feature brief and inspect the existing component inventory.
+1. Read the governing feature brief and inspect the existing component and composition
+   inventory (`web/src/lib/components/`, `web/src/lib/compositions/`) for a fit or
+   near-fit before proposing a new composition.
 2. Confirm every required child exists or record it as a blocking dependency.
 3. Fill every template section with concrete behavior and typed Svelte 5 props.
 4. Describe accessibility owned by the composition: reading order, focus sequence,
@@ -35,7 +45,9 @@ Use [the composition template](references/spec-template.md).
 
 ## Gate
 
-- Purpose and reuse boundary are explicit.
+- Purpose and reuse boundary are explicit; if specific rather than generic, Purpose
+  states the high-value or extreme-UX reason.
+- Existing composition inventory checked; no existing composition/prop already covers this.
 - Children table names real components and data/event seams.
 - Props API is typed and no broader than the composition needs.
 - Internal state and every user interaction are documented.
