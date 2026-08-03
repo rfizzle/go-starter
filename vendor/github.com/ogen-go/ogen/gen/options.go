@@ -16,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/ogen-go/ogen/gen/ir"
+	"github.com/ogen-go/ogen/internal/naming"
 	"github.com/ogen-go/ogen/internal/urlpath"
 	"github.com/ogen-go/ogen/jsonschema"
 	"github.com/ogen-go/ogen/location"
@@ -68,6 +69,24 @@ type ParseOptions struct {
 	Remote RemoteOptions `json:"-" yaml:"-"`
 	// SchemaDepthLimit is maximum depth of schema generation. Default is 1000.
 	SchemaDepthLimit int `json:"depth_limit" yaml:"depth_limit"`
+	// AuthenticationSchemes is the list of allowed HTTP Authorization schemes in a Security Scheme Object.
+	// Default is the list defined in https://www.iana.org/assignments/http-authschemes/http-authschemes.xhtml.
+	AuthenticationSchemes []string `json:"authentication_schemes" yaml:"authentication_schemes"`
+	// AllowCrossTypeConstraints enables interpretation of cross-type schema constraints.
+	// When true (default), constraints like pattern on numbers or maximum on strings
+	// are interpreted and enforced via generated validation code.
+	// Set to false for strict JSON Schema validation that rejects such constraints.
+	// Default: true
+	AllowCrossTypeConstraints *bool `json:"allow_cross_type_constraints,omitempty" yaml:"allow_cross_type_constraints,omitempty"`
+	// DisallowDuplicateMethodPaths controls whether paths that normalize to the same
+	// structure (e.g., /pets/{petId} and /pets/{id}) are allowed when they have
+	// different HTTP methods.
+	//
+	// When false (default), paths with different parameter names but different HTTP methods
+	// are allowed, and operations are disambiguated by path + params + method.
+	//
+	// When true, duplicate paths are always rejected per strict OpenAPI spec interpretation.
+	DisallowDuplicateMethodPaths bool `json:"disallow_duplicate_method_paths" yaml:"disallow_duplicate_method_paths"`
 	// File is the file that is being parsed.
 	//
 	// Used for error messages.
@@ -172,6 +191,80 @@ type GenerateOptions struct {
 	ConvenientErrors ConvenientErrors `json:"convenient_errors" yaml:"convenient_errors"`
 	// ContentTypeAliases contains content type aliases.
 	ContentTypeAliases ContentTypeAliases `json:"content_type_aliases" yaml:"content_type_aliases"`
+	// WildcardContentTypeDefault specifies the default encoding to use for wildcard
+	// content types (*/* or application/*) when the schema is not binary.
+	//
+	// Common values: "application/json", "text/plain"
+	//
+	// If empty, wildcard content types are treated as unsupported and will cause
+	// an error unless explicitly mapped via ContentTypeAliases.
+	WildcardContentTypeDefault ir.Encoding `json:"wildcard_content_type_default" yaml:"wildcard_content_type_default"`
+
+	// Initialisms customizes the initialism rules used when generating Go
+	// identifiers (e.g. "id" -> "ID", "url" -> "URL"). See [Initialisms].
+	Initialisms Initialisms `json:"initialisms" yaml:"initialisms"`
+}
+
+// InitialismsInherit is the sentinel value that, when present in an
+// [Initialisms] list, splices in ogen's built-in initialisms at that position.
+// It mirrors staticcheck's "inherit" value.
+const InitialismsInherit = "inherit"
+
+// Initialisms customizes the initialism rules used during identifier generation
+// (e.g. "id" -> "ID"). It mirrors staticcheck's "initialisms" option:
+//
+//   - nil (omitted): ogen's built-in initialisms are used.
+//   - a list containing [InitialismsInherit] ("inherit"): the built-in set is
+//     spliced in at that position and the remaining entries are added on top
+//     (entries that appear later override earlier ones).
+//   - a list without "inherit": the built-in set is discarded and only the
+//     listed initialisms are used.
+//   - an explicit empty list ([]): no initialisms are applied at all.
+//
+// Like the built-in set, custom initialisms always apply to whole word parts
+// (snake_case segments, standalone names). Splitting a camelCase token so that
+// a sub-word can match (e.g. "serverFqdn" -> "ServerFQDN") additionally
+// requires the [NamingCamelInitialisms] feature.
+type Initialisms []string
+
+// validInitialism reports whether s is usable as an initialism. Initialisms
+// become parts of Go identifiers and are matched against ASCII-only word parts
+// (see nameGen.isAllowed), so they must be non-empty and contain only ASCII
+// letters and digits (matching the built-in set, e.g. "UTF8", "OAuth2").
+func validInitialism(s string) bool {
+	if s == "" {
+		return false
+	}
+	for _, r := range s {
+		isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+		isDigit := r >= '0' && r <= '9'
+		if !isLetter && !isDigit {
+			return false
+		}
+	}
+	return true
+}
+
+// build constructs the initialism ruleset described by the list. It returns
+// (nil, nil) when the list is nil (omitted), meaning the package default is
+// used. A non-nil list (including an empty one) builds an explicit ruleset.
+func (in Initialisms) build() (*naming.Ruleset, error) {
+	if in == nil {
+		return nil, nil
+	}
+
+	rs := naming.NewRuleset()
+	for _, v := range in {
+		if strings.EqualFold(v, InitialismsInherit) {
+			rs.Merge(naming.DefaultRuleset())
+			continue
+		}
+		if !validInitialism(v) {
+			return nil, errors.Errorf("invalid initialism %q: must be non-empty and contain only ASCII letters and digits", v)
+		}
+		rs.Add(v)
+	}
+	return rs, nil
 }
 
 // ConvenientErrors is an option type to control `Convenient Errors` feature.

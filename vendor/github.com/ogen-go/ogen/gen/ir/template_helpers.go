@@ -21,7 +21,7 @@ func (t *Type) EncodeFn() string {
 		Float32, Float64,
 		String, Bool:
 		return naming.Capitalize(t.Primitive.String())
-	case UUID, Time, MAC, IP, Duration, URL:
+	case UUID, Time, MAC, IP, Duration, URL, Decimal:
 		return naming.AfterDot(t.Primitive.String())
 	default:
 		return ""
@@ -51,6 +51,8 @@ func (t Type) uriFormat() string {
 			return naming.Capitalize(f)
 		case "date-time":
 			return "DateTime"
+		case "http-date":
+			return "HTTPDate"
 		case "mac":
 			return "MAC"
 		case "int8",
@@ -61,7 +63,8 @@ func (t Type) uriFormat() string {
 			"uint8",
 			"uint16",
 			"uint32",
-			"uint64":
+			"uint64",
+			"decimal":
 			if s.Type != jsonschema.String {
 				break
 			}
@@ -79,7 +82,34 @@ func (t Type) uriFormat() string {
 	return t.EncodeFn()
 }
 
+// externalType determines the most appropriate external encoding interface to use.
+func (t Type) externalType(e, prefer ExternalEncoding) ExternalEncoding {
+	switch {
+	case e.Has(ExternalNative):
+		return ExternalNative
+	case e.Has(ExternalBinary) && t.Schema.Type == jsonschema.String &&
+		(t.Schema.Format == "byte" || t.Schema.Format == "base64"):
+		return ExternalBinary
+	case e.Has(prefer):
+		return prefer
+	case e.Has(ExternalJSON):
+		return ExternalJSON
+	case e.Has(ExternalText):
+		return ExternalText
+	default:
+		return 0
+	}
+}
+
 func (t Type) ToString() string {
+	if t.IsExternal() {
+		external := t.externalType(t.External.Encode, ExternalText)
+		var prefix string
+		if t.Schema.Type == jsonschema.String && external != ExternalText && external != ExternalBinary {
+			prefix = "String"
+		}
+		return prefix + external.String() + "ToString"
+	}
 	encodeFn := t.uriFormat()
 	if encodeFn == "" {
 		panic(fmt.Sprintf("unexpected %+v", t))
@@ -88,6 +118,14 @@ func (t Type) ToString() string {
 }
 
 func (t Type) FromString() string {
+	if t.IsExternal() {
+		external := t.externalType(t.External.Decode, ExternalText)
+		var prefix string
+		if t.Schema.Type == jsonschema.String && external != ExternalText && external != ExternalBinary {
+			prefix = "String"
+		}
+		return "To" + prefix + external.String() + "[" + t.Primitive.String() + "]"
+	}
 	encodeFn := t.uriFormat()
 	if encodeFn == "" {
 		panic(fmt.Sprintf("unexpected %+v", t))
@@ -114,6 +152,10 @@ func (t *Type) IsFloat() bool {
 	}
 }
 
+func (t *Type) IsDecimal() bool {
+	return t.Primitive == Decimal
+}
+
 func (t *Type) IsStringifiedFloat() bool {
 	s := t.Schema
 	return t.IsFloat() &&
@@ -129,6 +171,7 @@ func (t *Type) IsNull() bool {
 func (t *Type) IsArray() bool     { return t.Is(KindArray) }
 func (t *Type) IsMap() bool       { return t.Is(KindMap) }
 func (t *Type) IsPrimitive() bool { return t.Is(KindPrimitive) }
+func (t *Type) IsString() bool    { return t.Is(KindPrimitive) && t.Primitive == String }
 func (t *Type) IsStruct() bool    { return t.Is(KindStruct) }
 func (t *Type) IsPointer() bool   { return t.Is(KindPointer) }
 func (t *Type) IsEnum() bool      { return t.Is(KindEnum) }
@@ -138,7 +181,49 @@ func (t *Type) IsInterface() bool { return t.Is(KindInterface) }
 func (t *Type) IsSum() bool       { return t.Is(KindSum) }
 func (t *Type) IsAny() bool       { return t.Is(KindAny) }
 func (t *Type) IsStream() bool    { return t.Is(KindStream) }
-func (t *Type) IsNumeric() bool   { return t.IsInteger() || t.IsFloat() }
+func (t *Type) IsSSEStream() bool {
+	return t != nil && (t.SSE != nil || (t.IsPointer() && t.PointerTo.IsSSEStream()))
+}
+func (t *Type) IsNumeric() bool  { return t.IsInteger() || t.IsFloat() || t.IsDecimal() }
+func (t *Type) IsExternal() bool { return t.Schema != nil && t.Schema.XOgenType != "" }
+
+// AcceptsJSONString reports whether t can be decoded as a JSON string token.
+func (t *Type) AcceptsJSONString() bool {
+	if t == nil {
+		return false
+	}
+	switch {
+	case t.IsAny():
+		return true
+	case t.JSON().Type() == "String":
+		return true
+	case t.IsAlias():
+		return t.AliasTo.AcceptsJSONString()
+	case t.IsGeneric():
+		return t.GenericOf.AcceptsJSONString()
+	case t.IsSum():
+		for _, s := range t.SumOf {
+			if s.AcceptsJSONString() {
+				return true
+			}
+		}
+	}
+	return false
+}
+
+// HasGeneratedReservedField reports whether a generated sum type has a
+// reserved field name.
+func (t *Type) HasGeneratedReservedField() bool {
+	if t == nil || !t.IsSum() {
+		return false
+	}
+	for _, s := range t.SumOf {
+		if s.Name == "TypeValue" {
+			return true
+		}
+	}
+	return false
+}
 
 func (t *Type) MustField(name string) *Field {
 	if t.IsAlias() {

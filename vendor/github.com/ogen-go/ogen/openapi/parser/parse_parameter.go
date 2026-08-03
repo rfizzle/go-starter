@@ -2,6 +2,7 @@ package parser
 
 import (
 	"fmt"
+	"go/token"
 	"net/textproto"
 	"strings"
 
@@ -197,6 +198,28 @@ func (p *parser) parseParameter(param *ogen.Parameter, ctx *jsonpointer.ResolveC
 		return nil, err
 	}
 
+	// Parse x-ogen-name extension.
+	const nameKey = "x-ogen-name"
+	if nameNode, ok := param.Common.Extensions[nameKey]; ok {
+		if err := func() error {
+			if err := nameNode.Decode(&op.XOgenName); err != nil {
+				return err
+			}
+
+			name := op.XOgenName
+			switch {
+			case !token.IsIdentifier(name):
+				return errors.Errorf("invalid Go identifier %q", name)
+			case !token.IsExported(name):
+				return errors.Errorf("identifier must be public, got %q", name)
+			}
+			return nil
+		}(); err != nil {
+			locator := locator.Field(nameKey)
+			return nil, p.wrapLocation(p.file(ctx), locator, err)
+		}
+	}
+
 	return op, nil
 }
 
@@ -331,6 +354,15 @@ func (p *parser) validateParamStyle(param *openapi.Parameter, file location.File
 		}
 		for _, s := range many {
 			if s == nil {
+				continue
+			}
+			if s.Type == jsonschema.Null {
+				// A null branch (e.g. anyOf: [X, {"type":"null"}], the OpenAPI 3.1
+				// way of marking a parameter nullable) carries no
+				// primitive/array/object serialization shape. Nullability is handled
+				// by the generated OptNil wrapper, not by style/explode, so it
+				// imposes no style constraint as a union member. A standalone
+				// {"type":"null"} parameter schema is still rejected by check.
 				continue
 			}
 			if err := check(s); err != nil {
