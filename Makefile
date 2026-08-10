@@ -57,17 +57,17 @@ build: ## Build a local binary in bin/
 linux: check-goreleaser ## Build your project and put the output binary in bin/linux/
 	@echo "${MAGENTA}Building package for Linux...${RESET}"
 	@mkdir -p bin/linux
-	@GOOS=linux GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/linux/starter
+	@GOOS=linux GOARCH=amd64 $(GORELEASER) build --single-target --snapshot --clean -o bin/linux/starter
 
 osx: check-goreleaser ## Build your project and put the output binary in bin/osx/
 	@echo "${MAGENTA}Building package for OSX...${RESET}"
 	@mkdir -p bin/osx
-	@GOOS=darwin GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/osx/starter
+	@GOOS=darwin GOARCH=amd64 $(GORELEASER) build --single-target --snapshot --clean -o bin/osx/starter
 
 windows: check-goreleaser ## Build your project and put the output binary in bin/windows/
 	@echo "${MAGENTA}Building package for Windows...${RESET}"
 	@mkdir -p bin/windows
-	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --single-target --auto-snapshot --clean -o bin/windows/starter.exe
+	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --single-target --snapshot --clean -o bin/windows/starter.exe
 
 clean: ## Remove build outputs (bin/ and dist/)
 	@echo "${MAGENTA}Cleaning binaries...${RESET}"
@@ -240,7 +240,7 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 ## Release:
 release-snapshot: check-goreleaser ## Build a nonpublishing release snapshot in dist/
 	@echo "${MAGENTA}Building snapshot release archives...${RESET}"
-	@$(GORELEASER) release --clean --skip=publish,announce --auto-snapshot
+	@$(GORELEASER) release --clean --skip=publish,announce --snapshot
 
 ## Container:
 container: ## Build the container image with Podman
