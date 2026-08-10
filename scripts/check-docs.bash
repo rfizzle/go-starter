@@ -91,7 +91,6 @@ required_paths=(
   ".github/workflows/ci.yml"
   ".github/workflows/codeql.yml"
   ".github/workflows/release.yml"
-  ".github/workflows/security.yml"
   ".gitleaks.toml"
   ".goreleaser.yaml"
   "api/openapi.yml"

@@ -37,8 +37,8 @@ stage.
 
 ## Triaging dependency vulnerabilities
 
-CI runs the pinned `govulncheck` version for every proposed change, and the
-scheduled Security workflow repeats the scan weekly. When a scan or Dependabot
+CI runs the pinned `govulncheck` version for every proposed change, and
+Dependabot proposes dependency updates weekly. When a scan or Dependabot
 alert reports a vulnerability:
 
 1. Reproduce it from the affected revision with `make vuln`.

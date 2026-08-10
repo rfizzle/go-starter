@@ -5,7 +5,6 @@ on:
     branches:
       - master
   schedule:
-    # Weekly, offset from security.yml so the two scans do not queue together.
     # The schedule matters even when the code is unchanged: CodeQL ships new
     # queries, and a rerun applies them to the existing tree.
     - cron: "47 4 * * 1"

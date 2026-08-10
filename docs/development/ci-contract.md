@@ -13,7 +13,6 @@ then runs the same commands a contributor runs, which is why
 | --- | --- | --- |
 | `.github/workflows/ci.yml` | pull request, push to `master` | Repository gates, secret scan, vulnerability scan, race suite, coverage floor, local build, container build, release snapshot, and a cross-platform compile |
 | `.github/workflows/codeql.yml` | pull request, push to `master`, weekly | CodeQL static analysis of the Go tree; results land in the repository's code-scanning alerts |
-| `.github/workflows/security.yml` | weekly, manual dispatch | `govulncheck` against unchanged code, so a newly published advisory is noticed without a push |
 | `.github/workflows/release.yml` | push of a `vX.Y.Z` tag | Tag validity, the full `make ci` gate, GoReleaser configuration, publication, and build provenance |
 
 ### ci.yml
