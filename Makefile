@@ -240,7 +240,7 @@ migration: ## Scaffold a sequential goose SQL migration (usage: make migration n
 ## Release:
 release-snapshot: check-goreleaser ## Build a nonpublishing release snapshot in dist/
 	@echo "${MAGENTA}Building snapshot release archives...${RESET}"
-	@$(GORELEASER) release --clean --skip=publish,announce --snapshot
+	@$(GORELEASER) release --clean --skip=publish,announce,docker --snapshot
 
 ## Container:
 container: ## Build the container image with Podman
