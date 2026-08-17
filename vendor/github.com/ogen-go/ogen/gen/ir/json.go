@@ -39,6 +39,30 @@ func (j JSON) AnyFields() bool {
 	return false
 }
 
+// NeedsReceiver reports whether encoding the fields would reference the
+// receiver variable "s".  This is false when every non-excluded, non-inline
+// field carries a const value (encoded as a literal) and there are no
+// additional-properties, pattern-properties or inline-sum fields.
+func (j JSON) NeedsReceiver() bool {
+	for _, f := range j.t.Fields {
+		// Inline fields (additional / pattern / sum props) always reference s.
+		if f.Inline != InlineNone {
+			return true
+		}
+
+		t := f.Tag.JSON
+		if t == "" || slices.Contains(j.except, t) {
+			continue
+		}
+
+		// A non-const regular field will be encoded via field_elem → s.Name.
+		if !f.Const().Set {
+			return true
+		}
+	}
+	return false
+}
+
 // Except return JSON with filter by given properties.
 func (j JSON) Except(set ...string) JSON {
 	return JSON{
@@ -151,6 +175,8 @@ func (j JSON) Format() string {
 		return "Time"
 	case "date-time":
 		return "DateTime"
+	case "http-date":
+		return "HTTPDate"
 	case "duration":
 		return "Duration"
 	case "ip":
@@ -178,6 +204,8 @@ func (j JSON) Format() string {
 		return typePrefix("UnixMicro")
 	case "unix-milli":
 		return typePrefix("UnixMilli")
+	case "decimal":
+		return typePrefix("Decimal")
 	default:
 		return ""
 	}
@@ -328,6 +356,38 @@ func (j JSON) TimeFormat() string {
 	return strconv.Quote(s.XOgenTimeFormat)
 }
 
+// Encoder returns format name for handling json encoding.
+//
+// Mostly used for encoding of string formats, like `json.EncodeUUID`, where
+// UUID is Encoder.
+func (j JSON) Encoder() string {
+	if j.t.IsExternal() {
+		external := j.t.externalType(j.t.External.Encode, ExternalJSON)
+		var prefix string
+		if j.t.Schema.Type == jsonschema.String && external == ExternalText {
+			prefix = "String"
+		}
+		return prefix + external.String()
+	}
+	return j.Format()
+}
+
+// Decoder returns format name for handling json decoding.
+//
+// Mostly used for decoding of string formats, like `json.DecodeUUID`, where
+// UUID is Decoder.
+func (j JSON) Decoder() string {
+	if j.t.IsExternal() {
+		external := j.t.externalType(j.t.External.Decode, ExternalJSON)
+		var prefix string
+		if j.t.Schema.Type == jsonschema.String && external == ExternalText {
+			prefix = "String"
+		}
+		return prefix + external.String() + "[" + j.t.Primitive.String() + "]"
+	}
+	return j.Format()
+}
+
 // Sum returns specification for parsing value as sum type.
 func (j JSON) Sum() SumJSON {
 	if j.t.SumSpec.Discriminator != "" {
@@ -340,6 +400,13 @@ func (j JSON) Sum() SumJSON {
 			Type: SumJSONTypeDiscriminator,
 		}
 	}
+	// Check for field-based discrimination (UniqueFields or ValueDiscriminators on sum type)
+	if len(j.t.SumSpec.UniqueFields) > 0 || len(j.t.SumSpec.ValueDiscriminators) > 0 {
+		return SumJSON{
+			Type: SumJSONFields,
+		}
+	}
+	// Check for unique fields on variants (legacy approach)
 	for _, s := range j.t.SumOf {
 		if len(s.SumSpec.Unique) > 0 {
 			return SumJSON{

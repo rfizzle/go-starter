@@ -6,3 +6,19 @@ _bin/*
 
 *.out
 *.dump
+cmd/ogen/ogen
+cmd/jschemagen/jschemagen
+
+# Go test artifacts
+*.test
+*.exe
+coverage.txt
+*.prof
+
+# Temporary files
+*.tmp
+*.swp
+.DS_Store
+Thumbs.db
+/ogen
+TRIAGE.md

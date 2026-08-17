@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/go-faster/errors"
+	"go.uber.org/zap"
 
 	"github.com/ogen-go/ogen/gen/ir"
 	"github.com/ogen-go/ogen/jsonschema"
@@ -12,6 +13,12 @@ import (
 
 func (g *schemaGen) primitive(name string, schema *jsonschema.Schema) (*ir.Type, error) {
 	t := g.parseSimple(schema)
+
+	// If const is set, treat it as a const value (not enum)
+	// Const takes precedence over enum
+	if schema.ConstSet {
+		return t, nil
+	}
 
 	if len(schema.Enum) > 0 {
 		return g.enum(name, t, schema)
@@ -24,14 +31,29 @@ func (g *schemaGen) enum(name string, t *ir.Type, schema *jsonschema.Schema) (*i
 	if !t.Is(ir.KindPrimitive) {
 		return nil, errors.Wrapf(&ErrNotImplemented{"complex enum type"}, "type %s", t.String())
 	}
-	if f := schema.Format; f != "" && !t.IsNumeric() {
-		return nil, errors.Wrapf(&ErrNotImplemented{"enum format"}, "format %q", f)
+
+	// We accept 2 types of enums: ints and strings. However, for formatted
+	// string enums, we don't want to allow time/date/date-time formats as they
+	// require special handling
+	if f := schema.Format; f != "" {
+		if !t.IsNumeric() && t.Schema.Type != jsonschema.String {
+			return nil, errors.Wrapf(&ErrNotImplemented{"enum format"}, "format %q", f)
+		}
+
+		// Reject time-related formats for string enums until we properly handle them
+		if t.Schema.Type == jsonschema.String {
+			switch f {
+			case "date", "time", "date-time", "http-date":
+				return nil, errors.Wrapf(&ErrNotImplemented{"enum format"}, "format %q", f)
+			}
+		}
 	}
+
 	if err := g.validateEnumValues(schema); err != nil {
 		return nil, errors.Wrap(err, "validate enum")
 	}
 
-	nameGen, err := enumVariantNameGen(name, schema.Enum)
+	nameGen, err := g.namer().enumVariantNameGen(name, schema.Enum)
 	if err != nil {
 		return nil, errors.Wrap(err, "choose strategy")
 	}
@@ -92,7 +114,22 @@ func (g *schemaGen) validateEnumValues(s *jsonschema.Schema) error {
 		return nil
 	case jsonschema.String:
 		for idx, val := range s.Enum {
-			if _, ok := val.(string); !ok {
+			switch v := val.(type) {
+			case string:
+			case int64, float64, bool:
+				coerced := fmt.Sprint(v)
+
+				fields := []zap.Field{
+					zap.Any("value", v),
+					zap.String("coerced_to", coerced),
+				}
+				if pos, ok := s.Pointer.Field("enum").Index(idx).Position(); ok {
+					fields = append(fields, zap.String("at", pos.WithFilename(s.File().Name)))
+				}
+				g.log.Warn("Enum value type does not match declared string type, coercing to string", fields...)
+
+				s.Enum[idx] = coerced
+			default:
 				return reportErr(idx, errors.Errorf("enum value should be a string, got %T", val))
 			}
 		}
@@ -153,11 +190,12 @@ func TypeFormatMapping() map[jsonschema.SchemaType]map[string]ir.PrimitiveType {
 			"unix-milli":   ir.Time,
 		},
 		jsonschema.Number: {
-			"float":  ir.Float32,
-			"double": ir.Float64,
-			"int32":  ir.Int32,
-			"int64":  ir.Int64,
-			"":       ir.Float64,
+			"float":   ir.Float32,
+			"double":  ir.Float64,
+			"int32":   ir.Int32,
+			"int64":   ir.Int64,
+			"decimal": ir.Decimal,
+			"":        ir.Float64,
 		},
 		jsonschema.String: {
 			"byte":      ir.ByteSlice,
@@ -165,6 +203,7 @@ func TypeFormatMapping() map[jsonschema.SchemaType]map[string]ir.PrimitiveType {
 			"date-time": ir.Time,
 			"date":      ir.Time,
 			"time":      ir.Time,
+			"http-date": ir.Time,
 			"duration":  ir.Duration,
 			"uuid":      ir.UUID,
 			"mac":       ir.MAC,
@@ -199,6 +238,7 @@ func TypeFormatMapping() map[jsonschema.SchemaType]map[string]ir.PrimitiveType {
 			// See https://github.com/ogen-go/ogen/issues/957.
 			"float32": ir.Float32,
 			"float64": ir.Float64,
+			"decimal": ir.Decimal,
 		},
 		jsonschema.Boolean: {
 			"": ir.Bool,

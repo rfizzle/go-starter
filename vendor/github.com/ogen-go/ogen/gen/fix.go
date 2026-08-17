@@ -8,6 +8,7 @@ import (
 
 	"github.com/ogen-go/ogen/gen/ir"
 	"github.com/ogen-go/ogen/internal/xmaps"
+	"github.com/ogen-go/ogen/openapi"
 )
 
 // Example:
@@ -58,6 +59,8 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 		renameTo      string
 		encoding      ir.Encoding
 		JSONStreaming bool
+		RawResponse   bool
+		SSEEventShape openapi.SSEEventShape
 		typ           *ir.Type
 
 		replaceNoc bool
@@ -66,7 +69,7 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 	}
 
 	var candidates []candidate
-	for i := 0; i < len(statusCodes); i++ {
+	for i := range statusCodes {
 		lcode := statusCodes[i]
 		for j := i; j < len(statusCodes); j++ {
 			rcode := statusCodes[j]
@@ -131,6 +134,8 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 							renameTo:      lname,
 							encoding:      lmedia.Encoding,
 							JSONStreaming: lmedia.JSONStreaming,
+							RawResponse:   lmedia.RawResponse,
+							SSEEventShape: lmedia.SSEEventShape,
 							typ:           ltype,
 							replaceCT:     lct,
 							response:      lresp,
@@ -138,6 +143,8 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 							renameTo:      rname,
 							encoding:      rmedia.Encoding,
 							JSONStreaming: rmedia.JSONStreaming,
+							RawResponse:   rmedia.RawResponse,
+							SSEEventShape: rmedia.SSEEventShape,
 							typ:           rtype,
 							replaceCT:     rct,
 							response:      rresp,
@@ -166,6 +173,8 @@ func fixEqualResponses(ctx *genctx, op *ir.Operation) error {
 			Encoding:      candidate.encoding,
 			Type:          alias,
 			JSONStreaming: candidate.JSONStreaming,
+			RawResponse:   candidate.RawResponse,
+			SSEEventShape: candidate.SSEEventShape,
 		}
 	}
 
@@ -219,6 +228,8 @@ func fixEqualRequests(ctx *genctx, op *ir.Operation) error {
 		ctype         ir.ContentType
 		encoding      ir.Encoding
 		JSONStreaming bool
+		RawResponse   bool
+		SSEEventShape openapi.SSEEventShape
 		t             *ir.Type
 	}
 	var (
@@ -250,12 +261,16 @@ func fixEqualRequests(ctx *genctx, op *ir.Operation) error {
 					ctype:         lcontent,
 					encoding:      lmedia.Encoding,
 					JSONStreaming: lmedia.JSONStreaming,
+					RawResponse:   lmedia.RawResponse,
+					SSEEventShape: lmedia.SSEEventShape,
 					t:             ltype,
 				}, candidate{
 					renameTo:      rname,
 					ctype:         rcontent,
 					encoding:      rmedia.Encoding,
 					JSONStreaming: rmedia.JSONStreaming,
+					RawResponse:   rmedia.RawResponse,
+					SSEEventShape: rmedia.SSEEventShape,
 					t:             rtype,
 				})
 			}
@@ -275,6 +290,8 @@ func fixEqualRequests(ctx *genctx, op *ir.Operation) error {
 			Encoding:      candidate.encoding,
 			Type:          alias,
 			JSONStreaming: candidate.JSONStreaming,
+			RawResponse:   candidate.RawResponse,
+			SSEEventShape: candidate.SSEEventShape,
 		}
 	}
 

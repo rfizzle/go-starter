@@ -64,7 +64,7 @@ func (d *queryParamDecoder) DecodeArray(f func(d Decoder) error) error {
 			return nil
 		}
 
-		for _, item := range strings.Split(values[0], ",") {
+		for item := range strings.SplitSeq(values[0], ",") {
 			if err := f(&constval{item}); err != nil {
 				return err
 			}
@@ -86,7 +86,18 @@ func (d *queryParamDecoder) DecodeArray(f func(d Decoder) error) error {
 			return errors.New("invalid value")
 		}
 
-		return errors.New("spaceDelimited with explode: false not supported")
+		// do not decode `?param=` as `[""]` and leave the parameter as whatever zero value it has
+		if values[0] == "" {
+			return nil
+		}
+
+		for item := range strings.SplitSeq(values[0], " ") {
+			if err := f(&constval{item}); err != nil {
+				return err
+			}
+		}
+
+		return nil
 
 	case QueryStylePipeDelimited:
 		if d.explode {
@@ -102,7 +113,7 @@ func (d *queryParamDecoder) DecodeArray(f func(d Decoder) error) error {
 			return errors.New("invalid value")
 		}
 
-		for _, item := range strings.Split(values[0], "|") {
+		for item := range strings.SplitSeq(values[0], "|") {
 			if err := f(&constval{item}); err != nil {
 				return err
 			}
@@ -167,8 +178,12 @@ func (d *queryParamDecoder) DecodeFields(f func(name string, d Decoder) error) e
 			panic("invalid deepObject style configuration")
 		}
 
+		// Maintain a map of seen keys to avoid additional processing.
+		seenQueryParams := map[string]bool{}
+
 		for _, field := range d.objectFields {
 			qparam := d.paramName + "[" + field.Name + "]"
+			seenQueryParams[qparam] = true
 			values, ok := d.values[qparam]
 			if !ok || len(values) == 0 {
 				if !field.Required {
@@ -185,6 +200,49 @@ func (d *queryParamDecoder) DecodeFields(f func(name string, d Decoder) error) e
 				return err
 			}
 		}
+
+		// With PatternProperties/AdditionalProperties, we do not know the names of these properties.
+		// Therefore, we just iterate over all query parameters that start with the prefix.
+		for k, values := range d.values {
+			qparam := k
+
+			if !strings.HasPrefix(qparam, d.paramName) {
+				// This query parameter does not start with the prefix, so we skip it.
+				continue
+			}
+
+			// To construct the field name, we need to remove the prefix while also removing the brackets.
+			// For example:
+			//   ?paramName[fieldName]=value => fieldName=value
+			//   ?paramName[fieldName][subField1]=value => fieldName[subField1]=value
+			//   ?paramName[fieldName][subField1][subSubField1]=value => fieldName[subField1][subSubField1]=value
+			fieldName := strings.TrimPrefix(qparam, d.paramName)
+			firstOpenBracket := strings.Index(fieldName, "[")
+			firstCloseBracket := strings.Index(fieldName, "]")
+			if firstOpenBracket != -1 && firstCloseBracket != -1 {
+				// Remove the first open and close brackets to get the field name.
+				fieldName = fieldName[firstOpenBracket+1:firstCloseBracket] + fieldName[firstCloseBracket+1:]
+			}
+
+			if _, ok := seenQueryParams[qparam]; ok {
+				// This value was well-formed as part of the predefined d.objectFields, so we do not need to
+				// process it again.
+				continue
+			}
+
+			if len(values) == 0 {
+				return errors.Errorf("query parameter %q field %q not set", d.paramName, qparam)
+			}
+
+			if len(values) > 1 {
+				return errors.Errorf("query parameter %q field %q multiple values", d.paramName, qparam)
+			}
+
+			if err := adapter(fieldName, values[0]); err != nil {
+				return err
+			}
+		}
+
 		return nil
 
 	default:

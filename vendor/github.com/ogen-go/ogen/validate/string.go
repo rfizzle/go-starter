@@ -1,6 +1,9 @@
 package validate
 
 import (
+	"math"
+	"strconv"
+	"strings"
 	"unicode"
 
 	"github.com/go-faster/errors"
@@ -17,6 +20,12 @@ type String struct {
 	Email        bool
 	Regex        ogenregex.Regexp
 	Hostname     bool
+
+	// Numeric constraints for strings representing numbers
+	MinNumeric    float64
+	MinNumericSet bool
+	MaxNumeric    float64
+	MaxNumericSet bool
 }
 
 // SetMaxLength sets maximum string length (in Unicode code points).
@@ -31,9 +40,21 @@ func (t *String) SetMinLength(v int) {
 	t.MinLength = v
 }
 
+// SetMaximumNumeric sets maximum numeric value for numeric strings.
+func (t *String) SetMaximumNumeric(v float64) {
+	t.MaxNumericSet = true
+	t.MaxNumeric = v
+}
+
+// SetMinimumNumeric sets minimum numeric value for numeric strings.
+func (t *String) SetMinimumNumeric(v float64) {
+	t.MinNumericSet = true
+	t.MinNumeric = v
+}
+
 // Set reports whether any validations are set.
 func (t String) Set() bool {
-	return t.MaxLengthSet || t.MinLengthSet || t.Email || t.Regex != nil || t.Hostname
+	return t.MaxLengthSet || t.MinLengthSet || t.Email || t.Regex != nil || t.Hostname || t.MinNumericSet || t.MaxNumericSet
 }
 
 func (t String) checkHostname(v string) error {
@@ -65,35 +86,42 @@ func (t String) checkEmail(v string) error {
 	// too strict to break things.
 	//
 	// Still better than obscure regex or std `mail.ParseAddress`.
-	var (
-		gotAt bool
-		last  rune
-	)
-	for i, r := range v {
+	if v == "" {
+		return errors.New("blank")
+	}
+
+	// The domain part contains no '@', so the local/domain separator is the
+	// last '@' in the address. This also correctly handles a quoted local
+	// part that itself contains '@' (e.g. `"a@b"@example.com`).
+	at := strings.LastIndexByte(v, '@')
+	switch {
+	case at < 0:
+		return errors.New(`no @`)
+	case at == 0:
+		return errors.New(`got @ at start`)
+	case at == len(v)-1:
+		return errors.New("@ at end")
+	}
+	local := v[:at]
+
+	// A quoted local part may legally contain spaces, non-printable
+	// characters and additional '@' characters, so don't reject those.
+	// See https://github.com/ogen-go/ogen/issues/1419.
+	if len(local) >= 2 && local[0] == '"' && local[len(local)-1] == '"' {
+		return nil
+	}
+
+	// Unquoted (dot-atom) local part: keep the basic sanity checks.
+	for _, r := range local {
 		if unicode.IsSpace(r) {
 			return errors.Errorf("space character (%U)", r)
 		}
 		if !unicode.IsPrint(r) {
 			return errors.Errorf("not printable character (%U)", r)
 		}
-
-		last = r
-		if r != '@' {
-			continue
-		}
-		if gotAt {
+		if r == '@' {
 			return errors.New(`got @ multiple times`)
 		}
-		if i == 0 {
-			return errors.New(`got @ at start`)
-		}
-		gotAt = true
-	}
-	if last == '@' {
-		return errors.New("@ at end")
-	}
-	if !gotAt {
-		return errors.New(`no @`)
 	}
 	return nil
 }
@@ -128,6 +156,33 @@ func (t String) Validate(v string) error {
 				Pattern: r,
 			}
 		}
+	}
+	// Validate numeric constraints on string values
+	if t.MinNumericSet || t.MaxNumericSet {
+		if err := t.validateNumeric(v); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (t String) validateNumeric(v string) error {
+	val, err := strconv.ParseFloat(v, 64)
+	if err != nil {
+		return errors.Wrap(err, "parse as number")
+	}
+	if math.IsNaN(val) {
+		return errors.Errorf("value %f is not a number", val)
+	}
+	if math.IsInf(val, 0) {
+		return errors.Errorf("value %f is infinite", val)
+	}
+
+	if t.MinNumericSet && val < t.MinNumeric {
+		return errors.Errorf("value %f less than minimum %f", val, t.MinNumeric)
+	}
+	if t.MaxNumericSet && val > t.MaxNumeric {
+		return errors.Errorf("value %f greater than maximum %f", val, t.MaxNumeric)
 	}
 	return nil
 }

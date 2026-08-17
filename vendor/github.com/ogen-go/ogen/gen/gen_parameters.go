@@ -75,12 +75,12 @@ func (g *Generator) generateParameters(ctx *genctx, opName string, params []*ope
 				case inEqual && specNameEqual:
 					panic(unreachable(pp.Spec.Name))
 				case inEqual:
-					p.Name, err = pascalSpecial(p.Spec.Name)
+					p.Name, err = g.namer().pascalSpecial(p.Spec.Name)
 					if err != nil {
 						return nil, errors.Wrap(err, "parameter name")
 					}
 
-					pp.Name, err = pascalSpecial(pp.Spec.Name)
+					pp.Name, err = g.namer().pascalSpecial(pp.Spec.Name)
 					if err != nil {
 						return nil, errors.Wrap(err, "parameter name")
 					}
@@ -110,7 +110,7 @@ func (g *Generator) generateParameter(ctx *genctx, opName string, p *openapi.Par
 			return p, nil
 		}
 
-		n, err := pascal(cleanRef(ref))
+		n, err := g.namer().pascal(cleanRef(ref))
 		if err != nil {
 			return nil, errors.Wrapf(err, "parameter type name: %q", ref)
 		}
@@ -130,7 +130,7 @@ func (g *Generator) generateParameter(ctx *genctx, opName string, p *openapi.Par
 
 	if paramTypeName == "" {
 		var err error
-		paramTypeName, err = pascal(opName, p.Name)
+		paramTypeName, err = g.namer().pascal(opName, p.Name)
 		if err != nil {
 			return nil, errors.Wrapf(err, "parameter type name: %q", p.Name)
 		}
@@ -174,12 +174,20 @@ func (g *Generator) generateParameter(ctx *genctx, opName string, p *openapi.Par
 		return nil, errors.Wrapf(err, "%q", p.Name)
 	}
 
-	paramName, err := pascalNonEmpty(p.Name)
-	if err != nil {
-		return nil, errors.Wrapf(err, "parameter name: %q", p.Name)
+	var paramName string
+	if p.XOgenName != "" {
+		// Use custom name from x-ogen-name extension.
+		paramName = p.XOgenName
+	} else {
+		var err error
+		paramName, err = g.namer().pascalNonEmpty(p.Name)
+		if err != nil {
+			return nil, errors.Wrapf(err, "parameter name: %q", p.Name)
+		}
 	}
 
 	var tag ir.Tag
+	tag.JSON = defaultParameterJSONTag(t)
 	if p.Schema != nil {
 		tag.ExtraTags = p.Schema.ExtraTags
 	}
@@ -190,6 +198,27 @@ func (g *Generator) generateParameter(ctx *genctx, opName string, p *openapi.Par
 		Spec: p,
 		Tag:  tag,
 	}, nil
+}
+
+// defaultParameterJSONTag returns a default JSON Go struct tag for the given parameter type.
+// Currently, returns omitempty for arrays, maps and nullable Type.GenericVariant,
+// and omitzero for parameters with optional Type.GenericVariant
+func defaultParameterJSONTag(t *ir.Type) string {
+	if t == nil {
+		return ""
+	}
+	switch t.Kind {
+	case ir.KindArray, ir.KindMap:
+		return ",omitempty"
+	default:
+		variant := t.GenericVariant
+		if variant.OnlyNullable() {
+			return ",omitempty"
+		} else if variant.Optional {
+			return ",omitempty,omitzero"
+		}
+		return ""
+	}
 }
 
 func isParamAllowed(t *ir.Type, root bool, visited map[*ir.Type]struct{}) error {
@@ -205,7 +234,7 @@ func isParamAllowed(t *ir.Type, root bool, visited map[*ir.Type]struct{}) error 
 		return nil
 	case ir.KindArray:
 		if !root {
-			return errors.New("nested arrays not allowed")
+			return &ErrNotImplemented{Name: "nested arrays in form parameters"}
 		}
 		return isParamAllowed(t.Item, false, visited)
 	case ir.KindAlias:
@@ -214,7 +243,7 @@ func isParamAllowed(t *ir.Type, root bool, visited map[*ir.Type]struct{}) error 
 		return isParamAllowed(t.PointerTo, root, visited)
 	case ir.KindStruct:
 		if !root {
-			return errors.New("nested objects not allowed")
+			return &ErrNotImplemented{Name: "nested objects in form parameters"}
 		}
 		for _, field := range t.Fields {
 			if err := isParamAllowed(field.Type, false, visited); err != nil {
@@ -225,18 +254,18 @@ func isParamAllowed(t *ir.Type, root bool, visited map[*ir.Type]struct{}) error 
 	case ir.KindGeneric:
 		return isParamAllowed(t.GenericOf, root, visited)
 	case ir.KindSum:
-		// for i, of := range t.SumOf {
-		// 	if err := isParamAllowed(of, false, visited); err != nil {
-		// 		// TODO: Check field.Spec existence.
-		// 		return errors.Wrapf(err, "sum[%d]", i)
-		// 	}
-		// }
-		// return nil
-		return &ErrNotImplemented{"sum type parameter"}
+		// Sum types are allowed in parameters.
+		// We'll try each variant in order during decoding.
+		for i, of := range t.SumOf {
+			if err := isParamAllowed(of, false, visited); err != nil {
+				return errors.Wrapf(err, "sum[%d]", i)
+			}
+		}
+		return nil
 	case ir.KindMap:
 		return nil
 	case ir.KindAny:
-		return &ErrNotImplemented{"any type parameter"}
+		return nil
 	default:
 		panic(unreachable(t))
 	}
@@ -245,7 +274,9 @@ func isParamAllowed(t *ir.Type, root bool, visited map[*ir.Type]struct{}) error 
 func isSupportedParamStyle(param *openapi.Parameter) error {
 	switch param.Style {
 	case openapi.QueryStyleSpaceDelimited:
-		return &ErrNotImplemented{Name: "spaceDelimited parameter style"}
+		if s := param.Schema; s != nil && s.Type == jsonschema.Object {
+			return &ErrNotImplemented{Name: "spaceDelimited style for object parameters"}
+		}
 
 	case openapi.QueryStylePipeDelimited:
 		if s := param.Schema; s != nil && s.Type == jsonschema.Object {
