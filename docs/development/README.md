@@ -39,8 +39,8 @@ make ci                 # Run the gates CI enforces (check + secrets-check + vul
 make build              # Build bin/gostarter for the current platform
 ```
 
-`make generate`, `make fmt`, `make tidy`, and `make vendor` intentionally
-modify the worktree. `make check` is read-only when generated source and
+`make generate`, `make fmt`, and `make tidy` intentionally modify the
+worktree. `make check` is read-only when generated source and
 formatting are current.
 
 ## Standard change workflow

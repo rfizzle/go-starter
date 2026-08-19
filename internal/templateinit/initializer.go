@@ -295,7 +295,6 @@ func trackedFiles(ctx context.Context, root string) ([]string, error) {
 
 func skipTrackedPath(path string) bool {
 	return path == "LICENSE" ||
-		strings.HasPrefix(path, "vendor/") ||
 		strings.HasPrefix(path, "internal/api/v1/") ||
 		strings.HasPrefix(path, "internal/platform/database/postgres/db/")
 }

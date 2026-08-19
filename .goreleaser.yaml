@@ -18,7 +18,6 @@ builds:
       - amd64
       - arm64
     flags:
-      - -mod=vendor
       # Parity with build/docker/Dockerfile: a released binary and a locally
       # built image embed the same machine-independent paths.
       - -trimpath

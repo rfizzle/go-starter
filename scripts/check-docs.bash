@@ -15,7 +15,6 @@ documentation_files() {
     \( -path "${project_dir}/.git" \
       -o -path "${project_dir}/.agents" \
       -o -path "${project_dir}/.claude" \
-      -o -path "${project_dir}/vendor" \
       -o -path "${project_dir}/dist" \) -prune \
     -o -type f -name '*.md' -print
 }

@@ -24,7 +24,6 @@ linters:
       - docs/
       - scripts/
       - tmp/
-      - vendor/
       - third_party$
       - builtin$
       - examples$
@@ -39,7 +38,6 @@ formatters:
       - docs/
       - scripts/
       - tmp/
-      - vendor/
       - third_party$
       - builtin$
       - examples$

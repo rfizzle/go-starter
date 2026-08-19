@@ -15,7 +15,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 
 ### Additional Commands
 - **Single platform builds**: `make linux`, `make osx`, `make windows`
-- **Dependencies**: `make tidy` (rebuild go.mod), `make vendor` (sync to vendor/)
+- **Dependencies**: `make tidy` (rebuild go.mod and go.sum)
 - **Environment check**: `make env` - Validate development environment setup
 - **Race condition testing**: `make race` - Run the default Go suite with the race detector
 - **Coverage**: `make cover` - Run both test tiers, write a coverage profile, and fail below the maintained-code floor (`MAINTAINED_COVERAGE_MIN` in `scripts/coverage-baseline.env`, currently 75%)

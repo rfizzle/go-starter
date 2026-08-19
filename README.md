@@ -82,8 +82,7 @@ The module, application name, binary name, environment prefix, and untagged OCI
 image name are required; the description defaults to `<application name>
 service`. Inputs are validated before any file is changed. The initializer only
 rewrites Git-tracked, hand-written regular files: it skips `.git`, generated
-ogen and sqlc output, vendored dependencies, the license attribution, and
-untracked files.
+ogen and sqlc output, the license attribution, and untracked files.
 
 For safety, initialization fails when the worktree has staged, unstaged, or
 untracked changes, and a `.template-initialized` marker prevents a second run.
@@ -231,8 +230,8 @@ are never included in validation errors or logs.
 to `GOBIN` or the first `GOPATH` bin directory. It is the shared entrypoint for
 local and CI setup, and `make env` compares the binaries on `PATH` with the same
 declarations.
-Mutating maintenance commands such as `make fmt`, `make generate`, `make tidy`,
-and `make vendor` are intentionally explicit.
+Mutating maintenance commands such as `make fmt`, `make generate`, and
+`make tidy` are intentionally explicit.
 
 ## Architecture map
 

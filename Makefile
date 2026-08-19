@@ -12,7 +12,7 @@ GOIMPORTS=goimports
 GOLANGCI_LINT=golangci-lint
 SQLC=sqlc
 GORELEASER=goreleaser
-PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./vendor/*" -not -path "./internal/api/*")
+PROJECT_GOFILES=$(shell find . -type f -name '*.go' -not -path "./internal/api/*")
 PROJECT_PACKAGES=./...
 ROOT=$(CURDIR)
 YAMLFMT=yamlfmt -conf "${ROOT}/.yamlfmt"
@@ -39,7 +39,7 @@ else
 	RESET   :=
 endif
 
-.PHONY: all help build linux osx windows clean clean_vendor dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy vendor test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
+.PHONY: all help build linux osx windows clean dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
 
 all: help
 
@@ -72,10 +72,6 @@ windows: check-goreleaser ## Build your project and put the output binary in bin
 clean: ## Remove build outputs (bin/ and dist/)
 	@echo "${MAGENTA}Cleaning binaries...${RESET}"
 	@rm -fr ./bin ./dist
-
-clean_vendor: ## Remove built binaries
-	@echo "${MAGENTA}Cleaning vendor files...${RESET}"
-	@rm -fr ./vendor/*
 
 ## Development:
 # Variable names mirror the initializer flags. They are lowercase (like
@@ -166,10 +162,6 @@ check: architecture-check docs-check skills-check generate-check fmt-check lint 
 tidy: ## Rebuild go.mod with only required dependencies
 	@echo "${MAGENTA}Rebuilding go.mod file...${RESET}"
 	@$(GOMOD) tidy
-
-vendor: tidy ## Sync dependencies to vendor directory
-	@echo "${MAGENTA}Syncing dependencies to vendor...${RESET}"
-	@$(GOMOD) vendor
 
 env: ## Check env for correct setup
 	@echo "${MAGENTA}Checking env...${RESET}"

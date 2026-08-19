@@ -15,7 +15,7 @@ ARG BUILD_REVISION
 ARG BUILD_VERSION
 
 COPY go.mod go.sum ./
-COPY vendor ./vendor/
+RUN go mod download
 COPY main.go generate.go ./
 COPY cmd ./cmd/
 COPY internal ./internal/
@@ -30,7 +30,7 @@ RUN test -n "${TARGETOS}" \
     && test -n "${BUILD_REVISION}" \
     && test -n "${BUILD_VERSION}" \
     && CGO_ENABLED=0 GOOS="${TARGETOS}" GOARCH="${TARGETARCH}" \
-    go build -mod=vendor -trimpath \
+    go build -trimpath \
     -ldflags="-s -w \
     -X github.com/rfizzle/go-starter/cmd.ApplicationName=starter \
     -X github.com/rfizzle/go-starter/cmd.BuildBranch=${BUILD_BRANCH} \
