@@ -173,7 +173,6 @@ func (application *App) Run(ctx context.Context) error {
 	}
 	dependencyReadiness, err := health.New(
 		readinessTimeout,
-		application.logger,
 		health.Check{Name: "postgres", Run: pool.Ping},
 	)
 	if err != nil {

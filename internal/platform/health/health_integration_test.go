@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"go.uber.org/zap/zaptest"
 
 	"github.com/rfizzle/go-starter/internal/platform/database/postgrestest"
 	"github.com/rfizzle/go-starter/internal/platform/health"
@@ -42,7 +41,7 @@ func TestAggregatorTracksRealPostgresAvailability(t *testing.T) {
 		}
 	})
 
-	aggregator, err := health.New(2*time.Second, zaptest.NewLogger(t), health.Check{
+	aggregator, err := health.New(2*time.Second, health.Check{
 		Name: "postgres",
 		Run: func(ctx context.Context) error {
 			pool := activePool.Load()

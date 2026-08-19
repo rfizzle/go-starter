@@ -6,10 +6,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"sync/atomic"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 // Check is a named readiness dependency. Name must be a stable, non-secret
@@ -20,28 +17,22 @@ type Check struct {
 }
 
 // Aggregator evaluates all required checks within one shared time budget.
-// It is safe for concurrent use.
+// It is stateless between evaluations and safe for concurrent use.
 type Aggregator struct {
 	checks  []Check
-	logger  *zap.Logger
 	timeout time.Duration
-	healthy atomic.Bool
 }
 
 // New constructs an Aggregator. Timeout must be positive so every evaluation
 // is bounded, even when the caller has no deadline.
-func New(timeout time.Duration, logger *zap.Logger, checks ...Check) (*Aggregator, error) {
+func New(timeout time.Duration, checks ...Check) (*Aggregator, error) {
 	if timeout <= 0 {
 		return nil, fmt.Errorf("health check timeout must be positive")
-	}
-	if logger == nil {
-		return nil, fmt.Errorf("health check logger is required")
 	}
 	if len(checks) == 0 {
 		return nil, fmt.Errorf("at least one health check is required")
 	}
 
-	seen := make(map[string]struct{}, len(checks))
 	configured := make([]Check, len(checks))
 	for i, check := range checks {
 		check.Name = strings.TrimSpace(check.Name)
@@ -51,16 +42,11 @@ func New(timeout time.Duration, logger *zap.Logger, checks ...Check) (*Aggregato
 		if check.Run == nil {
 			return nil, fmt.Errorf("health check %q function is required", check.Name)
 		}
-		if _, exists := seen[check.Name]; exists {
-			return nil, fmt.Errorf("health check %q is duplicated", check.Name)
-		}
-		seen[check.Name] = struct{}{}
 		configured[i] = check
 	}
 
 	return &Aggregator{
 		checks:  configured,
-		logger:  logger,
 		timeout: timeout,
 	}, nil
 }
@@ -68,38 +54,21 @@ func New(timeout time.Duration, logger *zap.Logger, checks ...Check) (*Aggregato
 // Check evaluates every dependency and returns the first failure with its
 // stable check name. The underlying error is retained for internal startup
 // diagnostics; HTTP adapters must map the result to a non-secret response.
+// Readiness transitions are logged by the application lifecycle, not here.
 func (a *Aggregator) Check(ctx context.Context) error {
 	checkCtx, cancel := context.WithTimeout(ctx, a.timeout)
 	defer cancel()
 
 	for _, check := range a.checks {
 		if err := check.Run(checkCtx); err != nil {
-			a.setHealthy(false, check.Name)
 			return fmt.Errorf("health check %q: %w", check.Name, err)
 		}
 	}
 
-	a.setHealthy(true, "")
 	return nil
 }
 
 // Ready reports whether every required dependency passes its check.
 func (a *Aggregator) Ready(ctx context.Context) bool {
 	return a.Check(ctx) == nil
-}
-
-func (a *Aggregator) setHealthy(healthy bool, failedCheck string) {
-	previous := a.healthy.Swap(healthy)
-	if previous == healthy {
-		return
-	}
-
-	fields := []zap.Field{
-		zap.Bool("ready", healthy),
-		zap.Bool("previous", previous),
-	}
-	if failedCheck != "" {
-		fields = append(fields, zap.String("failed_check", failedCheck))
-	}
-	a.logger.Info("readiness dependency state changed", fields...)
 }
