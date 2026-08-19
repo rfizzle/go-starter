@@ -353,7 +353,7 @@ func rewrite(path string, contents []byte, cfg Config) ([]byte, error) {
 	}
 
 	switch filepath.ToSlash(path) {
-	case ".goreleaser.yaml", "Makefile", "build/docker/Dockerfile",
+	case ".goreleaser.yaml", "build/docker/Dockerfile",
 		"build/docker/Dockerfile.release", "scripts/container-build.bash":
 		replacements = append(replacements, replacement{defaultReleaseName, cfg.BinaryName})
 	case ".dockerignore":

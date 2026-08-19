@@ -14,7 +14,6 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Development cycle**: `make generate fmt check` - Mutate generated/formatted sources, then run repository gates
 
 ### Additional Commands
-- **Single platform builds**: `make linux`, `make osx`, `make windows`
 - **Dependencies**: `make tidy` (rebuild go.mod and go.sum)
 - **Environment check**: `make env` - Validate development environment setup
 - **Race condition testing**: `make race` - Run the default Go suite with the race detector

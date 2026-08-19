@@ -39,7 +39,7 @@ else
 	RESET   :=
 endif
 
-.PHONY: all help build linux osx windows clean dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
+.PHONY: all help build clean dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
 
 all: help
 
@@ -51,23 +51,6 @@ build: ## Build a local binary in bin/
 	@echo "${MAGENTA}Building local binary...${RESET}"
 	@mkdir -p bin
 	@$(GOCMD) build -o bin/$(APP_NAME) .
-
-# linux/osx/windows below are amd64-only local-dev conveniences (e.g. for the
-# Dockerfile's `make linux`). Use release-snapshot for the full release matrix.
-linux: check-goreleaser ## Build your project and put the output binary in bin/linux/
-	@echo "${MAGENTA}Building package for Linux...${RESET}"
-	@mkdir -p bin/linux
-	@GOOS=linux GOARCH=amd64 $(GORELEASER) build --single-target --snapshot --clean -o bin/linux/starter
-
-osx: check-goreleaser ## Build your project and put the output binary in bin/osx/
-	@echo "${MAGENTA}Building package for OSX...${RESET}"
-	@mkdir -p bin/osx
-	@GOOS=darwin GOARCH=amd64 $(GORELEASER) build --single-target --snapshot --clean -o bin/osx/starter
-
-windows: check-goreleaser ## Build your project and put the output binary in bin/windows/
-	@echo "${MAGENTA}Building package for Windows...${RESET}"
-	@mkdir -p bin/windows
-	@GOOS=windows GOARCH=amd64 $(GORELEASER) build --single-target --snapshot --clean -o bin/windows/starter.exe
 
 clean: ## Remove build outputs (bin/ and dist/)
 	@echo "${MAGENTA}Cleaning binaries...${RESET}"

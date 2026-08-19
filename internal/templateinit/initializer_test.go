@@ -152,7 +152,6 @@ func TestInitializeWithBinaryNameContainingTemplateToken(t *testing.T) {
 
 	assertFileContains(t, filepath.Join(root, "Makefile"), `APP_NAME="`+cfg.BinaryName+`"`)
 	assertFileContains(t, filepath.Join(root, "Makefile"), `APP_PACKAGE="`+cfg.ModulePath+`"`)
-	assertFileContains(t, filepath.Join(root, "Makefile"), "go build -o bin/linux/"+cfg.BinaryName)
 	assertFileContains(t, filepath.Join(root, ".goreleaser.yaml"), "project_name: "+cfg.BinaryName)
 	assertFileContains(t, filepath.Join(root, "build", "docker", "Dockerfile"), "-o /out/"+cfg.BinaryName+" .")
 	assertFileContains(t, filepath.Join(root, "build", "docker", "Dockerfile.release"), "${TARGETPLATFORM}/"+cfg.BinaryName+" /app")
@@ -210,8 +209,6 @@ func newTemplateRepository(t *testing.T) string {
 		"go.mod": "module " + defaultModulePath + "\n\ngo 1.26.5\n",
 		"Makefile": `APP_NAME="gostarter"
 APP_PACKAGE="github.com/rfizzle/go-starter"
-linux:
-	go build -o bin/linux/starter
 `,
 		".goreleaser.yaml": `project_name: starter
 builds:
