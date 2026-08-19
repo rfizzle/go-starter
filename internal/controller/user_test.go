@@ -29,7 +29,7 @@ func TestGetCurrentUser_EnrichesSubjectFromUserReader(t *testing.T) {
 			LastName:  "Lovelace",
 		}, nil
 	})
-	c := newTestController(t, Options{
+	c := newTestController(Options{
 		Users:     reader,
 		Validator: stubValidator{subject: subject},
 	})
@@ -54,7 +54,7 @@ func TestGetCurrentUser_EnrichesSubjectFromUserReader(t *testing.T) {
 func TestGetCurrentUser_MissingStoredUserReturnsSubject(t *testing.T) {
 	const subject = "missing@example.com"
 
-	c := newTestController(t, Options{
+	c := newTestController(Options{
 		Users: userReaderFunc(func(_ context.Context, _ string) (domain.User, error) {
 			return domain.User{}, domain.ErrNotFound
 		}),
@@ -81,7 +81,7 @@ func TestGetCurrentUser_MissingStoredUserReturnsSubject(t *testing.T) {
 func TestGetCurrentUser_UserReaderFailurePropagates(t *testing.T) {
 	wantErr := errors.New("read user")
 
-	c := newTestController(t, Options{
+	c := newTestController(Options{
 		Users: userReaderFunc(func(_ context.Context, _ string) (domain.User, error) {
 			return domain.User{}, wantErr
 		}),

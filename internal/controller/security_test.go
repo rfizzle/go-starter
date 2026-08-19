@@ -21,15 +21,12 @@ func (s stubValidator) ValidateToken(token string) (string, error) {
 	return s.subject, s.err
 }
 
-func newTestController(t *testing.T, opts Options) *Controller {
-	t.Helper()
-	c, err := NewController(&opts)
-	require.NoError(t, err)
-	return c
+func newTestController(opts Options) *Controller {
+	return NewController(opts)
 }
 
 func TestHandleBearerAuth_NoValidatorFailsClosed(t *testing.T) {
-	c := newTestController(t, Options{})
+	c := newTestController(Options{})
 
 	_, err := c.HandleBearerAuth(context.Background(), api.GetCurrentUserOperation, api.BearerAuth{Token: "anything"})
 	assert.Error(t, err)
@@ -37,14 +34,14 @@ func TestHandleBearerAuth_NoValidatorFailsClosed(t *testing.T) {
 
 func TestHandleBearerAuth_InvalidTokenPropagatesError(t *testing.T) {
 	wantErr := errors.New("bad token")
-	c := newTestController(t, Options{Validator: stubValidator{err: wantErr}})
+	c := newTestController(Options{Validator: stubValidator{err: wantErr}})
 
 	_, err := c.HandleBearerAuth(context.Background(), api.GetCurrentUserOperation, api.BearerAuth{Token: "bad"})
 	assert.ErrorIs(t, err, wantErr)
 }
 
 func TestHandleBearerAuth_ValidTokenInjectsSubject(t *testing.T) {
-	c := newTestController(t, Options{Validator: stubValidator{subject: "user-123"}})
+	c := newTestController(Options{Validator: stubValidator{subject: "user-123"}})
 
 	ctx, err := c.HandleBearerAuth(context.Background(), api.GetCurrentUserOperation, api.BearerAuth{Token: "good"})
 	require.NoError(t, err)
@@ -59,7 +56,7 @@ func TestHandleBearerAuth_ValidTokenInjectsSubject(t *testing.T) {
 }
 
 func TestGetCurrentUser_NoSubjectUnauthorized(t *testing.T) {
-	c := newTestController(t, Options{})
+	c := newTestController(Options{})
 
 	res, err := c.GetCurrentUser(context.Background())
 	require.NoError(t, err)

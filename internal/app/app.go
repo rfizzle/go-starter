@@ -246,10 +246,7 @@ func (application *App) Run(ctx context.Context) error {
 		Authenticator: &credentialAuthenticator{service: credentialService},
 		Tokens:        tokenGenerator,
 	}
-	appController, err := controller.NewController(&controllerOpts)
-	if err != nil {
-		return fmt.Errorf("controller.NewController(): %w", err)
-	}
+	appController := controller.NewController(controllerOpts)
 
 	// Configure the API server. The controller doubles as the ogen
 	// SecurityHandler, authenticating bearer tokens for protected operations.

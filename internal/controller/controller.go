@@ -12,7 +12,6 @@ package controller
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/rfizzle/go-starter/internal/api/v1"
 	"github.com/rfizzle/go-starter/internal/auth"
@@ -25,7 +24,7 @@ const subjectContextKey = "subject"
 
 type Controller struct {
 	api.Handler
-	options *Options
+	options Options
 }
 
 // UserReader looks up users for request handlers. It is the read subset of the
@@ -64,13 +63,9 @@ type Options struct {
 	Tokens auth.Generator
 }
 
-func NewController(options *Options) (*Controller, error) {
-	// Validate options
-	if options == nil {
-		return nil, fmt.Errorf("options is required")
-	}
-
-	return &Controller{
-		options: options,
-	}, nil
+// NewController builds the transport controller over the given collaborators.
+// Every Options field may be nil; the handlers fail closed as documented on
+// each field, so construction itself cannot fail.
+func NewController(options Options) *Controller {
+	return &Controller{options: options}
 }

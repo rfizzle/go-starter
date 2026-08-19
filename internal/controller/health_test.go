@@ -37,10 +37,7 @@ func TestController_HealthReadiness(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			controller, err := NewController(&Options{Readiness: tt.readiness})
-			if err != nil {
-				t.Fatalf("NewController() error = %v", err)
-			}
+			controller := NewController(Options{Readiness: tt.readiness})
 
 			response, err := controller.HealthReadiness(t.Context())
 			if err != nil {
@@ -63,15 +60,12 @@ func TestController_HealthReadiness(t *testing.T) {
 }
 
 func TestController_HealthLivenessIgnoresDependencies(t *testing.T) {
-	controller, err := NewController(&Options{
+	controller := NewController(Options{
 		Readiness: readinessFunc(func(context.Context) bool {
 			t.Fatal("readiness dependency evaluated by liveness")
 			return false
 		}),
 	})
-	if err != nil {
-		t.Fatalf("NewController() error = %v", err)
-	}
 
 	if err := controller.HealthLiveness(t.Context()); err != nil {
 		t.Fatalf("HealthLiveness() error = %v", err)

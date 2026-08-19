@@ -62,7 +62,7 @@ func TestLogin_MissingDependencyFailsClosed(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			authenticator := &stubAuthenticator{}
 			tokens := &stubTokenGenerator{}
-			controller := newTestController(t, tt.opts(authenticator, tokens))
+			controller := newTestController(tt.opts(authenticator, tokens))
 
 			res, err := controller.Login(t.Context(), &api.LoginRequest{Email: "ada@example.com", Password: "password"})
 
@@ -77,7 +77,7 @@ func TestLogin_MissingDependencyFailsClosed(t *testing.T) {
 func TestLogin_InvalidCredentialsReturnsUnauthorized(t *testing.T) {
 	authenticator := &stubAuthenticator{err: ErrInvalidCredentials}
 	tokens := &stubTokenGenerator{}
-	controller := newTestController(t, Options{Authenticator: authenticator, Tokens: tokens})
+	controller := newTestController(Options{Authenticator: authenticator, Tokens: tokens})
 
 	res, err := controller.Login(t.Context(), &api.LoginRequest{Email: "ada@example.com", Password: "wrong-password"})
 
@@ -91,7 +91,7 @@ func TestLogin_UnexpectedAuthenticatorErrorPropagates(t *testing.T) {
 	wantErr := errors.New("credential store unavailable")
 	authenticator := &stubAuthenticator{err: wantErr}
 	tokens := &stubTokenGenerator{}
-	controller := newTestController(t, Options{Authenticator: authenticator, Tokens: tokens})
+	controller := newTestController(Options{Authenticator: authenticator, Tokens: tokens})
 
 	res, err := controller.Login(t.Context(), &api.LoginRequest{Email: "ada@example.com", Password: "password"})
 
@@ -104,7 +104,7 @@ func TestLogin_UnexpectedAuthenticatorErrorPropagates(t *testing.T) {
 func TestLogin_SuccessPassesCredentialsAndSubject(t *testing.T) {
 	authenticator := &stubAuthenticator{subject: "ada@example.com"}
 	tokens := &stubTokenGenerator{token: "signed-token"}
-	controller := newTestController(t, Options{Authenticator: authenticator, Tokens: tokens})
+	controller := newTestController(Options{Authenticator: authenticator, Tokens: tokens})
 
 	res, err := controller.Login(t.Context(), &api.LoginRequest{Email: "ada@example.com", Password: "correct-password"})
 
@@ -123,7 +123,7 @@ func TestLogin_TokenGeneratorErrorPropagates(t *testing.T) {
 	wantErr := errors.New("token signing failed")
 	authenticator := &stubAuthenticator{subject: "ada@example.com"}
 	tokens := &stubTokenGenerator{err: wantErr}
-	controller := newTestController(t, Options{Authenticator: authenticator, Tokens: tokens})
+	controller := newTestController(Options{Authenticator: authenticator, Tokens: tokens})
 
 	res, err := controller.Login(t.Context(), &api.LoginRequest{Email: "ada@example.com", Password: "correct-password"})
 
