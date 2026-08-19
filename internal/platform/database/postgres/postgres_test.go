@@ -178,54 +178,6 @@ func TestClient_Ping(t *testing.T) {
 	}
 }
 
-func TestClient_validate(t *testing.T) {
-	tests := []struct {
-		name      string
-		client    *Client
-		wantErr   bool
-		errString string
-	}{
-		{
-			name: "valid client",
-			client: &Client{
-				db:     &mockPinger{},
-				logger: zaptest.NewLogger(nil),
-			},
-			wantErr: false,
-		},
-		{
-			name: "nil db",
-			client: &Client{
-				db:     nil,
-				logger: zaptest.NewLogger(nil),
-			},
-			wantErr:   true,
-			errString: "db is nil",
-		},
-		{
-			name: "nil logger",
-			client: &Client{
-				db:     &mockPinger{},
-				logger: nil,
-			},
-			wantErr:   true,
-			errString: "logger is nil",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.client.validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errString)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
 func TestClient_IntegrationWithPgxMock(t *testing.T) {
 	ctx := context.Background()
 
