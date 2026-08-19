@@ -40,7 +40,7 @@ report() {
 }
 
 # The skills a Go service developer needs, plus agent-skills for maintaining the
-# library itself. The frontend and design skills stay canonical-only.
+# library itself. Any other canonical skill stays canonical-only.
 linked_skills() {
   local entry name
   for entry in "${project_dir}"/.agents/skills/*/; do

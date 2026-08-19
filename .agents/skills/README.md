@@ -49,8 +49,5 @@ other local skills, long-reference navigation, and the shared eval schema:
 Script-specific tests use Node's built-in test runner:
 
 ```sh
-node --test scripts/validate-skills.test.mjs \
-  design-tokens/scripts/validate-tokens.test.mjs \
-  component-spec/scripts/validate-spec.test.mjs \
-  composition-spec/scripts/validate-spec.test.mjs
+node --test scripts/validate-skills.test.mjs
 ```

@@ -46,8 +46,8 @@ This skill is **not** about where a file lives (see `go-project-layout`), naming
 2. **The Contract section is the anchor.** It is the exported surface — the `domain` interface the package satisfies, the constructor, and any exported functions/types — copied as Go signatures with one-line intent. This is the "one spot to understand the interface it adheres to."
 3. **KISS is enforced by omission.** If a behavior isn't in the spec, the implementation shouldn't have it. A spec that grows a dozen edge-case rules is a signal the package is doing too much — split it.
 4. **Invariants are the reimplementation gold.** Section 4 (Behaviors & Invariants) captures the non-obvious rules a fresh implementation would get wrong: idempotency, ordering guarantees, what a state transition means, dedup keys, banding thresholds. Write these as testable statements.
-5. **One spec per package, co-located.** It sits next to the code it governs, exactly like the frontend co-locates component specs.
-6. **Status header, like the frontend.** Every spec opens with a one-line status blockquote so its maturity is visible at a glance.
+5. **One spec per package, co-located.** It sits next to the code it governs.
+6. **Status header.** Every spec opens with a one-line status blockquote so its maturity is visible at a glance.
 
 ---
 
@@ -122,7 +122,7 @@ State that `domain` and `platform` remain independent leaves: modules may depend
 neither leaf depends on modules, and modules never import `internal/api/ogen`.
 
 ## 7. Testing Scenarios
-A checklist mirroring the frontend spec's testing section. Split by kind.
+A checklist of the scenarios that prove the contract. Split by kind.
 Each invariant in §4 should have at least one line here.
 
 ### Unit (pgxmock / pure)
