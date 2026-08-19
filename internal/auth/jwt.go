@@ -3,8 +3,6 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,7 +13,7 @@ import (
 // header's "alg" for one the server would validate differently (e.g. "none").
 var jwtSigningMethod = jwt.SigningMethodHS256
 
-// JWT is a concrete HMAC (HS256) implementation of both the Validator and
+// JWT is a concrete HMAC (HS256) implementation of both the TokenValidator and
 // Generator interfaces. It signs and verifies tokens with a shared secret,
 // making it the simplest option for a service that issues its own tokens.
 type JWT struct {
@@ -29,8 +27,8 @@ type JWT struct {
 
 // compile-time checks that JWT satisfies both interfaces.
 var (
-	_ Validator = (*JWT)(nil)
-	_ Generator = (*JWT)(nil)
+	_ TokenValidator = (*JWT)(nil)
+	_ Generator      = (*JWT)(nil)
 )
 
 // JWTOption configures a JWT instance.
@@ -76,19 +74,6 @@ func NewJWT(secret []byte, options ...JWTOption) (*JWT, error) {
 	}
 
 	return j, nil
-}
-
-// Validate extracts a bearer token from the request's Authorization header and
-// returns the subject it encodes. It returns ErrUnauthorized (wrapped) when no
-// usable token is present so callers can distinguish "no credentials" from a
-// malformed-but-present token.
-func (j *JWT) Validate(r *http.Request) (string, error) {
-	token, ok := bearerToken(r)
-	if !ok {
-		return "", &Error{Err: ErrUnauthorized}
-	}
-
-	return j.ValidateToken(token)
 }
 
 // ValidateToken verifies a raw token string and returns its subject. It is the
@@ -160,14 +145,4 @@ func (j *JWT) NewToken(subject string) (string, error) {
 	}
 
 	return signed, nil
-}
-
-// bearerToken pulls the token out of an "Authorization: Bearer <token>" header.
-func bearerToken(r *http.Request) (string, bool) {
-	header := r.Header.Get("Authorization")
-	scheme, token, ok := strings.Cut(header, " ")
-	if !ok || !strings.EqualFold(scheme, "Bearer") || token == "" {
-		return "", false
-	}
-	return token, true
 }

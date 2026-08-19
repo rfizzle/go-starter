@@ -2,7 +2,6 @@ package auth
 
 import (
 	"errors"
-	"net/http"
 	"testing"
 	"time"
 
@@ -149,51 +148,10 @@ func TestJWT_RejectsTokenWithoutExpiry(t *testing.T) {
 	assert.ErrorIs(t, err, ErrInvalidToken)
 }
 
-func TestJWT_ValidateFromRequest(t *testing.T) {
-	j, err := NewJWT(testSecret)
-	require.NoError(t, err)
-
-	token, err := j.NewToken("user-123")
-	require.NoError(t, err)
-
-	tests := []struct {
-		name       string
-		header     string
-		wantSubm   string
-		wantErrIs  error
-		wantErrNil bool
-	}{
-		{name: "valid bearer", header: "Bearer " + token, wantSubm: "user-123", wantErrNil: true},
-		{name: "case-insensitive scheme", header: "bearer " + token, wantSubm: "user-123", wantErrNil: true},
-		{name: "missing header", header: "", wantErrIs: ErrUnauthorized},
-		{name: "wrong scheme", header: "Basic " + token, wantErrIs: ErrUnauthorized},
-		{name: "empty token", header: "Bearer ", wantErrIs: ErrUnauthorized},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			r, err := http.NewRequest(http.MethodGet, "/", nil)
-			require.NoError(t, err)
-			if tt.header != "" {
-				r.Header.Set("Authorization", tt.header)
-			}
-
-			subject, err := j.Validate(r)
-			if tt.wantErrNil {
-				require.NoError(t, err)
-				assert.Equal(t, tt.wantSubm, subject)
-				return
-			}
-			assert.ErrorIs(t, err, tt.wantErrIs)
-		})
-	}
-}
-
 func TestJWT_ImplementsInterfaces(t *testing.T) {
 	j, err := NewJWT(testSecret)
 	require.NoError(t, err)
 
-	var _ Validator = j
 	var _ Generator = j
 	var _ TokenValidator = j
 
