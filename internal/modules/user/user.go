@@ -1,5 +1,5 @@
 // Package user implements PostgreSQL persistence for the example user business
-// module. Shared user data and repository contracts live in internal/domain;
+// module. Shared user data, inputs, and errors live in internal/domain;
 // SQL and pgx types remain inside this adapter.
 //
 // It is intentionally small: copy it as the template for real domains.

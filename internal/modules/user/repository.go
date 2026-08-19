@@ -13,8 +13,6 @@ import (
 	"github.com/rfizzle/go-starter/internal/platform/database/postgres/db"
 )
 
-var _ domain.UserRepository = (*Repository)(nil)
-
 // psql is a squirrel builder pinned to PostgreSQL's $N placeholder style, used
 // for the dynamic queries that sqlc's compile-time model cannot express.
 var psql = sq.StatementBuilder.PlaceholderFormat(sq.Dollar)

@@ -14,8 +14,8 @@ consumed by authentication callers — never through `domain.User`.
 
 ## 2. Contract
 
-**Satisfies:** `domain.UserRepository` (compile-time checked with
-`var _ domain.UserRepository = (*Repository)(nil)`).
+**Satisfies:** the consumer-owned ports `controller.UserReader`,
+`seed.UserStore`, and the credential module's reader, structurally.
 
 **Constructor:**
 
@@ -77,7 +77,7 @@ write-only at the module boundary.
 
 | Dependency | Kind | Used for |
 | --- | --- | --- |
-| `internal/domain` | contract | user data, inputs, filter, repository interface, and not-found error |
+| `internal/domain` | contract | user data, inputs, filter, and not-found error |
 | `internal/platform/database/postgres/db` | infrastructure adapter | generated fixed queries and row types |
 | `pgxpool.Pool` / `pgx.Tx` | infrastructure adapter | query execution and transaction scoping |
 

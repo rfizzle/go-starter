@@ -15,11 +15,12 @@ internal/app
 ```
 
 `internal/platform/database` contains technical migration-status contracts and
-the PostgreSQL implementation. Business-facing user data, the
-`domain.UserRepository` contract, and `domain.ErrNotFound` live in
-`internal/domain`, so controllers and CLI workflows do not depend on database
-infrastructure. Consumers define narrower behavioral interfaces where they
-need a test seam; the seeder accepts only the two user operations it calls.
+the PostgreSQL implementation. Business-facing user data, persistence inputs,
+and `domain.ErrNotFound` live in `internal/domain`, so controllers and CLI
+workflows do not depend on database infrastructure. There is no shared
+repository interface: each consumer defines the narrow behavioral port it
+needs (and tests against), and `*user.Repository` satisfies it structurally;
+the seeder accepts only the two user operations it calls.
 
 The application creates the concrete PostgreSQL pool in
 `internal/app/app.go`. The pool is shared by migration infrastructure and the

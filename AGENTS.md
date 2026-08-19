@@ -72,7 +72,7 @@ This project uses **ogen** for OpenAPI-first API development:
 ### Application Structure
 - **Entry point**: `main.go` → `cmd/` - Cobra commands and process-level concerns
 - **Composition root**: `internal/app/` - dependency assembly and application lifecycle
-- **Domain contracts**: `internal/domain/` - business data, shared repository interfaces, and business-facing errors
+- **Domain contracts**: `internal/domain/` - business data, persistence inputs, and business-facing errors
 - **Business modules**: `internal/modules/` - product capabilities; the example user repository lives in `internal/modules/user/`
 - **Platform**: `internal/platform/` - configuration, database, HTTP server and middleware, observability, and rate limiting
 - **Controllers**: `internal/controller/` - generated transport-to-domain mapping; not a business-logic home

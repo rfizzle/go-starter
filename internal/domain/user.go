@@ -1,9 +1,10 @@
-// Package domain defines business data, shared repository contracts, and
-// business-facing errors. It is an infrastructure-free leaf package.
+// Package domain defines business data, persistence inputs, and
+// business-facing errors. It is an infrastructure-free leaf package. It holds
+// no repository interface: each consumer declares the narrow port it needs and
+// the concrete module repository satisfies it structurally.
 package domain
 
 import (
-	"context"
 	"errors"
 	"time"
 )
@@ -36,12 +37,4 @@ type CreateUserParams struct {
 type UserFilter struct {
 	EmailLike string
 	Limit     uint64
-}
-
-// UserRepository is the shared persistence contract for users.
-type UserRepository interface {
-	ByID(ctx context.Context, id string) (User, error)
-	ByEmail(ctx context.Context, email string) (User, error)
-	Create(ctx context.Context, params CreateUserParams) (User, error)
-	List(ctx context.Context, filter UserFilter) ([]User, error)
 }

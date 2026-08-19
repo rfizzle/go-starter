@@ -61,7 +61,7 @@ platform: independent of domain and modules
 
 The rules are:
 
-1. `domain` holds business data, shared repository interfaces, and
+1. `domain` holds business data, persistence inputs, and
    business-facing sentinel errors. It imports no other application package.
 2. `platform` holds infrastructure with no business meaning. It never imports
    `domain` or `modules`.
@@ -83,7 +83,7 @@ The example user flow demonstrates the intended separation:
 ```text
 controller.UserReader ──→ domain.User
                               ▲
-                              │ implements domain.UserRepository
+                              │ satisfies the consumer ports structurally
                        modules/user.Repository
                               │
                               ▼
@@ -98,7 +98,7 @@ are the only places that construct `user.Repository`.
 
 | Change | Location |
 | --- | --- |
-| Business model or shared repository contract | `internal/domain/` |
+| Business model, persistence input, or business error | `internal/domain/` |
 | Business repository, validation, or orchestration | `internal/modules/<capability>/` |
 | PostgreSQL lifecycle, migrations, or generated SQL | `internal/platform/database/` |
 | HTTP server construction and middleware | `internal/platform/http/` |

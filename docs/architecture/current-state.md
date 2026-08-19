@@ -28,7 +28,7 @@ database-only composition root for locked `up` and `status` operations.
 
 | Group | Current contents | Contract |
 | --- | --- | --- |
-| `internal/domain` | `User`, user persistence inputs/filter, `UserRepository`, `ErrNotFound` | Business-facing leaf with no application-package imports |
+| `internal/domain` | `User`, user persistence inputs/filter, `ErrNotFound` | Business-facing leaf with no application-package imports |
 | `internal/modules` | `user` repository, sqlc mapping, dynamic list query, transaction boundary | Business capability; no generated transport imports |
 | `internal/platform` | config, PostgreSQL, dependency health, HTTP server and middleware, observability, rate limiting | Technical infrastructure; no domain or module imports |
 | `internal/controller` | health, authentication security handling, current-user response mapping | Transport mapping against domain/consumer contracts |
@@ -43,8 +43,6 @@ database-only composition root for locked `up` and `status` operations.
   structurally by `*user.Repository`.
 - `internal/modules/credential` owns a private `credentialReader` port that
   the user repository also satisfies.
-- `internal/domain.UserRepository` is the shared business persistence
-  contract; `internal/modules/user.Repository` asserts it at compile time.
 - `internal/app` constructs the concrete adapters and injects them.
 
 ## Persistence
