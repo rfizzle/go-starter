@@ -85,9 +85,11 @@ rewrites Git-tracked, hand-written regular files: it skips `.git`, generated
 ogen and sqlc output, the license attribution, and untracked files.
 
 For safety, initialization fails when the worktree has staged, unstaged, or
-untracked changes, and a `.template-initialized` marker prevents a second run.
-There is intentionally no force flag. After a successful run, review the diff,
-regenerate from the OpenAPI and SQL sources, and validate the renamed project:
+untracked changes. As its final step the initializer deletes its own sources
+(`internal/templateinit/` and `tools/initialize/`), so a derived project carries
+no one-shot code and `make init` cannot run twice. There is intentionally no
+force flag. After a successful run, review the diff, regenerate from the OpenAPI
+and SQL sources, and validate the renamed project:
 
 ```sh
 make generate-check

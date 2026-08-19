@@ -19,8 +19,8 @@ internal/
   domain/                    shared infrastructure-free business contracts
   modules/<capability>/      business behavior and adapters
   platform/<capability>/     technical infrastructure
-  templateinit/              standalone initializer implementation
-tools/initialize/            initializer entrypoint
+  templateinit/              standalone initializer implementation (deleted by make init)
+tools/initialize/            initializer entrypoint (deleted by make init)
 web/                         embedded static placeholder
 ```
 

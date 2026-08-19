@@ -33,12 +33,13 @@ internal/
       server/
     observability/
     ratelimiter/
-  templateinit/           repository-initializer implementation
+  templateinit/           repository-initializer implementation (deleted by make init)
 ```
 
 `internal/templateinit` remains top-level because it supports the standalone
 template initialization tool; it is neither runtime infrastructure nor a
-business capability.
+business capability. `make init` deletes it, together with `tools/initialize`,
+as its final step, so derived projects do not carry it.
 
 ### Import direction
 

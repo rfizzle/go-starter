@@ -24,9 +24,6 @@ go.work
 # Local application configuration
 .env
 
-# Marker written by the one-time template initializer (make init)
-.template-initialized
-
 # Jetbrains IDE
 .idea/
 

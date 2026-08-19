@@ -109,7 +109,6 @@ required_paths=(
   "scripts/coverage-baseline.env"
   "scripts/tool-versions.env"
   "sqlc.yaml"
-  "tools/initialize"
   "web/build/index.html"
 )
 

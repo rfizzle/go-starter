@@ -41,7 +41,11 @@ func TestInitialize(t *testing.T) {
 	assertFileContains(t, filepath.Join(root, "api", "openapi.yml"), `title: "`+cfg.ApplicationName+`"`)
 	assertFileContains(t, filepath.Join(root, "api", "openapi.yml"), `description: "`+cfg.Description+`"`)
 	assertFileContains(t, filepath.Join(root, "web", "build", "index.html"), cfg.ApplicationName)
-	assertFileContains(t, filepath.Join(root, markerFile), "module="+cfg.ModulePath)
+	for _, removed := range removedPaths {
+		if _, err := os.Lstat(filepath.Join(root, filepath.FromSlash(removed))); !errors.Is(err, os.ErrNotExist) {
+			t.Errorf("Lstat(%q) error = %v, want not exist after initialization", removed, err)
+		}
+	}
 
 	assertFileEquals(t, gitSentinel, defaultModulePath)
 	assertFileEquals(t, filepath.Join(root, "LICENSE"), "historical attribution: "+defaultModulePath+"\n")
@@ -78,8 +82,10 @@ func TestInitialize(t *testing.T) {
 		}
 	}
 
-	if err := Initialize(context.Background(), cfg); !errors.Is(err, ErrAlreadyInitialized) {
-		t.Fatalf("second Initialize() error = %v, want ErrAlreadyInitialized", err)
+	// The initializer sources are gone, so a second run is only possible from a
+	// copy of the tool; the rewritten go.mod must still make it refuse.
+	if err := Initialize(context.Background(), cfg); err == nil {
+		t.Fatal("second Initialize() error = nil, want template check failure")
 	}
 }
 
@@ -105,8 +111,10 @@ func TestInitializeRefusesDirtyWorktreeAndPreservesUntrackedFiles(t *testing.T) 
 
 	assertFileEquals(t, untrackedPath, contents)
 	assertFileContains(t, filepath.Join(root, "go.mod"), defaultModulePath)
-	if _, err := os.Stat(filepath.Join(root, markerFile)); !errors.Is(err, os.ErrNotExist) {
-		t.Fatalf("marker Stat() error = %v, want not exist", err)
+	for _, removed := range removedPaths {
+		if _, err := os.Lstat(filepath.Join(root, filepath.FromSlash(removed))); err != nil {
+			t.Errorf("Lstat(%q) error = %v, want initializer sources preserved", removed, err)
+		}
 	}
 }
 
@@ -166,6 +174,8 @@ func TestNormalizeAndValidate(t *testing.T) {
 	}{
 		{name: "missing module", mutate: func(cfg *Config) { cfg.ModulePath = "" }},
 		{name: "module with scheme", mutate: func(cfg *Config) { cfg.ModulePath = "https://example.com/acme/orders" }},
+		{name: "module without path element", mutate: func(cfg *Config) { cfg.ModulePath = "example.com" }},
+		{name: "module with dot element", mutate: func(cfg *Config) { cfg.ModulePath = "example.com/acme/../orders" }},
 		{name: "multiline application", mutate: func(cfg *Config) { cfg.ApplicationName = "Acme\nOrders" }},
 		{name: "uppercase binary", mutate: func(cfg *Config) { cfg.BinaryName = "Orders" }},
 		{name: "lowercase environment prefix", mutate: func(cfg *Config) { cfg.EnvPrefix = "orders" }},
@@ -254,6 +264,12 @@ Run ./bin/gostarter or use ghcr.io/rfizzle/go-starter.
 `,
 		"LICENSE":                        "historical attribution: " + defaultModulePath + "\n",
 		"internal/api/v1/oas_cfg_gen.go": "package v1\n",
+		"internal/templateinit/initializer.go": `package templateinit
+const defaultModulePath = "github.com/rfizzle/go-starter"
+`,
+		"tools/initialize/main.go": `package main
+import "github.com/rfizzle/go-starter/internal/templateinit"
+`,
 		"internal/platform/database/postgres/db/db.go":          "package db\n",
 		"scripts/container-build.bash":                          `APPLICATION_NAME="${APPLICATION_NAME:-starter}"` + "\n",
 		"docs/development/environment.md":                       "Use GOSTARTER_DATABASE_URI for gostarter.\n",

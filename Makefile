@@ -80,6 +80,7 @@ clean: ## Remove build outputs (bin/ and dist/)
 INIT_USAGE=make init module=example.com/acme/orders app-name='Acme Orders' binary=orders-api env-prefix=ORDERS image=registry.example.com/acme/orders-api [description='Order processing API']
 
 init: ## Initialize this clone once (required: module app-name binary env-prefix image; optional: description)
+	@test -d tools/initialize || { echo "${RED}This clone is already initialized: the initializer removed itself.${RESET}"; exit 1; }
 	@test -n "$(module)" || { echo "${RED}module is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
 	@test -n "$(app-name)" || { echo "${RED}app-name is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }
 	@test -n "$(binary)" || { echo "${RED}binary is required. Usage: $(INIT_USAGE)${RESET}"; exit 1; }

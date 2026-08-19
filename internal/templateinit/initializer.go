@@ -1,4 +1,8 @@
 // Package templateinit safely replaces the template's project identity.
+//
+// Initialize is a one-shot operation: after rewriting the tracked files it
+// deletes this package and its command entrypoint from the repository, so a
+// derived project carries no initializer code and cannot run it twice.
 package templateinit
 
 import (
@@ -25,18 +29,27 @@ const (
 	defaultModulePath      = "github.com/rfizzle/go-starter"
 	defaultProjectSlug     = "go-starter"
 	defaultReleaseName     = "starter"
-	markerFile             = ".template-initialized"
 )
 
-var (
-	ErrAlreadyInitialized = errors.New("template has already been initialized")
-	ErrDirtyWorktree      = errors.New("worktree is not clean")
+// ErrDirtyWorktree reports that the repository has staged, unstaged, or
+// untracked changes.
+var ErrDirtyWorktree = errors.New("worktree is not clean")
 
+var (
 	binaryNamePattern = regexp.MustCompile(`^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$`)
 	envPrefixPattern  = regexp.MustCompile(`^[A-Z][A-Z0-9_]*$`)
 	imageNamePattern  = regexp.MustCompile(`^[a-z0-9]+(?:[._-][a-z0-9]+)*(?::[0-9]+)?(?:/[a-z0-9]+(?:[._-][a-z0-9]+)*)+$`)
-	modulePartPattern = regexp.MustCompile(`^[A-Za-z0-9][A-Za-z0-9._~-]*$`)
+	// modulePathPattern requires a lowercase dotted host followed by at least
+	// one path element; elements may not start or end with a dot.
+	modulePathPattern = regexp.MustCompile(`^[a-z0-9-]+(?:\.[a-z0-9-]+)+(?:/[A-Za-z0-9_~-](?:[A-Za-z0-9._~-]*[A-Za-z0-9_~-])?)+$`)
 )
+
+// removedPaths are the one-shot initializer sources that Initialize deletes
+// as its final step. Their absence is what prevents a second run.
+var removedPaths = []string{
+	"internal/templateinit",
+	"tools/initialize",
+}
 
 // Config describes the new identity and the repository to initialize.
 type Config struct {
@@ -57,7 +70,8 @@ type fileChange struct {
 }
 
 // Initialize validates cfg, verifies that Root is the clean template repository,
-// and replaces project identifiers in tracked, hand-written files.
+// replaces project identifiers in tracked, hand-written files, and finally
+// deletes the initializer sources listed in removedPaths.
 func Initialize(ctx context.Context, cfg Config) error {
 	cfg, err := normalizeAndValidate(cfg)
 	if err != nil {
@@ -69,12 +83,6 @@ func Initialize(ctx context.Context, cfg Config) error {
 		return err
 	}
 	cfg.Root = root
-
-	if _, err := os.Lstat(filepath.Join(root, markerFile)); err == nil {
-		return ErrAlreadyInitialized
-	} else if !errors.Is(err, os.ErrNotExist) {
-		return fmt.Errorf("checking initialization marker: %w", err)
-	}
 
 	if err := requireTemplate(root); err != nil {
 		return err
@@ -107,20 +115,13 @@ func Initialize(ctx context.Context, cfg Config) error {
 		applied = append(applied, change)
 	}
 
-	marker := []byte(fmt.Sprintf(
-		"module=%s\napplication=%s\nbinary=%s\nenv_prefix=%s\nimage=%s\ndescription=%s\n",
-		cfg.ModulePath,
-		cfg.ApplicationName,
-		cfg.BinaryName,
-		cfg.EnvPrefix,
-		cfg.ImageName,
-		cfg.Description,
-	))
-	if err := writeFileAtomically(filepath.Join(root, markerFile), marker, 0o644); err != nil {
-		return errors.Join(
-			fmt.Errorf("writing initialization marker: %w", err),
-			rollback(applied),
-		)
+	for _, relativePath := range removedPaths {
+		if err := os.RemoveAll(filepath.Join(root, relativePath)); err != nil {
+			return errors.Join(
+				fmt.Errorf("removing initializer sources %s: %w", relativePath, err),
+				rollback(applied),
+			)
+		}
 	}
 
 	return nil
@@ -169,24 +170,8 @@ func normalizeAndValidate(cfg Config) (Config, error) {
 }
 
 func validateModulePath(modulePath string) error {
-	if modulePath == "" || len(modulePath) > 255 || !utf8.ValidString(modulePath) {
-		return errors.New("module path must be a valid, nonempty UTF-8 string no longer than 255 bytes")
-	}
-	if strings.ContainsAny(modulePath, `\:@`) || strings.ContainsFunc(modulePath, func(r rune) bool {
-		return r <= ' ' || r > '~'
-	}) {
-		return errors.New("module path must be an ASCII import path without a scheme, version, whitespace, colon, or backslash")
-	}
-
-	parts := strings.Split(modulePath, "/")
-	if len(parts) < 2 || !strings.Contains(parts[0], ".") {
-		return errors.New("module path must contain a dotted host and at least one path component")
-	}
-	for _, part := range parts {
-		if part == "" || part == "." || part == ".." || !modulePartPattern.MatchString(part) ||
-			strings.HasSuffix(part, ".") {
-			return fmt.Errorf("module path contains invalid component %q", part)
-		}
+	if len(modulePath) > 255 || !modulePathPattern.MatchString(modulePath) {
+		return errors.New("module path must be a lowercase dotted host followed by at least one path element, such as example.com/acme/orders")
 	}
 	return nil
 }
@@ -294,9 +279,17 @@ func trackedFiles(ctx context.Context, root string) ([]string, error) {
 }
 
 func skipTrackedPath(path string) bool {
-	return path == "LICENSE" ||
+	if path == "LICENSE" ||
 		strings.HasPrefix(path, "internal/api/v1/") ||
-		strings.HasPrefix(path, "internal/platform/database/postgres/db/")
+		strings.HasPrefix(path, "internal/platform/database/postgres/db/") {
+		return true
+	}
+	for _, removed := range removedPaths {
+		if strings.HasPrefix(path, removed+"/") {
+			return true
+		}
+	}
+	return false
 }
 
 func planChanges(root string, paths []string, cfg Config) ([]fileChange, error) {
