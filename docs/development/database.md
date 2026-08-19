@@ -223,10 +223,9 @@ independent success gate.
 
 The `seed` command assumes migrations are already complete and is limited to
 the development environment. Its user identity comes from explicit seed
-configuration. A configured password is never printed; when it is omitted, the
-command generates and displays a random password only if the account is
-created. Add schema changes as new sequential migration files; never rewrite a
-migration that may already have run.
+configuration (`seed.email` and `seed.password`, both required); the password
+is never printed. Add schema changes as new sequential migration files; never
+rewrite a migration that may already have run.
 
 `MigrationStatus` reports `database.StatusNone`, `database.StatusPartial`, or
 `database.StatusComplete`. Status lookup ensures Goose's version table exists,

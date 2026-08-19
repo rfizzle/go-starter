@@ -126,10 +126,8 @@ make dev-run
 
 `dev-run` starts the pinned PostgreSQL Compose service, waits for its health
 check, loads `.env`, applies pending embedded migrations, idempotently seeds the
-configured development user, and serves the application. When the seed password
-is omitted, the command prints a generated password once if it creates the
-account; store that password before continuing. In another terminal, probe the
-service:
+configured development user (email and password from `.env`), and serves the
+application. In another terminal, probe the service:
 
 ```sh
 curl --fail http://localhost:8080/api/v1/healthz/liveness
@@ -137,7 +135,7 @@ curl --fail http://localhost:8080/api/v1/healthz/readiness
 curl --fail http://localhost:8080/metrics
 ```
 
-Use the seeded email and the configured or generated password to exercise the
+Use the seeded email and password to exercise the
 authentication slice:
 
 ```sh
@@ -191,8 +189,8 @@ complete command-specific settings.
 Configuration is validated before network or database resources are opened.
 In particular, `serve` requires a PostgreSQL URI and a JWT secret of at least
 32 bytes. The `seed` command runs only in the development environment, requires
-`seed.email`, and accepts `seed.password` or generates one securely. Secrets
-are never included in validation errors or logs.
+`seed.email` and `seed.password`, and never prints the password. Secrets are
+never included in validation errors or logs.
 
 ## Core commands
 

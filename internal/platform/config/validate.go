@@ -71,7 +71,9 @@ func (application Application) validateSeed() []error {
 	if strings.TrimSpace(application.Seed.Email) == "" {
 		errs = append(errs, errors.New("seed.email is required"))
 	}
-	if len(application.Seed.Password) > 72 {
+	if application.Seed.Password == "" {
+		errs = append(errs, errors.New("seed.password is required"))
+	} else if len(application.Seed.Password) > 72 {
 		errs = append(errs, errors.New("seed.password must not exceed 72 bytes"))
 	}
 

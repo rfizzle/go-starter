@@ -121,8 +121,8 @@ type Database struct {
 }
 
 // Seed configures the single development account created by the seed command.
-// Password may be empty in development, in which case the command generates a
-// random password and displays it once if the account is created.
+// Email and Password are both required; the command never generates or prints
+// a credential.
 type Seed struct {
 	Email     string `mapstructure:"email"`
 	Password  string `mapstructure:"password"`

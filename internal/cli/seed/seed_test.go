@@ -51,7 +51,7 @@ func (f *fakeUserStore) Create(_ context.Context, params domain.CreateUserParams
 }
 
 func TestNew_NilStore(t *testing.T) {
-	_, err := New(nil, []UserSeed{{Email: "a@example.com", Password: "pw-a"}})
+	_, err := New(nil, zap.NewNop(), []UserSeed{{Email: "a@example.com", Password: "pw-a"}})
 	require.Error(t, err)
 }
 
@@ -69,7 +69,7 @@ func TestNew_RequiresExplicitUsersAndCredentials(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := New(store, tt.seeds)
+			_, err := New(store, zap.NewNop(), tt.seeds)
 			require.Error(t, err)
 		})
 	}
@@ -82,7 +82,7 @@ func TestSeeder_Run_CreatesMissingUsers(t *testing.T) {
 		{Email: "b@example.com", Password: "pw-b", FirstName: "B", LastName: "Two"},
 	}
 
-	s, err := New(store, seeds, WithBcryptCost(bcrypt.MinCost))
+	s, err := New(store, zap.NewNop(), seeds, WithBcryptCost(bcrypt.MinCost))
 	require.NoError(t, err)
 
 	result, err := s.Run(context.Background())
@@ -102,7 +102,7 @@ func TestSeeder_Run_Idempotent(t *testing.T) {
 	store := newFakeUserStore()
 	seeds := []UserSeed{{Email: "a@example.com", Password: "pw-a"}}
 
-	s, err := New(store, seeds, WithBcryptCost(bcrypt.MinCost))
+	s, err := New(store, zap.NewNop(), seeds, WithBcryptCost(bcrypt.MinCost))
 	require.NoError(t, err)
 
 	first, err := s.Run(context.Background())
@@ -128,7 +128,7 @@ func TestSeeder_Run_SkipsExisting(t *testing.T) {
 		{Email: "b@example.com", Password: "pw-b"},
 	}
 
-	s, err := New(store, seeds, WithBcryptCost(bcrypt.MinCost))
+	s, err := New(store, zap.NewNop(), seeds, WithBcryptCost(bcrypt.MinCost))
 	require.NoError(t, err)
 
 	result, err := s.Run(context.Background())
@@ -146,6 +146,7 @@ func TestSeeder_Run_LookupError(t *testing.T) {
 
 	s, err := New(
 		store,
+		zap.NewNop(),
 		[]UserSeed{{Email: "a@example.com", Password: "password"}},
 		WithBcryptCost(bcrypt.MinCost),
 	)
@@ -162,6 +163,7 @@ func TestSeeder_Run_CreateError(t *testing.T) {
 
 	s, err := New(
 		store,
+		zap.NewNop(),
 		[]UserSeed{{Email: "a@example.com", Password: "password"}},
 		WithBcryptCost(bcrypt.MinCost),
 	)
@@ -183,8 +185,8 @@ func TestSeeder_Run_DoesNotLogPlaintextPassword(t *testing.T) {
 
 	s, err := New(
 		store,
+		logger,
 		[]UserSeed{{Email: "a@example.com", Password: plaintext}},
-		WithLogger(logger),
 		WithBcryptCost(bcrypt.MinCost),
 	)
 	require.NoError(t, err)

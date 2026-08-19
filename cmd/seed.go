@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"context"
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"os"
 	"os/signal"
@@ -20,17 +18,15 @@ import (
 )
 
 type seedDependencies struct {
-	resolveConfig    func() (*config.Application, error)
-	newLogger        func(*config.Application) (*zap.Logger, error)
-	generatePassword func() (string, error)
-	run              func(context.Context, *config.Application, *zap.Logger, seed.UserSeed) (seed.Result, error)
+	resolveConfig func() (*config.Application, error)
+	newLogger     func(*config.Application) (*zap.Logger, error)
+	run           func(context.Context, *config.Application, *zap.Logger, seed.UserSeed) (seed.Result, error)
 }
 
 var defaultSeedDependencies = seedDependencies{
-	resolveConfig:    resolveConfig,
-	newLogger:        observability.NewLogger,
-	generatePassword: generateSeedPassword,
-	run:              runSeed,
+	resolveConfig: resolveConfig,
+	newLogger:     observability.NewLogger,
+	run:           runSeed,
 }
 
 // seedCmd inserts the baseline records (see internal/cli/seed) into an already
@@ -44,11 +40,11 @@ func newSeedCommand(deps seedDependencies) *cobra.Command {
 		Long: `Seed the database with one explicitly configured development user.
 
 The command is refused outside the development environment. Set seed.email and
-optionally seed.password. When the password is omitted, a secure random password
-is displayed once if the user is created. Existing users are never overwritten.
+seed.password; the password is never printed. Existing users are never
+overwritten.
 
 Example Command:
-go-starter seed --environment development --database.uri "$DATABASE_URI" --seed.email admin@example.com`,
+go-starter seed --environment development --database.uri "$DATABASE_URI" --seed.email admin@example.com --seed.password "$SEED_PASSWORD"`,
 		Args:              cobra.NoArgs,
 		PersistentPreRunE: persistentPreRunEHook(nil),
 		PreRunE: func(cmd *cobra.Command, args []string) error {
@@ -72,14 +68,6 @@ go-starter seed --environment development --database.uri "$DATABASE_URI" --seed.
 				FirstName: cfg.Seed.FirstName,
 				LastName:  cfg.Seed.LastName,
 			}
-			generatedPassword := userSeed.Password == ""
-			if generatedPassword {
-				userSeed.Password, err = deps.generatePassword()
-				if err != nil {
-					return fmt.Errorf("generate seed password: %w", err)
-				}
-			}
-
 			// Replace the bootstrap logger with one driven by config, matching
 			// serve, only after validation has succeeded.
 			appLogger, err := deps.newLogger(cfg)
@@ -93,19 +81,8 @@ go-starter seed --environment development --database.uri "$DATABASE_URI" --seed.
 			ctx, stop := signal.NotifyContext(cmd.Context(), os.Interrupt, syscall.SIGTERM)
 			defer stop()
 
-			result, err := deps.run(ctx, cfg, appLogger, userSeed)
-			if err != nil {
+			if _, err := deps.run(ctx, cfg, appLogger, userSeed); err != nil {
 				return err
-			}
-			if generatedPassword && result.Created > 0 {
-				if _, err := fmt.Fprintf(
-					cmd.OutOrStdout(),
-					"Generated seed password for %s: %s\nThis password will not be shown again.\n",
-					userSeed.Email,
-					userSeed.Password,
-				); err != nil {
-					return fmt.Errorf("write generated seed password: %w", err)
-				}
 			}
 			return nil
 		},
@@ -125,21 +102,13 @@ func addSeedFlags(command *cobra.Command) {
 
 	// Development seed options.
 	command.Flags().String("seed.email", "", "email address for the development seed user (required)")
-	command.Flags().String("seed.password", "", "password for the development seed user (empty generates a random password)")
+	command.Flags().String("seed.password", "", "password for the development seed user (required; never printed)")
 	command.Flags().String("seed.first-name", "", "first name for the development seed user")
 	command.Flags().String("seed.last-name", "", "last name for the development seed user")
 
 	// Database and logging options (mirrors serve so seed is runnable standalone).
 	addDatabaseFlags(command)
 	addLoggingFlags(command)
-}
-
-func generateSeedPassword() (string, error) {
-	random := make([]byte, 24)
-	if _, err := rand.Read(random); err != nil {
-		return "", fmt.Errorf("read cryptographic randomness: %w", err)
-	}
-	return base64.RawURLEncoding.EncodeToString(random), nil
 }
 
 func runSeed(
@@ -159,7 +128,7 @@ func runSeed(
 
 	userRepo := user.NewRepository(pool)
 
-	seeder, err := seed.New(userRepo, []seed.UserSeed{userSeed}, seed.WithLogger(appLogger))
+	seeder, err := seed.New(userRepo, appLogger, []seed.UserSeed{userSeed})
 	if err != nil {
 		return seed.Result{}, fmt.Errorf("seed.New(): %w", err)
 	}

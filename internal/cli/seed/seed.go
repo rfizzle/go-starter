@@ -57,16 +57,6 @@ type Seeder struct {
 // Option configures a Seeder.
 type Option func(*Seeder)
 
-// WithLogger sets the logger used for seeding progress. Defaults to a no-op
-// logger.
-func WithLogger(logger *zap.Logger) Option {
-	return func(s *Seeder) {
-		if logger != nil {
-			s.logger = logger
-		}
-	}
-}
-
 // WithBcryptCost overrides the bcrypt cost used to hash seed passwords. Defaults
 // to bcrypt.DefaultCost. Primarily a testing hook so tests can hash with the
 // minimum cost.
@@ -77,11 +67,15 @@ func WithBcryptCost(cost int) Option {
 }
 
 // New builds a Seeder over the given user store and explicit development
-// records. It rejects missing stores, records, identities, and credentials so
+// records, logging progress (never credentials) through logger. It rejects a
+// missing store or logger and missing records, identities, and credentials so
 // misconfiguration fails before database work starts.
-func New(users UserStore, userSeeds []UserSeed, options ...Option) (*Seeder, error) {
+func New(users UserStore, logger *zap.Logger, userSeeds []UserSeed, options ...Option) (*Seeder, error) {
 	if users == nil {
 		return nil, fmt.Errorf("user store is nil")
+	}
+	if logger == nil {
+		return nil, fmt.Errorf("logger is nil")
 	}
 	if len(userSeeds) == 0 {
 		return nil, fmt.Errorf("at least one user seed is required")
@@ -97,7 +91,7 @@ func New(users UserStore, userSeeds []UserSeed, options ...Option) (*Seeder, err
 
 	s := &Seeder{
 		users:      users,
-		logger:     zap.NewNop(),
+		logger:     logger,
 		bcryptCost: bcrypt.DefaultCost,
 		userSeeds:  userSeeds,
 	}

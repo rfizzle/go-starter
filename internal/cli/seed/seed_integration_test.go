@@ -8,6 +8,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/rfizzle/go-starter/internal/cli/seed"
@@ -30,6 +31,7 @@ func TestSeeder_RunIsIdempotentAgainstPostgres(t *testing.T) {
 	}}
 	seeder, err := seed.New(
 		repository,
+		zap.NewNop(),
 		firstUsers,
 		seed.WithBcryptCost(bcrypt.MinCost),
 	)
@@ -54,6 +56,7 @@ func TestSeeder_RunIsIdempotentAgainstPostgres(t *testing.T) {
 	}}
 	secondSeeder, err := seed.New(
 		repository,
+		zap.NewNop(),
 		secondUsers,
 		seed.WithBcryptCost(bcrypt.MinCost),
 	)

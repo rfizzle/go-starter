@@ -48,6 +48,15 @@ func TestApplicationValidate(t *testing.T) {
 			wantErr: []string{"seed.email"},
 		},
 		{
+			name:  "seed password is required",
+			scope: ValidationScopeSeed,
+			mutate: func(cfg *Application) {
+				cfg.Environment = "development"
+				cfg.Seed.Password = ""
+			},
+			wantErr: []string{"seed.password is required"},
+		},
+		{
 			name:  "seed password must fit bcrypt",
 			scope: ValidationScopeSeed,
 			mutate: func(cfg *Application) {
@@ -310,7 +319,8 @@ func validApplication() Application {
 			CloseTimeout: 10,
 		},
 		Seed: Seed{
-			Email: "developer@example.com",
+			Email:    "developer@example.com",
+			Password: "development-password",
 		},
 		Auth: Auth{
 			JWTSecret: strings.Repeat("s", 32),
