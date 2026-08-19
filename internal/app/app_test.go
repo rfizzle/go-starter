@@ -103,87 +103,29 @@ func TestAppReadinessTracksLifecycleAndDependencyRecovery(t *testing.T) {
 }
 
 type stubCredentialReader struct {
-	credential domain.Credential
-	err        error
+	err error
 }
 
 func (s *stubCredentialReader) CredentialByEmail(context.Context, string) (domain.Credential, error) {
-	return s.credential, s.err
+	return domain.Credential{}, s.err
 }
 
 func TestCredentialAuthenticator_Authenticate(t *testing.T) {
-	hash, err := bcrypt.GenerateFromPassword([]byte("correct-password"), bcrypt.MinCost)
+	// The adapter's only behaviour of its own is translating the credential
+	// module's sentinel into the controller's; every other path is covered by
+	// internal/modules/credential/service_test.go.
+	service, err := credential.NewService(&stubCredentialReader{err: domain.ErrNotFound}, bcrypt.MinCost)
 	if err != nil {
-		t.Fatalf("hash password: %v", err)
+		t.Fatalf("credential.NewService() error: %v", err)
 	}
-	readerErr := errors.New("database unavailable")
+	authenticator := &credentialAuthenticator{service: service}
 
-	tests := []struct {
-		name        string
-		reader      *stubCredentialReader
-		password    string
-		wantSubject string
-		wantErr     error
-	}{
-		{
-			name:     "unknown email maps to controller invalid credentials",
-			reader:   &stubCredentialReader{err: domain.ErrNotFound},
-			password: "correct-password",
-			wantErr:  controller.ErrInvalidCredentials,
-		},
-		{
-			name: "wrong password maps to controller invalid credentials",
-			reader: &stubCredentialReader{credential: domain.Credential{
-				UserID:       "user-1",
-				Email:        "ada@example.com",
-				PasswordHash: string(hash),
-			}},
-			password: "wrong-password",
-			wantErr:  controller.ErrInvalidCredentials,
-		},
-		{
-			name:     "reader error remains distinct",
-			reader:   &stubCredentialReader{err: readerErr},
-			password: "correct-password",
-			wantErr:  readerErr,
-		},
-		{
-			name: "success returns credential email",
-			reader: &stubCredentialReader{credential: domain.Credential{
-				UserID:       "user-1",
-				Email:        "ada@example.com",
-				PasswordHash: string(hash),
-			}},
-			password:    "correct-password",
-			wantSubject: "ada@example.com",
-		},
+	_, err = authenticator.Authenticate(t.Context(), "ada@example.com", "any-password")
+
+	if !errors.Is(err, controller.ErrInvalidCredentials) {
+		t.Fatalf("Authenticate() error = %v, want controller.ErrInvalidCredentials", err)
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			service, err := credential.NewService(tt.reader, bcrypt.MinCost)
-			if err != nil {
-				t.Fatalf("credential.NewService() error: %v", err)
-			}
-			authenticator := &credentialAuthenticator{service: service}
-
-			subject, err := authenticator.Authenticate(t.Context(), "ada@example.com", tt.password)
-
-			if tt.wantErr != nil {
-				if !errors.Is(err, tt.wantErr) {
-					t.Fatalf("Authenticate() error = %v, want error matching %v", err, tt.wantErr)
-				}
-				if errors.Is(err, controller.ErrInvalidCredentials) != errors.Is(tt.wantErr, controller.ErrInvalidCredentials) {
-					t.Fatalf("Authenticate() invalid credential mapping = %t, want %t", errors.Is(err, controller.ErrInvalidCredentials), errors.Is(tt.wantErr, controller.ErrInvalidCredentials))
-				}
-				return
-			}
-			if err != nil {
-				t.Fatalf("Authenticate() error: %v", err)
-			}
-			if subject != tt.wantSubject {
-				t.Errorf("Authenticate() subject = %q, want %q", subject, tt.wantSubject)
-			}
-		})
+	if errors.Is(err, credential.ErrInvalidCredentials) {
+		t.Fatalf("Authenticate() error = %v, credential.ErrInvalidCredentials must not leak past the adapter", err)
 	}
 }
