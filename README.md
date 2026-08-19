@@ -253,8 +253,8 @@ Mutating maintenance commands such as `make fmt`, `make generate`, and
 
 See the [documentation index](docs/README.md), the
 [module/platform boundary decision](docs/architecture/module-platform-boundaries.md),
-[current architecture notes](docs/architecture/current-state.md), and the
-[development foundations](docs/development/foundations.md) for deeper context.
+and the [current architecture notes](docs/architecture/current-state.md) for
+deeper context; [AGENTS.md](AGENTS.md) holds the engineering policy.
 
 ## API and generation workflow
 
@@ -296,7 +296,7 @@ integration run. See the
 [development environment guide](docs/development/environment.md) for the
 one-time Podman socket setup.
 
-The [testing strategy](docs/guidelines/testing-strategy.md) describes project
+The testing policy in [AGENTS.md](AGENTS.md) describes project
 conventions. Unit tests use narrow fakes where appropriate; integration and
 application-lifecycle tests use disposable PostgreSQL containers for behavior
 that mocks cannot prove.

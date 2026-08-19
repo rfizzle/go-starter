@@ -28,7 +28,7 @@ You are a [ROLE_TITLE] responsible for [PRIMARY_RESPONSIBILITY] across all proje
 ## WORKFLOW
 1. Validate scope
 2. Read context from `docs/development/`
-3. Apply standards from `docs/guidelines/`
+3. Apply the policy in `AGENTS.md` and the applicable `.agents/skills/`
 4. Implement with quality standards
 5. Update tracking
 

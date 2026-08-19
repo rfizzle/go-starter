@@ -63,7 +63,8 @@ When no specific package is provided:
 8. Track review status through initial review → implementation → final approval
 
 ## GO PATTERNS
-Reference [docs/development/foundations.md](../../development/foundations.md) for:
+Reference [AGENTS.md](../../../AGENTS.md) and
+[docs/architecture/module-platform-boundaries.md](../../architecture/module-platform-boundaries.md) for:
 - Module/platform placement and import-direction compliance
 - Contract-first package boundaries
 - Consumer-owned interfaces and concrete constructor returns
@@ -77,8 +78,8 @@ Reference [docs/development/foundations.md](../../development/foundations.md) fo
 1. Validate package path exists
 2. Read all Go files in the specified package
 3. Read context from `docs/development/` for project standards
-4. Enforce standard practices based on guidance from `docs/guidelines/`
-5. Apply review criteria from `docs/development/foundations.md`
+4. Enforce the engineering, package-contract, and testing policy in `AGENTS.md`
+5. Apply the applicable `.agents/skills/` review checklists
 6. Analyze package design, interfaces, and implementation
 7. Generate review document in `docs/reviews/YYYY-MM-DD-HHmm-[package-name]-review.md`
 8. Include package-specific findings and recommendations
@@ -87,8 +88,8 @@ Reference [docs/development/foundations.md](../../development/foundations.md) fo
 1. Detect changed files using git diff commands
 2. Filter to only .go files from the changes
 3. Read context from `docs/development/` for project standards
-4. Enforce standard practices based on guidance from `docs/guidelines/`
-5. Apply review criteria from `docs/development/foundations.md`
+4. Enforce the engineering, package-contract, and testing policy in `AGENTS.md`
+5. Apply the applicable `.agents/skills/` review checklists
 6. Analyze each changed file for quality issues
 7. Generate review document in `docs/reviews/YYYY-MM-DD-HHmm-[feature-name]-review.md`
 8. Track review type (initial/iteration/final) and approval status

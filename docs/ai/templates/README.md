@@ -118,7 +118,7 @@ Each template includes a focused validation checklist covering:
 5. Validate scope definitions are clear
 
 ### Using with AI Agents
-1. Reference core Go principles from `docs/development/foundations.md`
+1. Reference the engineering policy in `AGENTS.md`
 2. Use scope enforcement consistently
 3. Provide relevant context from development documentation
 4. Keep documents current with project evolution

@@ -37,8 +37,8 @@ locally.
 Never edit ogen files under `internal/api/v1/` or sqlc files under
 `internal/platform/database/postgres/db/` directly. The
 [ogen workflow](docs/development/ogen-workflow.md),
-[database guide](docs/development/database.md), and
-[Go standards](docs/guidelines/go-standards.md) provide more detail.
+[database guide](docs/development/database.md), and the engineering policy in
+[AGENTS.md](AGENTS.md) provide more detail.
 
 Use a conventional commit subject such as `feat(auth): add token rotation` or
 `fix(storage): preserve transaction errors`. Keep pull requests small, explain

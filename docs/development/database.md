@@ -265,9 +265,7 @@ make race
 
 - [Project context](project-context.md)
 - [Module and platform boundaries](../architecture/module-platform-boundaries.md)
-- [Development foundations](foundations.md)
-- [Interface patterns](../guidelines/interface-pattern.md)
-- [Testing strategy](../guidelines/testing-strategy.md)
+- [Engineering and testing policy](../../AGENTS.md)
 - [pgx documentation](https://github.com/jackc/pgx)
 - [sqlc documentation](https://docs.sqlc.dev/)
 - [squirrel documentation](https://github.com/Masterminds/squirrel)

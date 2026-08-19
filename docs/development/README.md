@@ -10,14 +10,15 @@ use the focused guide for the boundary you are changing.
    workflow
 2. [environment.md](environment.md) — pinned tools, Compose, configuration,
    migrations, and seeding
-3. [foundations.md](foundations.md) — project-specific Go and package rules
-4. [ogen-workflow.md](ogen-workflow.md) — OpenAPI and generated transport
-5. [database.md](database.md) — PostgreSQL, sqlc, squirrel, and migrations
-6. [ci-contract.md](ci-contract.md) — what each workflow enforces and how to
+3. [ogen-workflow.md](ogen-workflow.md) — OpenAPI and generated transport
+4. [database.md](database.md) — PostgreSQL, sqlc, squirrel, and migrations
+5. [ci-contract.md](ci-contract.md) — what each workflow enforces and how to
    reproduce it locally
 
 The accepted package-placement rules live in
 [module-platform-boundaries.md](../architecture/module-platform-boundaries.md).
+Engineering, package-contract, and testing policy live in
+[AGENTS.md](../../AGENTS.md) and the `.agents/skills/` library.
 
 ## Supported commands
 

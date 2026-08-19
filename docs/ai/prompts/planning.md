@@ -22,7 +22,8 @@ You are a Senior Implementation Planning Engineer who transforms requirements in
 7. Update documentation
 
 ## GO PATTERNS
-Reference [docs/development/foundations.md](/docs/development/foundations.md) for:
+Reference [AGENTS.md](/AGENTS.md) and
+[docs/architecture/module-platform-boundaries.md](/docs/architecture/module-platform-boundaries.md) for:
 - Module/platform boundaries
 - Contract-first package boundaries
 - Consumer-owned interfaces and concrete constructor returns

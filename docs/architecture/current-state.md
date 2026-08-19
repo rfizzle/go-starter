@@ -37,6 +37,16 @@ database-only composition root for locked `up` and `status` operations.
 | `internal/auth` | JWT and request authentication | Cross-cutting edge package |
 | `internal/cli` | graceful shutdown and idempotent development seeding | CLI support |
 
+## Interface seams
+
+- `internal/controller.UserReader` is a consumer-owned read seam satisfied
+  structurally by `*user.Repository`.
+- `internal/modules/credential` owns a private `credentialReader` port that
+  the user repository also satisfies.
+- `internal/domain.UserRepository` is the shared business persistence
+  contract; `internal/modules/user.Repository` asserts it at compile time.
+- `internal/app` constructs the concrete adapters and injects them.
+
 ## Persistence
 
 The application owns one pgx pool. `platform/database/postgres` uses it for

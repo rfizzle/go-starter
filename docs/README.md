@@ -6,29 +6,24 @@ Welcome to the Go Starter project documentation. This index provides a comprehen
 
 1. **New to the project?** Start with [development/project-context.md](development/project-context.md)
 2. **Setting up development?** See [development/environment.md](development/environment.md)
-3. **Understanding Go patterns?** Read [development/foundations.md](development/foundations.md)
+3. **Understanding the layout and rules?** Read [AGENTS.md](../AGENTS.md), then [architecture/module-platform-boundaries.md](architecture/module-platform-boundaries.md)
 4. **Working with AI agents?** Read [AGENTS.md](../AGENTS.md), then [ai/README.md](ai/README.md)
 
 ## Documentation Structure
+
+Engineering policy (priorities, simplicity, package contracts, testing) lives in
+[AGENTS.md](../AGENTS.md) and the `.agents/skills/` library; the directories below
+record project facts — environment, database, generation, CI, and architecture.
 
 ### 📁 development/
 Core development documentation for engineers working on this codebase.
 
 - **[README.md](development/README.md)** - Development documentation overview
 - **[project-context.md](development/project-context.md)** - Project overview, architecture, tech stack, and workflows
-- **[foundations.md](development/foundations.md)** - Core Go principles, patterns, and best practices
 - **[environment.md](development/environment.md)** - Development environment setup, tools, and troubleshooting
 - **[database.md](development/database.md)** - PostgreSQL, sqlc, migrations, repositories, and integration testing
 - **[ogen-workflow.md](development/ogen-workflow.md)** - OpenAPI-first generation and controller workflow
 - **[ci-contract.md](development/ci-contract.md)** - What each GitHub Actions workflow enforces, release provenance, and tool-pin maintenance
-
-### 📁 guidelines/
-Specific development guidelines and standards for consistent code quality.
-
-- **[README.md](guidelines/README.md)** - Guideline index and scope
-- **[go-standards.md](guidelines/go-standards.md)** - Go-specific coding standards and conventions
-- **[interface-pattern.md](guidelines/interface-pattern.md)** - Consumer-owned interface and implementation guidance
-- **[testing-strategy.md](guidelines/testing-strategy.md)** - Risk-based testing and contract verification
 
 ### 📁 architecture/
 Architectural decisions, patterns, and system design documentation.
