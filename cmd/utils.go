@@ -4,11 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"go.uber.org/zap"
 
 	"github.com/rfizzle/go-starter/internal/platform/config"
 	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
@@ -93,32 +93,21 @@ func addLoggingFlags(command *cobra.Command) {
 	command.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")
 }
 
-// openDatabase builds the connection pool from config, wraps it in the
-// lifecycle client, and pings it so an unreachable database fails before any
-// work starts. It is the shared front-half of the short-lived database
-// commands (seed, migrate); serve owns a longer pool lifecycle in internal/app.
-// The caller owns the returned pool and must close it; the client borrows it.
-func openDatabase(ctx context.Context, cfg config.Database, appLogger *zap.Logger) (*pgxpool.Pool, *postgres.Client, error) {
+// openDatabase builds the connection pool from config and pings it so an
+// unreachable database fails before any work starts. It is the shared
+// front-half of the short-lived database commands (seed, migrate); serve owns
+// a longer pool lifecycle in internal/app. The caller owns the returned pool
+// and must close it.
+func openDatabase(ctx context.Context, cfg config.Database) (*pgxpool.Pool, error) {
 	pool, err := postgres.NewPool(ctx, cfg.URI, postgres.PoolConfigFromDatabase(cfg))
 	if err != nil {
-		return nil, nil, fmt.Errorf("postgres.NewPool(): %w", err)
+		return nil, fmt.Errorf("postgres.NewPool(): %w", err)
 	}
 
-	store, err := postgres.Open(
-		ctx,
-		postgres.WithPool(pool),
-		postgres.WithPingTimeout(cfg.PingTimeout),
-		postgres.WithLogger(appLogger),
-	)
-	if err != nil {
+	if err := postgres.Ping(ctx, pool, time.Duration(cfg.PingTimeout)*time.Second); err != nil {
 		pool.Close()
-		return nil, nil, fmt.Errorf("postgres.Open(): %w", err)
+		return nil, fmt.Errorf("postgres.Ping(): %w", err)
 	}
 
-	if err := store.Ping(ctx); err != nil {
-		pool.Close()
-		return nil, nil, fmt.Errorf("store.Ping(): %w", err)
-	}
-
-	return pool, store, nil
+	return pool, nil
 }

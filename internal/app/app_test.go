@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"sync/atomic"
 	"testing"
@@ -14,37 +13,35 @@ import (
 	"github.com/rfizzle/go-starter/internal/modules/credential"
 )
 
-type fakeMigrator struct {
-	err   error
-	calls int
-}
-
-func (m *fakeMigrator) Migrate(context.Context, embed.FS) error {
-	m.calls++
-	return m.err
-}
-
 func TestMigrateOnStartup_DisabledSkipsMigration(t *testing.T) {
-	store := &fakeMigrator{}
+	calls := 0
+	migrate := func(context.Context) error {
+		calls++
+		return nil
+	}
 
-	if err := migrateOnStartup(t.Context(), false, store); err != nil {
+	if err := migrateOnStartup(t.Context(), false, migrate); err != nil {
 		t.Fatalf("migrateOnStartup() error = %v, want nil", err)
 	}
-	if store.calls != 0 {
-		t.Errorf("Migrate() calls = %d, want 0", store.calls)
+	if calls != 0 {
+		t.Errorf("migrate calls = %d, want 0", calls)
 	}
 }
 
 func TestMigrateOnStartup_EnabledPropagatesFailure(t *testing.T) {
 	migrationErr := errors.New("migration failed")
-	store := &fakeMigrator{err: migrationErr}
+	calls := 0
+	migrate := func(context.Context) error {
+		calls++
+		return migrationErr
+	}
 
-	err := migrateOnStartup(t.Context(), true, store)
+	err := migrateOnStartup(t.Context(), true, migrate)
 	if !errors.Is(err, migrationErr) {
 		t.Fatalf("migrateOnStartup() error = %v, want error wrapping %v", err, migrationErr)
 	}
-	if store.calls != 1 {
-		t.Errorf("Migrate() calls = %d, want 1", store.calls)
+	if calls != 1 {
+		t.Errorf("migrate calls = %d, want 1", calls)
 	}
 }
 

@@ -128,7 +128,7 @@ func runMigration(
 	appLogger *zap.Logger,
 	action migrationAction,
 ) (database.MigrationStatus, error) {
-	pool, store, err := openDatabase(ctx, cfg.Database, appLogger)
+	pool, err := openDatabase(ctx, cfg.Database)
 	if err != nil {
 		return database.StatusNone, err
 	}
@@ -136,14 +136,14 @@ func runMigration(
 
 	switch action {
 	case migrationUp:
-		if err := store.Migrate(ctx, postgres.Migrations); err != nil {
-			return database.StatusNone, fmt.Errorf("store.Migrate(): %w", err)
+		if err := postgres.Migrate(ctx, pool, appLogger, postgres.Migrations); err != nil {
+			return database.StatusNone, fmt.Errorf("postgres.Migrate(): %w", err)
 		}
 		return database.StatusComplete, nil
 	case migrationStatus:
-		status, err := store.MigrationStatus(ctx, postgres.Migrations)
+		status, err := postgres.MigrationStatus(ctx, pool, postgres.Migrations)
 		if err != nil {
-			return database.StatusNone, fmt.Errorf("store.MigrationStatus(): %w", err)
+			return database.StatusNone, fmt.Errorf("postgres.MigrationStatus(): %w", err)
 		}
 		return status, nil
 	default:

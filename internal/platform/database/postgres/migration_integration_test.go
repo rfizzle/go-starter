@@ -23,17 +23,10 @@ func TestMain(m *testing.M) {
 
 func TestMigrateEmptyDatabaseToCurrentSchemaIsIdempotent(t *testing.T) {
 	database := postgrestest.Shared(t).EmptyDatabase(t)
-	client, err := postgres.Open(
-		t.Context(),
-		postgres.WithPool(database.Pool),
-		postgres.WithLogger(zaptest.NewLogger(t)),
-	)
-	if err != nil {
-		t.Fatalf("Open() error: %v", err)
-	}
+	logger := zaptest.NewLogger(t)
 
 	for run := 1; run <= 2; run++ {
-		if err := client.Migrate(t.Context(), postgres.Migrations); err != nil {
+		if err := postgres.Migrate(t.Context(), database.Pool, logger, postgres.Migrations); err != nil {
 			t.Fatalf("Migrate() run %d error: %v", run, err)
 		}
 	}
@@ -79,32 +72,24 @@ DROP TABLE migration_serialization_probe;
 		},
 	}
 
-	clients := make([]*postgres.Client, 2)
-	for i := range clients {
+	pools := make([]*pgxpool.Pool, 2)
+	for i := range pools {
 		pool, err := pgxpool.New(t.Context(), database.URI)
 		if err != nil {
-			t.Fatalf("pgxpool.New() client %d error: %v", i, err)
+			t.Fatalf("pgxpool.New() pool %d error: %v", i, err)
 		}
 		t.Cleanup(pool.Close)
-
-		client, err := postgres.Open(
-			t.Context(),
-			postgres.WithPool(pool),
-			postgres.WithLogger(zaptest.NewLogger(t)),
-		)
-		if err != nil {
-			t.Fatalf("Open() client %d error: %v", i, err)
-		}
-		clients[i] = client
+		pools[i] = pool
 	}
 
+	logger := zaptest.NewLogger(t)
 	start := make(chan struct{})
-	results := make(chan error, len(clients))
+	results := make(chan error, len(pools))
 	var workers sync.WaitGroup
-	for _, client := range clients {
+	for _, pool := range pools {
 		workers.Go(func() {
 			<-start
-			results <- postgres.MigrateFS(client, t.Context(), testMigrations)
+			results <- postgres.MigrateFS(t.Context(), pool, logger, testMigrations)
 		})
 	}
 	close(start)
@@ -137,19 +122,10 @@ func TestMigrateHonorsCanceledContext(t *testing.T) {
 	}
 	t.Cleanup(pool.Close)
 
-	client, err := postgres.Open(
-		t.Context(),
-		postgres.WithPool(pool),
-		postgres.WithLogger(zaptest.NewLogger(t)),
-	)
-	if err != nil {
-		t.Fatalf("Open() error: %v", err)
-	}
-
 	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
-	err = client.Migrate(ctx, postgres.Migrations)
+	err = postgres.Migrate(ctx, pool, zaptest.NewLogger(t), postgres.Migrations)
 	if !errors.Is(err, context.Canceled) {
 		t.Fatalf("Migrate() error = %v, want context cancellation", err)
 	}

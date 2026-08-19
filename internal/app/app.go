@@ -12,7 +12,6 @@ package app
 
 import (
 	"context"
-	"embed"
 	"errors"
 	"fmt"
 	"net"
@@ -47,10 +46,6 @@ type App struct {
 	// rateLimitClock is a deterministic test seam. Production leaves it nil so
 	// the limiter uses time.Now.
 	rateLimitClock func() time.Time
-}
-
-type migrator interface {
-	Migrate(context.Context, embed.FS) error
 }
 
 type appReadiness struct {
@@ -172,16 +167,6 @@ func (application *App) Run(ctx context.Context) error {
 		defer prometheus.Unregister(poolCollector)
 	}
 
-	store, err := postgres.Open(
-		ctx,
-		postgres.WithPool(pool),
-		postgres.WithPingTimeout(application.cfg.Database.PingTimeout),
-		postgres.WithLogger(application.logger),
-	)
-	if err != nil {
-		return fmt.Errorf("postgres.Open(): %w", err)
-	}
-
 	readinessTimeout := time.Duration(application.cfg.Database.PingTimeout) * time.Second
 	if readinessTimeout <= 0 {
 		readinessTimeout = postgres.DefaultPingTimeoutSeconds * time.Second
@@ -189,7 +174,7 @@ func (application *App) Run(ctx context.Context) error {
 	dependencyReadiness, err := health.New(
 		readinessTimeout,
 		application.logger,
-		health.Check{Name: "postgres", Run: store.Ping},
+		health.Check{Name: "postgres", Run: pool.Ping},
 	)
 	if err != nil {
 		return fmt.Errorf("health.New(): %w", err)
@@ -203,7 +188,10 @@ func (application *App) Run(ctx context.Context) error {
 	// rollout; deployments can run `migrate up` as a one-shot job instead.
 	// When explicitly enabled, migration still completes before the HTTP server
 	// is constructed, and the PostgreSQL advisory lock serializes replicas.
-	if err := migrateOnStartup(ctx, application.cfg.Database.AutoMigrate, store); err != nil {
+	migrate := func(ctx context.Context) error {
+		return postgres.Migrate(ctx, pool, application.logger, postgres.Migrations)
+	}
+	if err := migrateOnStartup(ctx, application.cfg.Database.AutoMigrate, migrate); err != nil {
 		return err
 	}
 
@@ -366,12 +354,14 @@ func (application *App) Run(ctx context.Context) error {
 	return err
 }
 
-func migrateOnStartup(ctx context.Context, enabled bool, store migrator) error {
+// migrateOnStartup runs migrate only when startup migration is enabled, so the
+// policy decision stays testable without a database.
+func migrateOnStartup(ctx context.Context, enabled bool, migrate func(context.Context) error) error {
 	if !enabled {
 		return nil
 	}
-	if err := store.Migrate(ctx, postgres.Migrations); err != nil {
-		return fmt.Errorf("store.Migrate(): %w", err)
+	if err := migrate(ctx); err != nil {
+		return fmt.Errorf("postgres.Migrate(): %w", err)
 	}
 	return nil
 }

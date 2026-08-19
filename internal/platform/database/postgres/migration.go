@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/fs"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/pressly/goose/v3"
 	"github.com/pressly/goose/v3/lock"
@@ -30,9 +31,9 @@ const gooseDialect = goose.DialectPostgres
 //
 // It returns the provider, a cleanup func that must be called to release the
 // wrapping *sql.DB, and any construction error.
-func (client *Client) newGooseProvider(migrationFS fs.FS) (*goose.Provider, func(), error) {
-	if client.pool == nil {
-		return nil, nil, fmt.Errorf("migrations require a pool-backed client (use WithPool)")
+func newGooseProvider(pool *pgxpool.Pool, migrationFS fs.FS) (*goose.Provider, func(), error) {
+	if pool == nil {
+		return nil, nil, fmt.Errorf("migrations require a non-nil pool")
 	}
 
 	// goose globs "*.sql" at the FS root, so hand it the migrations sub-tree
@@ -42,7 +43,7 @@ func (client *Client) newGooseProvider(migrationFS fs.FS) (*goose.Provider, func
 		return nil, nil, fmt.Errorf("fs.Sub(%q): %w", migrationsDir, err)
 	}
 
-	db := stdlib.OpenDBFromPool(client.pool)
+	db := stdlib.OpenDBFromPool(pool)
 
 	// Hold one PostgreSQL session-level advisory lock for the entire Up
 	// operation. Competing commands or startup migrators therefore serialize on
@@ -76,34 +77,39 @@ func (client *Client) newGooseProvider(migrationFS fs.FS) (*goose.Provider, func
 // table and runs each inside its own transaction. It is safe to call on every
 // invocation: already-applied versions are skipped and a fully-migrated
 // database is a no-op. A PostgreSQL session advisory lock serializes concurrent
-// callers.
+// callers. Applied migrations are logged through logger; a nil logger
+// discards them.
 //
 // goose keys purely on the version number and does not checksum migration
 // bodies, so editing an already-applied file is silently ignored — change the
 // schema by adding a new versioned migration, never by editing an applied one.
-func (client *Client) Migrate(ctx context.Context, migrationFS embed.FS) error {
-	return client.migrate(ctx, migrationFS)
+func Migrate(ctx context.Context, pool *pgxpool.Pool, logger *zap.Logger, migrationFS embed.FS) error {
+	return migrate(ctx, pool, logger, migrationFS)
 }
 
 // migrate accepts fs.FS so integration tests can exercise PostgreSQL locking
 // with a deliberately slow disposable migration while the public contract
 // remains limited to the repository's embedded migration set.
-func (client *Client) migrate(ctx context.Context, migrationFS fs.FS) error {
-	gp, cleanup, err := client.newGooseProvider(migrationFS)
+func migrate(ctx context.Context, pool *pgxpool.Pool, logger *zap.Logger, migrationFS fs.FS) error {
+	if logger == nil {
+		logger = zap.NewNop()
+	}
+
+	gp, cleanup, err := newGooseProvider(pool, migrationFS)
 	if err != nil {
-		client.logger.Error("issue constructing migration provider", zap.Error(err))
+		logger.Error("issue constructing migration provider", zap.Error(err))
 		return err
 	}
 	defer cleanup()
 
 	results, err := gp.Up(ctx)
 	if err != nil {
-		client.logger.Error("issue running migrations", zap.Error(err))
+		logger.Error("issue running migrations", zap.Error(err))
 		return fmt.Errorf("goose up: %w", err)
 	}
 
 	for _, r := range results {
-		client.logger.Info("applied migration", zap.String("migration", r.String()))
+		logger.Info("applied migration", zap.String("migration", r.String()))
 	}
 
 	return nil
@@ -116,8 +122,8 @@ func (client *Client) migrate(ctx context.Context, migrationFS fs.FS) error {
 // It is not strictly read-only: querying status ensures goose's version table
 // exists, so calling it against a pristine database creates that table (with no
 // migration rows). Keep this in mind before wiring it into a readiness probe.
-func (client *Client) MigrationStatus(ctx context.Context, migrationFS embed.FS) (database.MigrationStatus, error) {
-	gp, cleanup, err := client.newGooseProvider(migrationFS)
+func MigrationStatus(ctx context.Context, pool *pgxpool.Pool, migrationFS embed.FS) (database.MigrationStatus, error) {
+	gp, cleanup, err := newGooseProvider(pool, migrationFS)
 	if err != nil {
 		return database.StatusNone, err
 	}

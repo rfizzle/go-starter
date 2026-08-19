@@ -16,7 +16,7 @@ The module currently requires Go 1.26.5. Its main stack is:
 - PostgreSQL, pgx/v5, sqlc, and Goose for persistence
 - JWT bearer authentication
 - Zap logging, Prometheus metrics, and optional OpenTelemetry export
-- testify and pgxmock for tests
+- testify and Testcontainers-Go for tests
 
 [AGENTS.md](AGENTS.md) carries the repository rules — architecture boundaries,
 engineering and testing policy, and the task-to-skill routing table — for both

@@ -8,7 +8,7 @@ repository-owned transaction boundaries.
 
 ```text
 internal/app
-  ├── platform/database/postgres.Client   startup ping and optional locked migrations
+  ├── platform/database/postgres          startup ping and optional locked migrations
   └── modules/user.Repository             domain persistence adapter
         ├── db.Queries      sqlc-generated fixed queries
         └── db.DBTX         pgxpool.Pool or pgx.Tx for dynamic queries
@@ -45,26 +45,21 @@ if err != nil {
 defer pool.Close()
 ```
 
-pgx pools connect lazily. The application wraps the pool in a concrete
-`postgres.Client` and pings before starting the HTTP listener:
+pgx pools connect lazily. The short-lived commands ping with a bounded timeout
+before doing any work, and the application registers `pool.Ping` as a named
+required-dependency check: startup verifies it once, and every readiness
+request reevaluates it within the configured ping budget.
 
 ```go
-store, err := postgres.Open(
-    ctx,
-    postgres.WithPool(pool),
-    postgres.WithPingTimeout(cfg.Database.PingTimeout),
-    postgres.WithLogger(logger),
-)
-if err != nil {
-    return fmt.Errorf("open postgres lifecycle client: %w", err)
+if err := postgres.Ping(ctx, pool, time.Duration(cfg.Database.PingTimeout)*time.Second); err != nil {
+    return fmt.Errorf("postgres.Ping(): %w", err)
 }
 ```
 
-`postgres.Client` is lifecycle and migration infrastructure, not a query
-abstraction for domain code. The application registers its `Ping` method as a
-named required-dependency check: startup verifies it once, and every readiness
-request reevaluates it within the configured ping budget. Repositories receive
-the pool directly.
+`internal/platform/database/postgres` exposes lifecycle and migration
+functions over the caller-owned pool (`Ping`, `Migrate`, `MigrationStatus`);
+it is not a query abstraction for domain code. Repositories receive the pool
+directly.
 
 ## Fixed queries with sqlc
 
@@ -198,7 +193,7 @@ transaction short and do not perform external network I/O inside it.
 ## Migrations and seeding
 
 Goose applies the embedded, forward-only migrations through the context-aware
-`postgres.Client.Migrate`. Every application attempt holds a PostgreSQL
+`postgres.Migrate`. Every application attempt holds a PostgreSQL
 session advisory lock for the complete Goose `up` operation, so concurrent
 commands or startup migrators serialize instead of racing.
 
@@ -245,8 +240,8 @@ and password hashes are never overwritten.
 ## Testing
 
 - Test repository mappings and query behavior in the owning module package.
-- Use pgxmock for query arguments, row scanning, failures, and transaction
-  boundaries.
+- Use pgxmock (`github.com/pashagolub/pgxmock/v4`, added on first use) for
+  query arguments, row scanning, failures, and transaction boundaries.
 - Use a real disposable PostgreSQL instance for constraints, migrations,
   locking, and rollback semantics that a mock cannot prove.
 - Use small hand-written fakes for consumer interfaces such as

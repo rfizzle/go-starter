@@ -249,11 +249,7 @@ func (h *Harness) database(t *testing.T, migrate bool) *Database {
 	}
 
 	if migrate {
-		client, err := postgres.Open(t.Context(), postgres.WithPool(pool))
-		if err != nil {
-			t.Fatalf("construct migration client for %q: %v", databaseName, err)
-		}
-		if err := client.Migrate(t.Context(), postgres.Migrations); err != nil {
+		if err := postgres.Migrate(t.Context(), pool, nil, postgres.Migrations); err != nil {
 			t.Fatalf("migrate isolated PostgreSQL database %q: %v", databaseName, err)
 		}
 	}

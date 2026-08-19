@@ -80,7 +80,7 @@ func TestServeCommand_PropagatesStartupFailures(t *testing.T) {
 	configErr := errors.New("config failed")
 	loggerErr := errors.New("logger failed")
 	applicationErr := errors.New("application failed")
-	databaseErr := errors.New("store.Ping(): connection refused")
+	databaseErr := errors.New("postgres.Ping(): connection refused")
 	listenerErr := errors.New("issue serving webserver: address already in use")
 
 	tests := []struct {

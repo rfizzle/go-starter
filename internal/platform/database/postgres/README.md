@@ -1,10 +1,11 @@
 # PostgreSQL infrastructure
 
-This package owns the service's PostgreSQL connection pool, ping and close
-lifecycle, Prometheus pool metrics, and embedded Goose migrations. Migration
+This package owns the service's PostgreSQL connection pool construction, the
+bounded ping and close lifecycle, Prometheus pool metrics, and embedded Goose
+migrations, all as functions over a caller-owned `*pgxpool.Pool`. Migration
 application holds Goose's PostgreSQL session advisory lock, so concurrent
-callers serialize. Application and CLI composition roots construct the client
-and retain responsibility for closing it.
+callers serialize. Application and CLI composition roots construct the pool and
+retain responsibility for closing it.
 
 It does not own business models, repository behavior, authentication, or HTTP
 mapping. Those contracts live in `internal/domain`, and the example user

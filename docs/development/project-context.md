@@ -130,7 +130,7 @@ Key commands:
 - PostgreSQL, pgx/v5, sqlc, squirrel, and Goose
 - Cobra and Viper
 - Zap, Prometheus, and OpenTelemetry
-- Testify, pgxmock, and Testcontainers-Go
+- Testify and Testcontainers-Go
 - GoReleaser and distroless container images
 
 The root [README](../../README.md) is the user entrypoint. This document is the

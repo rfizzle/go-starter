@@ -151,7 +151,7 @@ func runSeed(
 	// Own the pool locally: unlike serve, seed is a short-lived command that
 	// connects, seeds, and exits, so it opens and closes its own pool rather
 	// than sharing one with long-lived components.
-	pool, _, err := openDatabase(ctx, cfg.Database, appLogger)
+	pool, err := openDatabase(ctx, cfg.Database)
 	if err != nil {
 		return seed.Result{}, err
 	}
