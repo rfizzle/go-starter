@@ -32,7 +32,7 @@ const gooseDialect = goose.DialectPostgres
 // wrapping *sql.DB, and any construction error.
 func (client *Client) newGooseProvider(migrationFS fs.FS) (*goose.Provider, func(), error) {
 	if client.pool == nil {
-		return nil, nil, fmt.Errorf("migrations require a pool-backed client (use WithPool or WithURI)")
+		return nil, nil, fmt.Errorf("migrations require a pool-backed client (use WithPool)")
 	}
 
 	// goose globs "*.sql" at the FS root, so hand it the migrations sub-tree

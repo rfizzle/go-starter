@@ -13,10 +13,6 @@ import (
 func WithMockPool(pool pgxmock.PgxPoolIface) Option {
 	return func(p *Client) error {
 		p.db = pool
-		p.closeFunc = func(ctx context.Context) error {
-			return nil
-		}
-
 		return nil
 	}
 }

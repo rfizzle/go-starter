@@ -11,51 +11,12 @@ import (
 	"go.uber.org/zap/zaptest"
 )
 
-func TestWithURI(t *testing.T) {
-	ctx := context.Background()
-	client := &Client{}
-
-	tests := []struct {
-		name    string
-		uri     string
-		wantErr bool
-	}{
-		{
-			name:    "invalid URI",
-			uri:     "invalid://uri",
-			wantErr: true,
-		},
-		// Note: We can't easily test valid URIs without a real database
-		// In integration tests, you would test with a real database URI
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			option := WithURI(ctx, tt.uri)
-			err := option(client)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, client.db)
-				assert.NotNil(t, client.closeFunc)
-			}
-		})
-	}
-}
-
-func TestWithConnection(t *testing.T) {
-	// Skip this test as it requires actual pgx.Conn
-	t.Skip("Requires actual pgx.Conn implementation")
-}
-
 func TestWithPool(t *testing.T) {
 	// Skip this test as it requires actual pgxpool.Pool
 	t.Skip("Requires actual pgxpool.Pool implementation")
 }
 
 func TestWithMockPool(t *testing.T) {
-	ctx := context.Background()
 	client := &Client{}
 
 	// Create pgxmock
@@ -68,11 +29,6 @@ func TestWithMockPool(t *testing.T) {
 
 	assert.NoError(t, err)
 	assert.Equal(t, mock, client.db)
-	assert.NotNil(t, client.closeFunc)
-
-	// Test the close function doesn't panic
-	err = client.closeFunc(ctx)
-	assert.NoError(t, err)
 }
 
 func TestWithPingTimeout(t *testing.T) {

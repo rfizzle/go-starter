@@ -29,17 +29,17 @@ type Client struct {
 	logger *zap.Logger
 	db     pinger
 	// pool is the underlying pgx connection pool when the client was built
-	// with WithPool or WithURI. It is nil for connection- or mock-backed
-	// clients. Migrate needs a real pool because goose runs through a
-	// database/sql handle wrapped over it (see migration.go).
+	// with WithPool. It is nil for mock-backed clients. Migrate needs a real
+	// pool because goose runs through a database/sql handle wrapped over it
+	// (see migration.go).
 	pool        *pgxpool.Pool
-	closeFunc   func(ctx context.Context) error
 	pingTimeout time.Duration
 }
 
 // Open creates and initializes a new PostgreSQL database client.
 // It accepts a context for timeout control and various configuration options.
-// The client must be configured with a database connection using WithURI, WithPool, etc.
+// The client must be configured with a database connection using WithPool.
+// The caller owns the pool and closes it; Client has no Close method.
 func Open(ctx context.Context, options ...Option) (*Client, error) {
 	// Set default options
 	client := &Client{
@@ -74,17 +74,9 @@ func (client *Client) Ping(ctx context.Context) error {
 	return client.db.Ping(ctx)
 }
 
-func (client *Client) Close() error {
-	return client.closeFunc(context.Background())
-}
-
 func (client *Client) validate() error {
 	if client.db == nil {
 		return fmt.Errorf("db is nil")
-	}
-
-	if client.closeFunc == nil {
-		return fmt.Errorf("closeFunc is nil")
 	}
 
 	if client.logger == nil {

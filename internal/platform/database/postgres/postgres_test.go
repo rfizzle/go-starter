@@ -166,50 +166,9 @@ func TestClient_Ping(t *testing.T) {
 				logger:      zaptest.NewLogger(t),
 				db:          tt.mockConn,
 				pingTimeout: timeout,
-				closeFunc:   func(ctx context.Context) error { return nil },
 			}
 
 			err := client.Ping(ctx)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestClient_Close(t *testing.T) {
-	tests := []struct {
-		name      string
-		closeFunc func(ctx context.Context) error
-		wantErr   bool
-	}{
-		{
-			name: "successful close",
-			closeFunc: func(ctx context.Context) error {
-				return nil
-			},
-			wantErr: false,
-		},
-		{
-			name: "close error",
-			closeFunc: func(ctx context.Context) error {
-				return errors.New("failed to close connection")
-			},
-			wantErr: true,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			client := &Client{
-				logger:    zaptest.NewLogger(t),
-				db:        &mockPinger{},
-				closeFunc: tt.closeFunc,
-			}
-
-			err := client.Close()
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
@@ -229,38 +188,25 @@ func TestClient_validate(t *testing.T) {
 		{
 			name: "valid client",
 			client: &Client{
-				db:        &mockPinger{},
-				closeFunc: func(ctx context.Context) error { return nil },
-				logger:    zaptest.NewLogger(nil),
+				db:     &mockPinger{},
+				logger: zaptest.NewLogger(nil),
 			},
 			wantErr: false,
 		},
 		{
 			name: "nil db",
 			client: &Client{
-				db:        nil,
-				closeFunc: func(ctx context.Context) error { return nil },
-				logger:    zaptest.NewLogger(nil),
+				db:     nil,
+				logger: zaptest.NewLogger(nil),
 			},
 			wantErr:   true,
 			errString: "db is nil",
 		},
 		{
-			name: "nil closeFunc",
-			client: &Client{
-				db:        &mockPinger{},
-				closeFunc: nil,
-				logger:    zaptest.NewLogger(nil),
-			},
-			wantErr:   true,
-			errString: "closeFunc is nil",
-		},
-		{
 			name: "nil logger",
 			client: &Client{
-				db:        &mockPinger{},
-				closeFunc: func(ctx context.Context) error { return nil },
-				logger:    nil,
+				db:     &mockPinger{},
+				logger: nil,
 			},
 			wantErr:   true,
 			errString: "logger is nil",
@@ -295,10 +241,6 @@ func TestClient_IntegrationWithPgxMock(t *testing.T) {
 	// Test ping
 	mock.ExpectPing()
 	err = client.Ping(ctx)
-	assert.NoError(t, err)
-
-	// Test close
-	err = client.Close()
 	assert.NoError(t, err)
 
 	// Verify all expectations were met
