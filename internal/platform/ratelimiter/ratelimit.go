@@ -30,18 +30,6 @@ type RateLimitConfig struct {
 	Clock func() time.Time
 }
 
-// DefaultRateLimitConfig returns bounded defaults suitable for a single
-// application instance.
-func DefaultRateLimitConfig() RateLimitConfig {
-	return RateLimitConfig{
-		MaxRequests:     100,
-		Window:          time.Hour,
-		MaxKeys:         10_000,
-		CleanupInterval: time.Minute,
-		KeyPrefix:       "rate_limit:",
-	}
-}
-
 type entry struct {
 	count    int
 	resetAt  time.Time

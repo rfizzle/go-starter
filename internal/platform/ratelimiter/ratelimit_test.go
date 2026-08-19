@@ -267,14 +267,4 @@ func TestLimiter_ConcurrentAllowResetAndClose(t *testing.T) {
 	assert.ErrorIs(t, limiter.Reset(context.Background(), "after-close"), ErrClosed)
 }
 
-func TestDefaultRateLimitConfig(t *testing.T) {
-	config := DefaultRateLimitConfig()
-
-	assert.Equal(t, 100, config.MaxRequests)
-	assert.Equal(t, time.Hour, config.Window)
-	assert.Equal(t, 10_000, config.MaxKeys)
-	assert.Equal(t, time.Minute, config.CleanupInterval)
-	assert.Equal(t, "rate_limit:", config.KeyPrefix)
-}
-
 var _ prometheus.Collector = (*Limiter)(nil)
