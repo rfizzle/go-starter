@@ -29,9 +29,7 @@ func TestWithSubjectRejectsEmptySubject(t *testing.T) {
 	newCtx, err := WithSubject(context.Background(), "custom", "")
 	assert.Nil(t, newCtx)
 
-	authErr, getErr := GetError(err)
-	assert.NoError(t, getErr)
-	assert.Equal(t, ErrEmptySubject, authErr.Err)
+	assert.ErrorIs(t, err, ErrEmptySubject)
 }
 
 func TestGetSubjectFromContextMissing(t *testing.T) {

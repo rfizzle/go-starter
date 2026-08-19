@@ -26,17 +26,3 @@ func (e *Error) Error() string {
 func (e *Error) Unwrap() error {
 	return e.Err
 }
-
-func HasError(err error) bool {
-	var e *Error
-	return errors.As(err, &e)
-}
-
-func GetError(err error) (*Error, error) {
-	var e *Error
-	if errors.As(err, &e) {
-		return e, nil
-	}
-
-	return nil, fmt.Errorf("error is not an auth error: %w", err)
-}
