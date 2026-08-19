@@ -189,32 +189,6 @@ func TestJWT_ValidateFromRequest(t *testing.T) {
 	}
 }
 
-func TestJWT_NewCookie(t *testing.T) {
-	issuedAt := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
-	j, err := NewJWT(testSecret, WithTTL(2*time.Hour), withClock(fixedClock(issuedAt)))
-	require.NoError(t, err)
-
-	cookie, err := j.NewCookie("user-123")
-	require.NoError(t, err)
-	assert.Equal(t, "token", cookie.Name)
-	assert.True(t, cookie.Secure)
-	assert.True(t, cookie.HttpOnly)
-	assert.Equal(t, issuedAt.Add(2*time.Hour), cookie.Expires)
-
-	subject, err := j.ValidateToken(cookie.Value)
-	require.NoError(t, err)
-	assert.Equal(t, "user-123", subject)
-}
-
-func TestJWT_InsecureCookie(t *testing.T) {
-	j, err := NewJWT(testSecret, WithInsecureCookie())
-	require.NoError(t, err)
-
-	cookie, err := j.NewCookie("user-123")
-	require.NoError(t, err)
-	assert.False(t, cookie.Secure)
-}
-
 func TestJWT_ImplementsInterfaces(t *testing.T) {
 	j, err := NewJWT(testSecret)
 	require.NoError(t, err)

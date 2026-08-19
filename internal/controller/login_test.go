@@ -3,7 +3,6 @@ package controller
 import (
 	"context"
 	"errors"
-	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -38,10 +37,6 @@ func (s *stubTokenGenerator) NewToken(subject string) (string, error) {
 	s.calls++
 	s.subject = subject
 	return s.token, s.err
-}
-
-func (*stubTokenGenerator) NewCookie(string) (*http.Cookie, error) {
-	return nil, nil
 }
 
 func TestLogin_MissingDependencyFailsClosed(t *testing.T) {

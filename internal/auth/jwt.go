@@ -24,11 +24,6 @@ type JWT struct {
 	audience string
 	ttl      time.Duration
 
-	cookieName     string
-	cookieSecure   bool
-	cookieHTTPOnly bool
-	cookiePath     string
-
 	now func() time.Time
 }
 
@@ -58,17 +53,6 @@ func WithTTL(ttl time.Duration) JWTOption {
 	return func(j *JWT) { j.ttl = ttl }
 }
 
-// WithCookieName sets the name of the cookie produced by NewCookie. Defaults to "token".
-func WithCookieName(name string) JWTOption {
-	return func(j *JWT) { j.cookieName = name }
-}
-
-// WithInsecureCookie marks cookies produced by NewCookie as non-Secure so they
-// can be used over plain HTTP in local development. Cookies are Secure by default.
-func WithInsecureCookie() JWTOption {
-	return func(j *JWT) { j.cookieSecure = false }
-}
-
 // withClock overrides the time source; used by tests to make expiry deterministic.
 func withClock(now func() time.Time) JWTOption {
 	return func(j *JWT) { j.now = now }
@@ -82,13 +66,9 @@ func NewJWT(secret []byte, options ...JWTOption) (*JWT, error) {
 	}
 
 	j := &JWT{
-		secret:         secret,
-		ttl:            time.Hour,
-		cookieName:     "token",
-		cookieSecure:   true,
-		cookieHTTPOnly: true,
-		cookiePath:     "/",
-		now:            time.Now,
+		secret: secret,
+		ttl:    time.Hour,
+		now:    time.Now,
 	}
 
 	for _, option := range options {
@@ -180,28 +160,6 @@ func (j *JWT) NewToken(subject string) (string, error) {
 	}
 
 	return signed, nil
-}
-
-// NewCookie mints a token for the subject and wraps it in a cookie ready to be
-// set on a response. The cookie expires alongside the token.
-func (j *JWT) NewCookie(subject string) (*http.Cookie, error) {
-	signed, err := j.NewToken(subject)
-	if err != nil {
-		return nil, err
-	}
-
-	// Secure is configurable (WithInsecureCookie) so the cookie can be used over
-	// plain HTTP in local development; it defaults to true. gosec cannot prove
-	// the field is always true, hence the scoped suppression.
-	return &http.Cookie{ //nolint:gosec // Secure defaults to true; WithInsecureCookie is a documented dev-only opt-out
-		Name:     j.cookieName,
-		Value:    signed,
-		Path:     j.cookiePath,
-		Expires:  j.now().Add(j.ttl),
-		Secure:   j.cookieSecure,
-		HttpOnly: j.cookieHTTPOnly,
-		SameSite: http.SameSiteLaxMode,
-	}, nil
 }
 
 // bearerToken pulls the token out of an "Authorization: Bearer <token>" header.

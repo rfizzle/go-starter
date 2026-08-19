@@ -4,10 +4,9 @@ import (
 	"net/http"
 )
 
-// Generator interface for token and cookie generation
+// Generator interface for token generation
 type Generator interface {
 	NewToken(subject string) (string, error)
-	NewCookie(subject string) (*http.Cookie, error)
 }
 
 // Validator interface for request validation
