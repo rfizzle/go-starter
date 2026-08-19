@@ -7,6 +7,8 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+
+	"github.com/rfizzle/go-starter/internal/platform/config"
 )
 
 // PoolConfig carries the connection-pool tuning knobs applied on top of the
@@ -30,6 +32,20 @@ type PoolConfig struct {
 	// HealthCheckPeriodSeconds is the interval between pool health checks of
 	// idle connections. 0 keeps the pgx default (1 minute).
 	HealthCheckPeriodSeconds int
+}
+
+// PoolConfigFromDatabase maps the database configuration section onto the pool
+// tuning knobs. Every composition root (serve, seed, migrate) sizes its pool
+// through this one mapping so a new knob cannot be wired into one command and
+// silently left at the pgx default in another.
+func PoolConfigFromDatabase(cfg config.Database) PoolConfig {
+	return PoolConfig{
+		MaxConns:                 cfg.MaxConns,
+		MinConns:                 cfg.MinConns,
+		MaxConnLifetimeSeconds:   cfg.MaxConnLifetime,
+		MaxConnIdleTimeSeconds:   cfg.MaxConnIdleTime,
+		HealthCheckPeriodSeconds: cfg.HealthCheckPeriod,
+	}
 }
 
 // NewPool parses the connection URI and returns a pgx pool configured with the

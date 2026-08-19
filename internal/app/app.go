@@ -142,13 +142,7 @@ func (application *App) Run(ctx context.Context) error {
 	// NumCPU), which are frequently wrong under load. pgxpool connects lazily,
 	// so the explicit Ping below is what makes an unreachable database fail
 	// startup.
-	pool, err := postgres.NewPool(ctx, application.cfg.Database.URI, postgres.PoolConfig{
-		MaxConns:                 application.cfg.Database.MaxConns,
-		MinConns:                 application.cfg.Database.MinConns,
-		MaxConnLifetimeSeconds:   application.cfg.Database.MaxConnLifetime,
-		MaxConnIdleTimeSeconds:   application.cfg.Database.MaxConnIdleTime,
-		HealthCheckPeriodSeconds: application.cfg.Database.HealthCheckPeriod,
-	})
+	pool, err := postgres.NewPool(ctx, application.cfg.Database.URI, postgres.PoolConfigFromDatabase(application.cfg.Database))
 	if err != nil {
 		return fmt.Errorf("postgres.NewPool(): %w", err)
 	}

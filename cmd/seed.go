@@ -16,7 +16,6 @@ import (
 	"github.com/rfizzle/go-starter/internal/cli/seed"
 	"github.com/rfizzle/go-starter/internal/modules/user"
 	"github.com/rfizzle/go-starter/internal/platform/config"
-	"github.com/rfizzle/go-starter/internal/platform/database/postgres"
 	"github.com/rfizzle/go-starter/internal/platform/observability"
 )
 
@@ -152,31 +151,11 @@ func runSeed(
 	// Own the pool locally: unlike serve, seed is a short-lived command that
 	// connects, seeds, and exits, so it opens and closes its own pool rather
 	// than sharing one with long-lived components.
-	pool, err := postgres.NewPool(ctx, cfg.Database.URI, postgres.PoolConfig{
-		MaxConns:                 cfg.Database.MaxConns,
-		MinConns:                 cfg.Database.MinConns,
-		MaxConnLifetimeSeconds:   cfg.Database.MaxConnLifetime,
-		MaxConnIdleTimeSeconds:   cfg.Database.MaxConnIdleTime,
-		HealthCheckPeriodSeconds: cfg.Database.HealthCheckPeriod,
-	})
+	pool, _, err := openDatabase(ctx, cfg.Database, appLogger)
 	if err != nil {
-		return seed.Result{}, fmt.Errorf("postgres.NewPool(): %w", err)
+		return seed.Result{}, err
 	}
 	defer pool.Close()
-
-	store, err := postgres.Open(
-		ctx,
-		postgres.WithPool(pool),
-		postgres.WithPingTimeout(cfg.Database.PingTimeout),
-		postgres.WithLogger(appLogger),
-	)
-	if err != nil {
-		return seed.Result{}, fmt.Errorf("postgres.Open(): %w", err)
-	}
-
-	if err := store.Ping(ctx); err != nil {
-		return seed.Result{}, fmt.Errorf("store.Ping(): %w", err)
-	}
 
 	userRepo := user.NewRepository(pool)
 

@@ -128,30 +128,11 @@ func runMigration(
 	appLogger *zap.Logger,
 	action migrationAction,
 ) (database.MigrationStatus, error) {
-	pool, err := postgres.NewPool(ctx, cfg.Database.URI, postgres.PoolConfig{
-		MaxConns:                 cfg.Database.MaxConns,
-		MinConns:                 cfg.Database.MinConns,
-		MaxConnLifetimeSeconds:   cfg.Database.MaxConnLifetime,
-		MaxConnIdleTimeSeconds:   cfg.Database.MaxConnIdleTime,
-		HealthCheckPeriodSeconds: cfg.Database.HealthCheckPeriod,
-	})
+	pool, store, err := openDatabase(ctx, cfg.Database, appLogger)
 	if err != nil {
-		return database.StatusNone, fmt.Errorf("postgres.NewPool(): %w", err)
+		return database.StatusNone, err
 	}
 	defer pool.Close()
-
-	store, err := postgres.Open(
-		ctx,
-		postgres.WithPool(pool),
-		postgres.WithPingTimeout(cfg.Database.PingTimeout),
-		postgres.WithLogger(appLogger),
-	)
-	if err != nil {
-		return database.StatusNone, fmt.Errorf("postgres.Open(): %w", err)
-	}
-	if err := store.Ping(ctx); err != nil {
-		return database.StatusNone, fmt.Errorf("store.Ping(): %w", err)
-	}
 
 	switch action {
 	case migrationUp:
