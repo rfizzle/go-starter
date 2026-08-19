@@ -9,11 +9,9 @@
 // redirect HTTP→HTTPS or set HSTS; that belongs to the terminating layer.
 //
 // For standalone deployments where the Go process is itself internet-facing,
-// enable in-process TLS termination with WithTLS (certificate + key paths).
-// That negotiates a TLS 1.2 protocol floor by default; WithTLSConfig overrides
-// the full *tls.Config for advanced setups (mutual TLS, a raised MinVersion, a
-// pinned cipher-suite list). When TLS is enabled the server calls
-// ListenAndServeTLS; otherwise it calls ListenAndServe.
+// enable in-process TLS termination by setting Config.TLSCertFile and
+// Config.TLSKeyFile. The server then negotiates a TLS 1.2 protocol floor and
+// serves with ServeTLS; otherwise it calls Serve.
 package server
 
 import (
@@ -24,7 +22,6 @@ import (
 	"net/http"
 	"net/http/pprof"
 	"sync"
-	"sync/atomic"
 	"time"
 
 	"github.com/rfizzle/go-starter/internal/platform/http/middleware"
@@ -38,92 +35,107 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-type Webserver struct {
-	host              string
-	port              int
-	started           chan net.Addr
-	server            *http.Server
-	logger            *zap.Logger
-	fileserver        http.Handler
-	readHeaderTimeout time.Duration
-	readTimeout       time.Duration
-	writeTimeout      time.Duration
-	idleTimeout       time.Duration
-	requestTimeout    time.Duration
-	shutdownTimeout   time.Duration
-	maxHeaderBytes    int
-	maxBodyBytes      int64
-	pprofEnabled      bool
-	corsOrigins       []string
-	// TLS termination. When tlsCertFile and tlsKeyFile are both set (or a
-	// tlsConfig is supplied) the server terminates TLS in-process via
-	// ListenAndServeTLS; otherwise it serves plain HTTP and assumes an upstream
-	// proxy terminates TLS. tlsConfig, when nil, is populated with a safe
-	// default (TLS 1.2 floor) whenever cert/key paths are provided.
-	tlsCertFile string
-	tlsKeyFile  string
-	tlsConfig   *tls.Config
+// Config holds the webserver settings. Every field has the same zero-value
+// rule: an unset (zero, empty, or non-positive) value selects the default
+// documented on the field, which applyDefaults installs before construction.
+type Config struct {
+	// Host is the interface to bind. Empty binds every interface.
+	Host string
+	// Port is the TCP port to listen on. 0 lets the operating system choose.
+	Port int
+	// Logger receives request, recovery, and http.Server logs. Nil discards
+	// them.
+	Logger *zap.Logger
+	// FileServer serves requests outside the reserved application routes. Nil
+	// serves no static files.
+	FileServer http.Handler
+	// ReadHeaderTimeout bounds how long a client may take to send its request
+	// headers, closing the Slowloris surface. Default 5s.
+	ReadHeaderTimeout time.Duration
+	// ReadTimeout, WriteTimeout, and IdleTimeout are passed to http.Server; a
+	// non-positive value keeps Go's own behaviour (no deadline, and idle
+	// falling back to read).
+	ReadTimeout  time.Duration
+	WriteTimeout time.Duration
+	IdleTimeout  time.Duration
+	// RequestTimeout bounds total request-processing time via chi's Timeout
+	// middleware, which cancels the request context at the deadline so a slow
+	// handler or stalled client cannot hold a connection indefinitely.
+	// Default 60s.
+	RequestTimeout time.Duration
+	// ShutdownTimeout bounds how long a graceful shutdown waits for in-flight
+	// requests to drain before the server is forced closed. Default 15s.
+	ShutdownTimeout time.Duration
+	// MaxHeaderBytes caps the total request header size the server reads,
+	// bounding the memory one request can force it to buffer. Default 1 MiB.
+	MaxHeaderBytes int
+	// MaxBodyBytes caps each request body the server reads. Default 10 MiB.
+	MaxBodyBytes int64
+	// PprofEnabled mounts /debug/pprof/* on the public mux. Off by default:
+	// the endpoints are unauthenticated and expose process internals.
+	PprofEnabled bool
+	// CORSOrigins are the origins permitted by the CORS middleware; entries may
+	// contain a "*" wildcard. The default allows any origin and is a
+	// placeholder to restrict before production.
+	CORSOrigins []string
+	// TLSCertFile and TLSKeyFile enable in-process TLS termination (with a TLS
+	// 1.2 floor) when both are set. Leave them empty when a reverse proxy
+	// terminates TLS — the default posture.
+	TLSCertFile string
+	TLSKeyFile  string
 }
 
-func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, error) {
-	isReady := &atomic.Bool{}
-	isReady.Store(false)
-
-	// Setup a new app with default values
-	newApp := &Webserver{
-		host: "0.0.0.0",
-		port: 8080,
-		// Buffered so Run can publish the bound address without depending on a
-		// receiver being scheduled. A Webserver is a single-run lifecycle
-		// component, so exactly one address is published.
-		started: make(chan net.Addr, 1),
-		// A short header-read deadline closes the Slowloris attack surface (a
-		// client trickling headers to hold connections open) by default, even
-		// when the operator leaves the other timeouts unset.
-		readHeaderTimeout: 5 * time.Second,
-		// Bound total request-processing time so a slow handler (or a client that
-		// stalls mid-request) can't hold a connection indefinitely. Applied via
-		// chi's Timeout middleware, which cancels the request context at the
-		// deadline. Set to 0 via WithRequestTimeout to disable.
-		requestTimeout: 60 * time.Second,
-		// Bound how long a graceful shutdown waits for in-flight requests to drain
-		// before the server is forced closed, so a wedged handler can't hang the
-		// process indefinitely on SIGTERM.
-		shutdownTimeout: 15 * time.Second,
-		// Cap total request header size at 1 MiB (Go's own default) so an
-		// oversized-header request can't force the server to buffer unbounded
-		// memory. Set explicitly rather than relying on the implicit default so
-		// the limit is visible and tunable.
-		maxHeaderBytes: 1 << 20,
-		// Cap each request body at 10 MiB so an oversized POST/PUT can't force
-		// the server to buffer unbounded memory. Downstream handlers that need to
-		// accept larger payloads can raise this via WithMaxBodyBytes.
-		maxBodyBytes: 10 << 20,
-		// Permissive default: allows any origin. This is a placeholder — restrict
-		// to your front-end origins via WithCORSOrigins before production.
-		corsOrigins: []string{"https://*", "http://*"},
-		logger:      zap.NewNop(),
+// applyDefaults fills every unset field with its documented default.
+func (cfg *Config) applyDefaults() {
+	if cfg.Logger == nil {
+		cfg.Logger = zap.NewNop()
 	}
-
-	// Apply options
-	for _, option := range options {
-		option(newApp)
+	if cfg.ReadHeaderTimeout <= 0 {
+		cfg.ReadHeaderTimeout = 5 * time.Second
 	}
+	if cfg.RequestTimeout <= 0 {
+		cfg.RequestTimeout = 60 * time.Second
+	}
+	if cfg.ShutdownTimeout <= 0 {
+		cfg.ShutdownTimeout = 15 * time.Second
+	}
+	if cfg.MaxHeaderBytes <= 0 {
+		cfg.MaxHeaderBytes = 1 << 20
+	}
+	if cfg.MaxBodyBytes <= 0 {
+		cfg.MaxBodyBytes = 10 << 20
+	}
+	if len(cfg.CORSOrigins) == 0 {
+		cfg.CORSOrigins = []string{"https://*", "http://*"}
+	}
+}
 
-	// Setup middleware
+// tlsEnabled reports whether the server should terminate TLS in-process. It is
+// true only when both a certificate and a key path are configured.
+func (cfg Config) tlsEnabled() bool {
+	return cfg.TLSCertFile != "" && cfg.TLSKeyFile != ""
+}
+
+type Webserver struct {
+	cfg     Config
+	started chan net.Addr
+	server  *http.Server
+}
+
+// New builds the middleware stack and http.Server from cfg after applying the
+// documented defaults. The server is not started until Run is called.
+func New(apiHandlers http.Handler, cfg Config) (*Webserver, error) {
+	cfg.applyDefaults()
+
 	mux := chi.NewMux()
-	// A non-positive request timeout disables the middleware entirely; otherwise
-	// chi cancels the request context once the deadline elapses.
-	if newApp.requestTimeout > 0 {
-		mux.Use(chimiddleware.Timeout(newApp.requestTimeout))
-	}
+	mux.Use(chimiddleware.Timeout(cfg.RequestTimeout))
 	mux.Use(chimiddleware.RequestID)
-	mux.Use(middleware.Recoverer(newApp.logger))
-	mux.Use(middleware.MaxBytes(newApp.maxBodyBytes))
-	mux.Use(middleware.Logger(newApp.logger, []string{"/api/*"}))
-	mux.Use(middleware.FileServer(newApp.fileserver))
+	mux.Use(middleware.Recoverer(cfg.Logger))
+	mux.Use(middleware.MaxBytes(cfg.MaxBodyBytes))
+	mux.Use(middleware.Logger(cfg.Logger, []string{"/api/*"}))
+	mux.Use(middleware.FileServer(cfg.FileServer))
 	mux.Use(cors.Handler(cors.Options{
-		AllowedOrigins:   newApp.corsOrigins,
+		AllowedOrigins:   cfg.CORSOrigins,
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type", "X-CSRF-Token"},
 		AllowCredentials: false,
@@ -133,9 +145,8 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 
 	// pprof exposes process internals (goroutine stacks, heap, CPU profiles) and
 	// is an information-leak and DoS surface, so it stays off the public mux
-	// unless explicitly enabled. Gate behind config rather than mounting it
-	// unconditionally.
-	if newApp.pprofEnabled {
+	// unless explicitly enabled.
+	if cfg.PprofEnabled {
 		mux.Route("/debug/pprof", func(mux chi.Router) {
 			mux.HandleFunc("/", pprof.Index)
 			mux.HandleFunc("/cmdline", pprof.Cmdline)
@@ -145,40 +156,33 @@ func New(apiHandlers http.Handler, options ...func(c *Webserver)) (*Webserver, e
 		})
 	}
 
-	// Mount the API handlers
 	mux.Mount("/api/v1", http.StripPrefix("/api/v1", apiHandlers))
 
-	// When in-process TLS is requested via cert/key paths but no explicit
-	// tls.Config was supplied, install a safe default that refuses protocols
-	// below TLS 1.2. Go's own default MinVersion is already TLS 1.2, but we set
-	// it explicitly so the floor is visible and survives future stdlib changes.
-	if newApp.tlsConfig == nil && newApp.tlsCertFile != "" && newApp.tlsKeyFile != "" {
-		newApp.tlsConfig = &tls.Config{MinVersion: tls.VersionTLS12}
+	// Go's own default MinVersion is already TLS 1.2, but set it explicitly so
+	// the floor is visible and survives future stdlib changes.
+	var tlsConfig *tls.Config
+	if cfg.tlsEnabled() {
+		tlsConfig = &tls.Config{MinVersion: tls.VersionTLS12}
 	}
 
-	// Create a new HTTP server with the handler
-	srv := &http.Server{
-		Addr:              fmt.Sprintf("%s:%d", newApp.host, newApp.port),
-		ReadHeaderTimeout: newApp.readHeaderTimeout,
-		WriteTimeout:      newApp.writeTimeout,
-		ReadTimeout:       newApp.readTimeout,
-		IdleTimeout:       newApp.idleTimeout,
-		MaxHeaderBytes:    newApp.maxHeaderBytes,
-		TLSConfig:         newApp.tlsConfig,
-		ErrorLog:          zap.NewStdLog(newApp.logger),
-		Handler:           mux,
-	}
-
-	// Set the server on the app
-	newApp.server = srv
-
-	return newApp, nil
-}
-
-// tlsEnabled reports whether the server should terminate TLS in-process. It is
-// true when both a certificate and key path were configured via WithTLS.
-func (application *Webserver) tlsEnabled() bool {
-	return application.tlsCertFile != "" && application.tlsKeyFile != ""
+	return &Webserver{
+		cfg: cfg,
+		// Buffered so Run can publish the bound address without depending on a
+		// receiver being scheduled. A Webserver is a single-run lifecycle
+		// component, so exactly one address is published.
+		started: make(chan net.Addr, 1),
+		server: &http.Server{
+			Addr:              fmt.Sprintf("%s:%d", cfg.Host, cfg.Port),
+			ReadHeaderTimeout: cfg.ReadHeaderTimeout,
+			WriteTimeout:      cfg.WriteTimeout,
+			ReadTimeout:       cfg.ReadTimeout,
+			IdleTimeout:       cfg.IdleTimeout,
+			MaxHeaderBytes:    cfg.MaxHeaderBytes,
+			TLSConfig:         tlsConfig,
+			ErrorLog:          zap.NewStdLog(cfg.Logger),
+			Handler:           mux,
+		},
+	}, nil
 }
 
 // Run starts the HTTP server and blocks until ctx is cancelled or the server
@@ -211,8 +215,8 @@ func (application *Webserver) Run(ctx context.Context) error {
 	serveErr := make(chan error, 1)
 	go func() {
 		var err error
-		if application.tlsEnabled() {
-			err = application.server.ServeTLS(listener, application.tlsCertFile, application.tlsKeyFile)
+		if application.cfg.tlsEnabled() {
+			err = application.server.ServeTLS(listener, application.cfg.TLSCertFile, application.cfg.TLSKeyFile)
 		} else {
 			err = application.server.Serve(listener)
 		}
@@ -242,7 +246,7 @@ func (application *Webserver) Run(ctx context.Context) error {
 	case <-ctx.Done():
 		// Use a fresh context: the one we were handed is already cancelled, so
 		// deriving the shutdown deadline from it would abort immediately.
-		shutdownCtx, cancel := context.WithTimeout(context.Background(), application.shutdownTimeout)
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), application.cfg.ShutdownTimeout)
 		defer cancel()
 
 		if err := application.server.Shutdown(shutdownCtx); err != nil {
@@ -267,154 +271,4 @@ type acceptNotificationListener struct {
 func (listener *acceptNotificationListener) Accept() (net.Conn, error) {
 	listener.notify()
 	return listener.Listener.Accept()
-}
-
-func WithHost(host string) func(*Webserver) {
-	return func(w *Webserver) {
-		w.host = host
-	}
-}
-
-func WithPort(port int) func(*Webserver) {
-	return func(w *Webserver) {
-		w.port = port
-	}
-}
-
-func WithLogger(logger *zap.Logger) func(*Webserver) {
-	return func(w *Webserver) {
-		w.logger = logger
-	}
-}
-
-// WithReadHeaderTimeout bounds how long the server waits for a client to send
-// its request headers, mitigating Slowloris-style attacks. A non-positive
-// timeout is ignored so the safe default remains in place.
-func WithReadHeaderTimeout(timeout time.Duration) func(*Webserver) {
-	return func(w *Webserver) {
-		if timeout > 0 {
-			w.readHeaderTimeout = timeout
-		}
-	}
-}
-
-func WithReadTimeout(timeout time.Duration) func(*Webserver) {
-	return func(w *Webserver) {
-		w.readTimeout = timeout
-	}
-}
-
-func WithWriteTimeout(timeout time.Duration) func(*Webserver) {
-	return func(w *Webserver) {
-		w.writeTimeout = timeout
-	}
-}
-
-func WithIdleTimeout(timeout time.Duration) func(*Webserver) {
-	return func(w *Webserver) {
-		w.idleTimeout = timeout
-	}
-}
-
-// WithRequestTimeout bounds total request-processing time via chi's Timeout
-// middleware, cancelling the request context once the deadline elapses so a slow
-// handler or stalled client can't hold a connection indefinitely. A non-positive
-// timeout disables the middleware entirely (unbounded processing), overriding
-// the safe 60s default rather than preserving it.
-func WithRequestTimeout(timeout time.Duration) func(*Webserver) {
-	return func(w *Webserver) {
-		w.requestTimeout = timeout
-	}
-}
-
-// WithShutdownTimeout bounds how long a graceful shutdown waits for in-flight
-// requests to drain before the server is forced closed, so a wedged handler
-// can't hang the process on SIGTERM. A non-positive timeout is ignored so the
-// safe 15s default remains in place.
-func WithShutdownTimeout(timeout time.Duration) func(*Webserver) {
-	return func(w *Webserver) {
-		if timeout > 0 {
-			w.shutdownTimeout = timeout
-		}
-	}
-}
-
-// WithMaxHeaderBytes caps the total size of request headers the server will
-// read, bounding the memory a single request can force the server to buffer. A
-// non-positive value is ignored so the safe 1 MiB default remains in place.
-func WithMaxHeaderBytes(maxBytes int) func(*Webserver) {
-	return func(w *Webserver) {
-		if maxBytes > 0 {
-			w.maxHeaderBytes = maxBytes
-		}
-	}
-}
-
-// WithMaxBodyBytes caps the size of each request body the server will read,
-// bounding the memory a single request can force the server to buffer. Unlike
-// WithMaxHeaderBytes, a non-positive value disables the limit entirely
-// (unbounded bodies), overriding the safe 10 MiB default rather than preserving
-// it — 0 means "no limit", not "reject everything".
-func WithMaxBodyBytes(maxBytes int64) func(*Webserver) {
-	return func(w *Webserver) {
-		w.maxBodyBytes = maxBytes
-	}
-}
-
-func WithFileServer(fs http.Handler) func(*Webserver) {
-	return func(w *Webserver) {
-		w.fileserver = fs
-	}
-}
-
-// WithPprof toggles the /debug/pprof/* profiling endpoints. They are disabled by
-// default because they expose process internals and are unauthenticated on the
-// public mux; enable only in trusted environments or behind separate access
-// controls.
-func WithPprof(enabled bool) func(*Webserver) {
-	return func(w *Webserver) {
-		w.pprofEnabled = enabled
-	}
-}
-
-// WithTLS enables in-process TLS termination using the PEM-encoded certificate
-// and key at the given paths. Use this only for standalone deployments where
-// the Go process is internet-facing; when TLS is terminated upstream by a
-// reverse proxy or load balancer (the default posture) leave it unset. Both
-// paths must be non-empty for TLS to activate — if either is empty the option
-// is a no-op and the server continues to serve plain HTTP. Unless a full
-// tls.Config is supplied via WithTLSConfig, the server negotiates a TLS 1.2
-// protocol floor.
-func WithTLS(certFile, keyFile string) func(*Webserver) {
-	return func(w *Webserver) {
-		if certFile != "" && keyFile != "" {
-			w.tlsCertFile = certFile
-			w.tlsKeyFile = keyFile
-		}
-	}
-}
-
-// WithTLSConfig sets the tls.Config used when TLS is enabled via WithTLS,
-// overriding the default (a TLS 1.2 floor). Use it for advanced setups such as
-// mutual TLS, a raised MinVersion, or a pinned cipher-suite list. A nil config
-// is ignored so the safe default remains in place. This option only takes
-// effect when WithTLS has also supplied certificate and key paths.
-func WithTLSConfig(cfg *tls.Config) func(*Webserver) {
-	return func(w *Webserver) {
-		if cfg != nil {
-			w.tlsConfig = cfg
-		}
-	}
-}
-
-// WithCORSOrigins sets the origins permitted by the CORS middleware. Each entry
-// may contain a "*" wildcard (e.g. "https://*.example.com"). An empty slice is
-// ignored so the permissive default remains in place. Restrict this to your
-// front-end origins before deploying to production.
-func WithCORSOrigins(origins []string) func(*Webserver) {
-	return func(w *Webserver) {
-		if len(origins) > 0 {
-			w.corsOrigins = origins
-		}
-	}
 }

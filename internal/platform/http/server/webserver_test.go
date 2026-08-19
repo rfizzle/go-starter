@@ -17,7 +17,7 @@ import (
 
 func TestNewWebserver(t *testing.T) {
 	handler := http.NewServeMux()
-	ws, err := New(handler)
+	ws, err := New(handler, Config{})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
@@ -35,7 +35,7 @@ func TestWebserverStartAndStop(t *testing.T) {
 		w.WriteHeader(http.StatusOK)
 	})
 
-	ws, err := New(handler, WithHost("127.0.0.1"), WithPort(0))
+	ws, err := New(handler, Config{Host: "127.0.0.1"})
 	assert.NoError(t, err)
 
 	// Run drives both startup and graceful shutdown off the context: cancelling
@@ -92,7 +92,7 @@ func TestWebserverStartAndStop(t *testing.T) {
 
 func TestPprofGating(t *testing.T) {
 	// pprof is a security-sensitive surface, so lock in that it stays off the
-	// mux unless explicitly enabled and appears only when WithPprof(true) is set.
+	// mux unless explicitly enabled and appears only when Config.PprofEnabled is set.
 	tests := []struct {
 		name       string
 		enabled    bool
@@ -104,7 +104,7 @@ func TestPprofGating(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ws, err := New(http.NewServeMux(), WithPprof(tt.enabled))
+			ws, err := New(http.NewServeMux(), Config{PprofEnabled: tt.enabled})
 			assert.NoError(t, err)
 
 			req := httptest.NewRequest(http.MethodGet, "/debug/pprof/", nil)
@@ -117,31 +117,31 @@ func TestPprofGating(t *testing.T) {
 }
 
 func TestCORSOrigins(t *testing.T) {
-	// The default is permissive (any origin echoed back); WithCORSOrigins should
+	// The default is permissive (any origin echoed back); Config.CORSOrigins should
 	// restrict allowed origins so a disallowed origin gets no
 	// Access-Control-Allow-Origin header.
 	tests := []struct {
 		name        string
-		options     []func(*Webserver)
+		cfg         Config
 		origin      string
 		wantAllowed bool
 	}{
 		{name: "default allows any origin", origin: "https://evil.example.com", wantAllowed: true},
 		{
 			name:        "restricted allows configured origin",
-			options:     []func(*Webserver){WithCORSOrigins([]string{"https://app.example.com"})},
+			cfg:         Config{CORSOrigins: []string{"https://app.example.com"}},
 			origin:      "https://app.example.com",
 			wantAllowed: true,
 		},
 		{
 			name:        "restricted blocks other origin",
-			options:     []func(*Webserver){WithCORSOrigins([]string{"https://app.example.com"})},
+			cfg:         Config{CORSOrigins: []string{"https://app.example.com"}},
 			origin:      "https://evil.example.com",
 			wantAllowed: false,
 		},
 		{
 			name:        "empty slice keeps permissive default",
-			options:     []func(*Webserver){WithCORSOrigins(nil)},
+			cfg:         Config{CORSOrigins: nil},
 			origin:      "https://evil.example.com",
 			wantAllowed: true,
 		},
@@ -149,7 +149,7 @@ func TestCORSOrigins(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ws, err := New(http.NewServeMux(), tt.options...)
+			ws, err := New(http.NewServeMux(), tt.cfg)
 			assert.NoError(t, err)
 
 			// A CORS preflight is the reliable way to observe the middleware's
@@ -176,7 +176,7 @@ func TestForwardedForDoesNotRewriteUntrustedPeer(t *testing.T) {
 		remoteAddr = r.RemoteAddr
 		w.WriteHeader(http.StatusNoContent)
 	})
-	ws, err := New(handler)
+	ws, err := New(handler, Config{})
 	assert.NoError(t, err)
 
 	request := httptest.NewRequest(http.MethodPost, "/api/v1/login", nil)
@@ -193,19 +193,19 @@ func TestReadHeaderTimeout(t *testing.T) {
 	// A non-zero ReadHeaderTimeout on the http.Server is what closes the
 	// Slowloris surface, so verify both the safe default and the override.
 	t.Run("safe default when unset", func(t *testing.T) {
-		ws, err := New(http.NewServeMux())
+		ws, err := New(http.NewServeMux(), Config{})
 		assert.NoError(t, err)
 		assert.Equal(t, 5*time.Second, ws.server.ReadHeaderTimeout)
 	})
 
 	t.Run("override via option", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithReadHeaderTimeout(2*time.Second))
+		ws, err := New(http.NewServeMux(), Config{ReadHeaderTimeout: 2 * time.Second})
 		assert.NoError(t, err)
 		assert.Equal(t, 2*time.Second, ws.server.ReadHeaderTimeout)
 	})
 
 	t.Run("non-positive keeps default", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithReadHeaderTimeout(0))
+		ws, err := New(http.NewServeMux(), Config{ReadHeaderTimeout: -1})
 		assert.NoError(t, err)
 		assert.Equal(t, 5*time.Second, ws.server.ReadHeaderTimeout)
 	})
@@ -216,19 +216,19 @@ func TestMaxHeaderBytes(t *testing.T) {
 	// request's headers can force the server to buffer, so verify both the safe
 	// default and the override.
 	t.Run("safe default when unset", func(t *testing.T) {
-		ws, err := New(http.NewServeMux())
+		ws, err := New(http.NewServeMux(), Config{})
 		assert.NoError(t, err)
 		assert.Equal(t, 1<<20, ws.server.MaxHeaderBytes)
 	})
 
 	t.Run("override via option", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithMaxHeaderBytes(2<<20))
+		ws, err := New(http.NewServeMux(), Config{MaxHeaderBytes: 2 << 20})
 		assert.NoError(t, err)
 		assert.Equal(t, 2<<20, ws.server.MaxHeaderBytes)
 	})
 
 	t.Run("non-positive keeps default", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithMaxHeaderBytes(0))
+		ws, err := New(http.NewServeMux(), Config{MaxHeaderBytes: -1})
 		assert.NoError(t, err)
 		assert.Equal(t, 1<<20, ws.server.MaxHeaderBytes)
 	})
@@ -236,23 +236,23 @@ func TestMaxHeaderBytes(t *testing.T) {
 
 func TestRequestTimeout(t *testing.T) {
 	// The chi Timeout middleware bounds total request processing; verify the safe
-	// default, an override, and that a non-positive value disables it.
+	// default, an override, and that a non-positive value keeps the default.
 	t.Run("safe default when unset", func(t *testing.T) {
-		ws, err := New(http.NewServeMux())
+		ws, err := New(http.NewServeMux(), Config{})
 		assert.NoError(t, err)
-		assert.Equal(t, 60*time.Second, ws.requestTimeout)
+		assert.Equal(t, 60*time.Second, ws.cfg.RequestTimeout)
 	})
 
 	t.Run("override via option", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithRequestTimeout(5*time.Second))
+		ws, err := New(http.NewServeMux(), Config{RequestTimeout: 5 * time.Second})
 		assert.NoError(t, err)
-		assert.Equal(t, 5*time.Second, ws.requestTimeout)
+		assert.Equal(t, 5*time.Second, ws.cfg.RequestTimeout)
 	})
 
-	t.Run("non-positive disables the limit", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithRequestTimeout(0))
+	t.Run("non-positive keeps default", func(t *testing.T) {
+		ws, err := New(http.NewServeMux(), Config{RequestTimeout: -1})
 		assert.NoError(t, err)
-		assert.Equal(t, time.Duration(0), ws.requestTimeout)
+		assert.Equal(t, 60*time.Second, ws.cfg.RequestTimeout)
 	})
 
 	t.Run("deadline cancels a slow handler", func(t *testing.T) {
@@ -269,7 +269,7 @@ func TestRequestTimeout(t *testing.T) {
 			w.WriteHeader(http.StatusOK)
 		})
 
-		ws, err := New(handler, WithRequestTimeout(50*time.Millisecond))
+		ws, err := New(handler, Config{RequestTimeout: 50 * time.Millisecond})
 		assert.NoError(t, err)
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/slow", nil)
@@ -284,84 +284,58 @@ func TestShutdownTimeout(t *testing.T) {
 	// The shutdown timeout bounds how long graceful shutdown waits for in-flight
 	// requests to drain, so verify both the safe default and the override.
 	t.Run("safe default when unset", func(t *testing.T) {
-		ws, err := New(http.NewServeMux())
+		ws, err := New(http.NewServeMux(), Config{})
 		assert.NoError(t, err)
-		assert.Equal(t, 15*time.Second, ws.shutdownTimeout)
+		assert.Equal(t, 15*time.Second, ws.cfg.ShutdownTimeout)
 	})
 
 	t.Run("override via option", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithShutdownTimeout(30*time.Second))
+		ws, err := New(http.NewServeMux(), Config{ShutdownTimeout: 30 * time.Second})
 		assert.NoError(t, err)
-		assert.Equal(t, 30*time.Second, ws.shutdownTimeout)
+		assert.Equal(t, 30*time.Second, ws.cfg.ShutdownTimeout)
 	})
 
 	t.Run("non-positive keeps default", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithShutdownTimeout(0))
+		ws, err := New(http.NewServeMux(), Config{ShutdownTimeout: -1})
 		assert.NoError(t, err)
-		assert.Equal(t, 15*time.Second, ws.shutdownTimeout)
+		assert.Equal(t, 15*time.Second, ws.cfg.ShutdownTimeout)
 	})
 }
 
 func TestTLSConfiguration(t *testing.T) {
 	// TLS is off by default (proxy-terminated posture) and only activates when
-	// both a cert and key path are supplied. When it does, a safe TLS 1.2 floor
-	// is installed unless overridden.
+	// both a cert and key path are supplied. When it does, a TLS 1.2 floor is
+	// installed.
 	t.Run("disabled by default", func(t *testing.T) {
-		ws, err := New(http.NewServeMux())
+		ws, err := New(http.NewServeMux(), Config{})
 		assert.NoError(t, err)
-		assert.False(t, ws.tlsEnabled())
+		assert.False(t, ws.cfg.tlsEnabled())
 		assert.Nil(t, ws.server.TLSConfig)
 	})
 
 	t.Run("enabled installs safe default floor", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", "key.pem"))
+		ws, err := New(http.NewServeMux(), Config{TLSCertFile: "cert.pem", TLSKeyFile: "key.pem"})
 		assert.NoError(t, err)
-		assert.True(t, ws.tlsEnabled())
+		assert.True(t, ws.cfg.tlsEnabled())
 		if assert.NotNil(t, ws.server.TLSConfig) {
 			assert.Equal(t, uint16(tls.VersionTLS12), ws.server.TLSConfig.MinVersion)
 		}
 	})
 
 	t.Run("missing key path is a no-op", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", ""))
+		ws, err := New(http.NewServeMux(), Config{TLSCertFile: "cert.pem"})
 		assert.NoError(t, err)
-		assert.False(t, ws.tlsEnabled())
+		assert.False(t, ws.cfg.tlsEnabled())
 		assert.Nil(t, ws.server.TLSConfig)
-	})
-
-	t.Run("custom config overrides default", func(t *testing.T) {
-		custom := &tls.Config{MinVersion: tls.VersionTLS13}
-		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", "key.pem"), WithTLSConfig(custom))
-		assert.NoError(t, err)
-		if assert.NotNil(t, ws.server.TLSConfig) {
-			assert.Equal(t, uint16(tls.VersionTLS13), ws.server.TLSConfig.MinVersion)
-		}
-	})
-
-	t.Run("nil custom config keeps default", func(t *testing.T) {
-		ws, err := New(http.NewServeMux(), WithTLS("cert.pem", "key.pem"), WithTLSConfig(nil))
-		assert.NoError(t, err)
-		if assert.NotNil(t, ws.server.TLSConfig) {
-			assert.Equal(t, uint16(tls.VersionTLS12), ws.server.TLSConfig.MinVersion)
-		}
 	})
 }
 
-func TestWithHostAndPortOptions(t *testing.T) {
-	handler := http.NewServeMux()
-	host := "127.0.0.1"
-	port := 9090
-	ws, err := New(handler, WithHost(host), WithPort(port))
+func TestHostAndPortAddress(t *testing.T) {
+	ws, err := New(http.NewServeMux(), Config{Host: "127.0.0.1", Port: 9090})
 	if err != nil {
 		t.Fatalf("Expected no error, got %v", err)
 	}
-	if ws == nil {
-		t.Fatal("Expected webserver instance, got nil")
-	}
-	if ws.host != host {
-		t.Errorf("Expected host %s, got %s", host, ws.host)
-	}
-	if ws.port != port {
-		t.Errorf("Expected port %d, got %d", port, ws.port)
+	if ws.server.Addr != "127.0.0.1:9090" {
+		t.Errorf("Expected address 127.0.0.1:9090, got %s", ws.server.Addr)
 	}
 }

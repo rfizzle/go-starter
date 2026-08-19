@@ -42,8 +42,7 @@ type Webserver struct {
 	// ReadHeaderTimeout is the timeout, in seconds, for reading request
 	// headers. It bounds how long a client may take to send its headers,
 	// mitigating Slowloris-style attacks that hold connections open by
-	// trickling headers. 0 keeps this server's safe 5s default rather than
-	// Go's own behaviour (fall back to ReadTimeout, else no timeout at all).
+	// trickling headers. 0 keeps the server's 5s default.
 	ReadHeaderTimeout int `mapstructure:"read-header-timeout"`
 	ReadTimeout       int `mapstructure:"read-timeout"`
 	WriteTimeout      int `mapstructure:"write-timeout"`
@@ -51,23 +50,22 @@ type Webserver struct {
 	// RequestTimeout bounds total request-processing time, in seconds, via chi's
 	// Timeout middleware. It cancels the request context once the deadline
 	// elapses so a slow handler or stalled client can't hold a connection
-	// indefinitely. 0 disables the middleware (unbounded processing).
-	// Default 60s.
+	// indefinitely. 0 keeps the server's 60s default.
 	RequestTimeout int `mapstructure:"request-timeout"`
 	// ShutdownTimeout bounds, in seconds, how long a graceful shutdown waits for
 	// in-flight requests to drain before the server is forced closed, so a wedged
-	// handler can't hang the process on SIGTERM. 0 keeps this server's safe 15s
+	// handler can't hang the process on SIGTERM. 0 keeps the server's 15s
 	// default.
 	ShutdownTimeout int `mapstructure:"shutdown-timeout"`
 	// MaxHeaderBytes caps the total size, in bytes, of request headers the
 	// server will read. It bounds the memory a single request can force the
-	// server to buffer, mitigating oversized-header attacks. 0 keeps this
-	// server's safe 1 MiB default.
+	// server to buffer, mitigating oversized-header attacks. 0 keeps the
+	// server's 1 MiB default.
 	MaxHeaderBytes int `mapstructure:"max-header-bytes"`
 	// MaxBodyBytes caps the size, in bytes, of each request body the server will
 	// read. It bounds the memory a single POST/PUT can force the server to
 	// buffer; reading past it fails the request (413 or 400 depending on the
-	// handler). 0 disables the limit (unbounded bodies). Default 10 MiB.
+	// handler). 0 keeps the server's 10 MiB default.
 	MaxBodyBytes int64 `mapstructure:"max-body-bytes"`
 	// PprofEnabled mounts the /debug/pprof/* profiling endpoints on the public
 	// mux. Disabled by default: the endpoints are unauthenticated and expose

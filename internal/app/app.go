@@ -293,26 +293,27 @@ func (application *App) Run(ctx context.Context) error {
 	staticFs := staticweb.AssetHandler("/", "")
 
 	// Configure application webserver
-	webServer, err := httpserver.New(
-		apiHandler,
-		httpserver.WithHost(application.cfg.Webserver.Address),
-		httpserver.WithPort(application.cfg.Webserver.Port),
-		httpserver.WithReadHeaderTimeout(time.Duration(application.cfg.Webserver.ReadHeaderTimeout)*time.Second),
-		httpserver.WithReadTimeout(time.Duration(application.cfg.Webserver.ReadTimeout)*time.Second),
-		httpserver.WithWriteTimeout(time.Duration(application.cfg.Webserver.WriteTimeout)*time.Second),
-		httpserver.WithIdleTimeout(time.Duration(application.cfg.Webserver.IdleTimeout)*time.Second),
-		httpserver.WithRequestTimeout(time.Duration(application.cfg.Webserver.RequestTimeout)*time.Second),
-		httpserver.WithShutdownTimeout(time.Duration(application.cfg.Webserver.ShutdownTimeout)*time.Second),
-		httpserver.WithMaxHeaderBytes(application.cfg.Webserver.MaxHeaderBytes),
-		httpserver.WithMaxBodyBytes(application.cfg.Webserver.MaxBodyBytes),
-		httpserver.WithLogger(application.logger),
-		httpserver.WithFileServer(staticFs),
-		httpserver.WithPprof(application.cfg.Webserver.PprofEnabled),
-		httpserver.WithCORSOrigins(application.cfg.Webserver.CORSAllowedOrigins),
-		// No-op unless both paths are set; otherwise TLS is assumed to be
-		// terminated upstream by a reverse proxy.
-		httpserver.WithTLS(application.cfg.Webserver.TLSCertFile, application.cfg.Webserver.TLSKeyFile),
-	)
+	webCfg := application.cfg.Webserver
+	webServer, err := httpserver.New(apiHandler, httpserver.Config{
+		Host:              webCfg.Address,
+		Port:              webCfg.Port,
+		Logger:            application.logger,
+		FileServer:        staticFs,
+		ReadHeaderTimeout: time.Duration(webCfg.ReadHeaderTimeout) * time.Second,
+		ReadTimeout:       time.Duration(webCfg.ReadTimeout) * time.Second,
+		WriteTimeout:      time.Duration(webCfg.WriteTimeout) * time.Second,
+		IdleTimeout:       time.Duration(webCfg.IdleTimeout) * time.Second,
+		RequestTimeout:    time.Duration(webCfg.RequestTimeout) * time.Second,
+		ShutdownTimeout:   time.Duration(webCfg.ShutdownTimeout) * time.Second,
+		MaxHeaderBytes:    webCfg.MaxHeaderBytes,
+		MaxBodyBytes:      webCfg.MaxBodyBytes,
+		PprofEnabled:      webCfg.PprofEnabled,
+		CORSOrigins:       webCfg.CORSAllowedOrigins,
+		// TLS activates only when both paths are set; otherwise TLS is assumed
+		// to be terminated upstream by a reverse proxy.
+		TLSCertFile: webCfg.TLSCertFile,
+		TLSKeyFile:  webCfg.TLSKeyFile,
+	})
 	if err != nil {
 		return fmt.Errorf("server.New(): %w", err)
 	}
