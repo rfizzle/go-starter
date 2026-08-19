@@ -130,19 +130,9 @@ func addSeedFlags(command *cobra.Command) {
 	command.Flags().String("seed.first-name", "", "first name for the development seed user")
 	command.Flags().String("seed.last-name", "", "last name for the development seed user")
 
-	// Database options (mirrors serve so seed is runnable standalone).
-	command.Flags().String("database.uri", "", "PostgreSQL connection URI, e.g. the value of $DATABASE_URI")
-	command.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
-	command.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
-	command.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
-	command.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
-	command.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
-	command.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
-
-	// Logging options (mirrors serve so seed honours the same flags rather than
-	// only config file / env vars).
-	command.Flags().String("logging.level", "info", "minimum log level: debug, info, warn, or error (--verbose forces debug)")
-	command.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")
+	// Database and logging options (mirrors serve so seed is runnable standalone).
+	addDatabaseFlags(command)
+	addLoggingFlags(command)
 }
 
 func generateSeedPassword() (string, error) {

@@ -118,15 +118,8 @@ func migrationActionDescription(action migrationAction) string {
 
 func addMigrationFlags(command *cobra.Command) {
 	command.Flags().String("environment", "production", "runtime environment (development, staging, production); selects logger defaults")
-	command.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
-	command.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
-	command.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
-	command.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
-	command.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
-	command.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
-	command.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
-	command.Flags().String("logging.level", "info", "minimum log level: debug, info, warn, or error (--verbose forces debug)")
-	command.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")
+	addDatabaseFlags(command)
+	addLoggingFlags(command)
 }
 
 func runMigration(

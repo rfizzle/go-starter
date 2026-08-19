@@ -67,3 +67,24 @@ func persistentPreRunEHook(fn func(cmd *cobra.Command, args []string) error) fun
 		return nil
 	}
 }
+
+// addDatabaseFlags registers the connection-pool flags every database-backed
+// subcommand (serve, seed, migrate) accepts, so their names, defaults, and help
+// text cannot drift between commands. Flags specific to one command (for
+// example serve's auto-migrate) stay with that command.
+func addDatabaseFlags(command *cobra.Command) {
+	command.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
+	command.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
+	command.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
+	command.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
+	command.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
+	command.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
+	command.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
+}
+
+// addLoggingFlags registers the logger flags shared by serve, seed, and migrate
+// so each command honours the same flags rather than only config file / env vars.
+func addLoggingFlags(command *cobra.Command) {
+	command.Flags().String("logging.level", "info", "minimum log level: debug, info, warn, or error (--verbose forces debug)")
+	command.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")
+}

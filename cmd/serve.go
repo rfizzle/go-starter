@@ -156,14 +156,8 @@ func addServeFlags(command *cobra.Command) {
 	command.Flags().String("webserver.tls-key-file", "", "path to the PEM-encoded TLS private key; set with tls-cert-file to terminate TLS in-process (leave unset when a reverse proxy terminates TLS)")
 
 	// Database options
-	command.Flags().String("database.uri", "", "PostgreSQL connection URI (e.g. postgres://user:pass@host:5432/db)")
-	command.Flags().Int("database.ping-timeout", 15, "timeout in seconds for database ping operations")
+	addDatabaseFlags(command)
 	command.Flags().Bool("database.auto-migrate", false, "apply embedded migrations before starting HTTP (disabled by default; prefer a migrate up deployment job)")
-	command.Flags().Int("database.max-conns", 0, "maximum size of the connection pool (0 uses the pgx default: max(4, NumCPU))")
-	command.Flags().Int("database.min-conns", 0, "number of idle connections kept warm in the pool (0 uses the pgx default: 0)")
-	command.Flags().Int("database.max-conn-lifetime", 0, "seconds after which a connection is closed and replaced (0 uses the pgx default: 3600)")
-	command.Flags().Int("database.max-conn-idle-time", 0, "seconds after which an idle connection is closed (0 uses the pgx default: 1800)")
-	command.Flags().Int("database.health-check-period", 0, "seconds between pool health checks of idle connections (0 uses the pgx default: 60)")
 	command.Flags().Int("database.close-timeout", 10, "seconds to wait for the connection pool to close on shutdown before abandoning it (0 waits indefinitely)")
 
 	// Auth options
@@ -180,8 +174,7 @@ func addServeFlags(command *cobra.Command) {
 	command.Flags().StringSlice("rate-limit.trusted-proxies", nil, "trusted reverse-proxy CIDRs allowed to supply X-Forwarded-For (for example 10.0.0.0/8; empty trusts no proxy)")
 
 	// Logging options
-	command.Flags().String("logging.level", "info", "minimum log level: debug, info, warn, or error (--verbose forces debug)")
-	command.Flags().String("logging.format", "", "log encoding: json or console (defaults to console in development, json otherwise)")
+	addLoggingFlags(command)
 
 	// Observability options
 	command.Flags().Bool("observability.enabled", false, "export traces and metrics via OTLP/gRPC (disabled by default; when off the OpenTelemetry providers stay no-op and nothing is exported)")
