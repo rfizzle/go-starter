@@ -72,9 +72,10 @@ Unsure → plan
 - **Role agent**: a scoped subagent defined in `docs/ai/prompts/` and surfaced
   through `.claude/agents/`
 - **Implementation Plan**: an ordered task breakdown for a feature or fix,
-  stored in `docs/plans/`
+  returned by the planning agent for approval before development starts
 - **Feature Specification**: the approved statement of behavior, acceptance
-  criteria, and non-goals, stored in `docs/features/`
+  criteria, and non-goals, kept as a co-located `<package>.spec.md` (or a
+  `docs/flows/` flow spec) per the `backend-spec` skill
 - **Package Review**: review of all changes within a single package stage
 - **Quality Gate**: a check that must pass before work proceeds
 - **Handoff Criteria**: conditions that must hold before passing work on

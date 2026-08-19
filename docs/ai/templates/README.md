@@ -137,7 +137,7 @@ cp docs/ai/templates/prompt.md docs/ai/prompts/reviewer.md
 ### Feature Documentation
 ```bash
 # Documenting an authentication feature
-cp docs/ai/templates/feature.md docs/features/authentication.md
+cp docs/ai/templates/feature.md internal/modules/authentication/authentication.spec.md
 # Capture requirements, acceptance criteria, and implementation guidance
 ```
 

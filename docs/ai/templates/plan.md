@@ -1,6 +1,6 @@
 # Implementation Plan: [FEATURE_NAME]
 
-**Source:** `docs/features/[YYYY-MM-DD-feature-name.md]`  
+**Source:** `internal/modules/[package]/[package].spec.md`  
 **Date:** [YYYY-MM-DD]  
 **Status:** [Planning/Ready/In Progress/Complete]
 

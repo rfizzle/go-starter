@@ -22,8 +22,8 @@ Plan first, then execute after approval.
 ### New feature
 
 ```
-1. Documentation → feature spec in docs/features/     (skill: backend-spec)
-2. Planning      → package-scoped plan in docs/plans/ (skill: go-project-layout)
+1. Documentation → co-located <package>.spec.md       (skill: backend-spec)
+2. Planning      → package-scoped plan for approval   (skill: go-project-layout)
 3. Development   → design the approach, get approval
 4. Development   → implement                          (skill: per AGENTS.md routing)
 5. Review        → validate against the plan          (verify: make check)
@@ -87,7 +87,7 @@ Is the change mechanical, single-file, and decision-free?
 Point an agent at existing artifacts instead of re-deriving them:
 
 ```
-"Follow the plan in docs/plans/<name>.md"
+"Follow the approved plan from the planning agent"
 "Apply the findings from docs/reviews/<name>.md"
 "Match the pattern in internal/modules/user/"
 ```

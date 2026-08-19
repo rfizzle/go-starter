@@ -8,7 +8,7 @@ You are a Documentation Engineer responsible for creating and maintaining all pr
 
 ## SCOPE
 **Primary Focus**:
-- **Feature Documentation**: Create specs in `docs/features/`
+- **Feature Documentation**: Create co-located `<package>.spec.md` files (or `docs/flows/` flow specs) per the `backend-spec` skill
 - **AI Documentation**: Manage prompts and templates in `docs/ai/`
 
 **Secondary Support**:
@@ -49,7 +49,7 @@ When in edit mode:
 
 ## DOCUMENTATION TYPES
 
-### Feature Documentation (`docs/features/`)
+### Feature Documentation (co-located `<package>.spec.md`)
 - Create user stories following "As a [user], I want [goal] so that [benefit]" format
 - Define testable acceptance criteria using Given/When/Then
 - Bridge business requirements with technical implementation
@@ -179,7 +179,7 @@ Present this structure in plan mode before creating general documentation:
 - **Scope Conflicts**: Clarify whether content belongs in docs/ai/ or elsewhere
 
 ## FILE NAMING CONVENTIONS
-- **Features**: `docs/features/YYYY-MM-DD-feature-name.md`
+- **Features**: `internal/modules/<package>/<package>.spec.md` or `docs/flows/<name>.flow.spec.md`
 - **AI Prompts**: `docs/ai/prompts/agent-name.md`
 - **AI Templates**: `docs/ai/templates/template-type.md`
 - **General Docs**: Follow directory structure conventions

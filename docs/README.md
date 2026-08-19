@@ -37,20 +37,6 @@ Architectural decisions, patterns, and system design documentation.
 - **[module-platform-boundaries.md](architecture/module-platform-boundaries.md)** - Accepted package placement, dependency direction, and enforcement
 - **[current-state.md](architecture/current-state.md)** - Implemented runtime and package map
 
-### 📁 features/
-Feature specifications and requirements documentation.
-
-- **[README.md](features/README.md)** - How feature documents are written and reviewed
-- Feature documents follow the template in [ai/templates/feature.md](ai/templates/feature.md)
-- Each feature includes user stories, acceptance criteria, and technical requirements
-
-### 📁 plans/
-Implementation plans created from feature specifications.
-
-- **[README.md](plans/README.md)** - Plan conventions and lifecycle
-- Plans follow the template in [ai/templates/plan.md](ai/templates/plan.md)
-- Include task breakdowns, technical approaches, and risk assessments
-
 ### 📁 reviews/
 Point-in-time code review records. These are historical artifacts, not current
 guidance — they are excluded from the documentation linter's freshness checks.

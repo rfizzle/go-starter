@@ -23,8 +23,8 @@ still applies inside whichever agent is running.
 
 | Agent | Focus | Produces |
 | --- | --- | --- |
-| [Documentation](prompts/documentation.md) | Specs, READMEs, prompts, templates | Documents in `docs/features/` and `docs/ai/` |
-| [Planning](prompts/planning.md) | Task breakdown, risks, sequencing | Plans in `docs/plans/` |
+| [Documentation](prompts/documentation.md) | Specs, READMEs, prompts, templates | Co-located `<package>.spec.md` files, `docs/flows/`, and `docs/ai/` |
+| [Planning](prompts/planning.md) | Task breakdown, risks, sequencing | The plan returned for approval |
 | [Review](prompts/review.md) | Code quality, security, standards | Reviews in `docs/reviews/` |
 | [Development](prompts/development.md) | Implementation and fixes | Source changes |
 

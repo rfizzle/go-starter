@@ -42,8 +42,8 @@ ai/
 
 | Agent | Scope | Writes to |
 | --- | --- | --- |
-| [Documentation](prompts/documentation.md) | Specs, READMEs, prompts, templates | `docs/features/`, `docs/ai/` |
-| [Planning](prompts/planning.md) | Task breakdown and risk assessment | `docs/plans/` |
+| [Documentation](prompts/documentation.md) | Specs, READMEs, prompts, templates | Co-located `<package>.spec.md` files, `docs/flows/`, `docs/ai/` |
+| [Planning](prompts/planning.md) | Task breakdown and risk assessment | The plan returned for approval |
 | [Review](prompts/review.md) | Code quality analysis | `docs/reviews/` |
 | [Development](prompts/development.md) | Implementation and fixes | Source packages |
 
