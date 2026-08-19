@@ -44,10 +44,7 @@ Supporting material for AI-assisted work. [AGENTS.md](../AGENTS.md) holds the
 authoritative rules and the task type → skill → verification routing table; the
 skill library itself lives in [`.agents/skills/`](../.agents/skills/README.md).
 
-- **[README.md](ai/README.md)** - How AGENTS.md, skills, role agents, and templates fit together
-- **[agent-guide.md](ai/agent-guide.md)** - Role agent scopes and handoff points
-- **[workflow-shortcuts.md](ai/workflow-shortcuts.md)** - Common multi-step task patterns
-- **[DEFINITIONS.md](ai/DEFINITIONS.md)** - Shared terminology and quality gates
+- **[README.md](ai/README.md)** - How AGENTS.md, skills, and the role agents fit together; agent scopes, handoffs, and plan-then-execute criteria
 
 #### ai/prompts/
 Role agent definitions, surfaced to Claude Code as relative symlinks under `.claude/agents/`.
@@ -58,13 +55,7 @@ Role agent definitions, surfaced to Claude Code as relative symlinks under `.cla
 - **[development.md](ai/prompts/development.md)** - Implementation and bug-fix agent
 
 #### ai/templates/
-Reusable templates for creating consistent documentation.
-
-- **[README.md](ai/templates/README.md)** - Template usage guide
-- **[feature.md](ai/templates/feature.md)** - Feature specification template
-- **[plan.md](ai/templates/plan.md)** - Implementation plan template
-- **[review.md](ai/templates/review.md)** - Code review report template
-- **[prompt.md](ai/templates/prompt.md)** - AI agent prompt template
+- **[review.md](ai/templates/review.md)** - Code review report template used for `docs/reviews/`
 
 ## Key Concepts
 
@@ -117,12 +108,11 @@ shared infrastructure-free contracts. The composition root lives in
 1. Start with [AGENTS.md](../AGENTS.md) — it is authoritative and carries the task type → skill → verification routing table
 2. Load the narrowest applicable skill from [`.agents/skills/`](../.agents/skills/README.md)
 3. Use [development/project-context.md](development/project-context.md) for project understanding
-4. See [ai/README.md](ai/README.md) for how the role agents and templates fit around AGENTS.md
-5. Follow templates in [ai/templates/](ai/templates/) for consistent documentation
+4. See [ai/README.md](ai/README.md) for how the role agents fit around AGENTS.md
 
 ### Best Practices
 - Always reference specific file paths when discussing code
-- Use templates for creating new documentation
+- Use [ai/templates/review.md](ai/templates/review.md) for review records
 - Define clear package contracts and add interfaces only at justified seams
 - Maintain consistency with existing patterns
 
@@ -132,8 +122,7 @@ When adding new documentation:
 1. Place files in the appropriate directory
 2. Update this README.md index
 3. Follow existing naming conventions
-4. Use templates where applicable
-5. Cross-reference related documents
+4. Cross-reference related documents
 
 ## Version Information
 
