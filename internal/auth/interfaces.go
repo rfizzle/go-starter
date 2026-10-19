@@ -1,6 +1,6 @@
 package auth
 
-// Generator interface for token generation
+// Generator mints a signed token for a subject.
 type Generator interface {
 	NewToken(subject string) (string, error)
 }

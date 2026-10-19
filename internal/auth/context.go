@@ -8,12 +8,10 @@ type (
 	authSubjectContextKey struct{}
 )
 
-// A authSubjectContext is a struct that contains a subject map.
 type authSubjectContext struct {
 	SubjectMap map[string]string
 }
 
-// newAuthSubjectContext creates a new context for a Subject.
 func newAuthSubjectContext(ctx context.Context, key string, subject string) (context.Context, error) {
 	if subject == "" {
 		return nil, &Error{
@@ -21,10 +19,8 @@ func newAuthSubjectContext(ctx context.Context, key string, subject string) (con
 		}
 	}
 
-	// Get existing context if it exists
 	existingContext, exists := ctx.Value(authSubjectContextKey{}).(authSubjectContext)
 
-	// If a context does not exist, create a new one and return
 	if !exists {
 		return context.WithValue(ctx, authSubjectContextKey{}, authSubjectContext{
 			SubjectMap: map[string]string{
@@ -45,7 +41,6 @@ func newAuthSubjectContext(ctx context.Context, key string, subject string) (con
 	}), nil
 }
 
-// subjectFromContext returns a context with a subject map if present.
 func subjectFromContext(ctx context.Context, key string) (string, error) {
 	v, ok := ctx.Value(authSubjectContextKey{}).(authSubjectContext)
 	if !ok {
@@ -64,7 +59,9 @@ func subjectFromContext(ctx context.Context, key string) (string, error) {
 	return s, nil
 }
 
-// GetSubjectFromContext is a public function to get subject from context with a specific key
+// GetSubjectFromContext returns the subject WithSubject stored under key. The
+// error wraps ErrMissingSubjectContext when ctx carries no subject and
+// ErrMissingKeyFromSubjectContext when it carries none under key.
 func GetSubjectFromContext(ctx context.Context, key string) (string, error) {
 	return subjectFromContext(ctx, key)
 }
