@@ -2,59 +2,38 @@
 
 ## Contents
 
-- [Unit tests with pgxmock](#unit-tests-with-pgxmock)
+- [Unit tests](#unit-tests)
 - [Service tests with fakes](#service-tests-with-fakes)
 - [Integration tests](#integration-tests)
-- [Coverage matrix](#coverage-matrix)
 
-## Unit tests with pgxmock
+## Unit tests
 
-Use `github.com/pashagolub/pgxmock/v4` against the repository's query abstraction. Verify:
-
-- parameterized SQL and arguments
-- scan results and NULL behavior
-- `pgx.ErrNoRows` to documented domain not-found translation
-- constraint and database errors
-- transaction begin/commit/rollback expectations where the repository owns them
-
-Use regex quoting or whitespace-tolerant matching so formatting-only changes do not make
-tests brittle. Always verify mock expectations.
+Unit-test what needs no database: row-to-domain mapping (that persistence-only
+fields are dropped), identifier parsing and query-builder inputs. They run in
+`make test`.
 
 ## Service tests with fakes
 
-Business services should receive the central domain contract or a local consumer port.
-Use a small hand-written function-field fake; do not mock pgx underneath business logic.
+Business services receive a local consumer port. Use a small hand-written fake
+for it; do not mock pgx underneath business logic.
 
 ## Integration tests
 
-Use the repository's disposable PostgreSQL containers (Podman-backed
-testcontainers harness) for integration coverage. Run real migrations and test
-behavior pgxmock cannot prove:
+SQL behaviour is tested against PostgreSQL. Files carry `//go:build integration`
+and use `internal/platform/database/postgrestest`: one container per test binary
+(started from `TestMain` through the harness), a fresh migrated database per
+test. Cover:
 
-- constraints and indexes
-- `FOR UPDATE SKIP LOCKED`
+- not-found and constraint translation
 - transaction visibility and rollback
-- timestamp/UUID/JSON/array behavior
-- migration up/down compatibility
+- `FOR UPDATE SKIP LOCKED` and other locking
+- migration up and down
 
 ```bash
-make generate
 make test-integration
-# or a focused run:
-go test -tags integration ./internal/platform/database/... ./internal/modules/...
+go test -tags integration ./internal/modules/user/...
 ```
 
-The harness provisions its own container through the Podman API socket; no
-separately started service is required.
-
-## Coverage matrix
-
-| Behavior | pgxmock | PostgreSQL integration |
-|---|:---:|:---:|
-| Query shape and arguments | ✓ | |
-| Scan and error branches | ✓ | ✓ |
-| Constraints and locking | | ✓ |
-| Migration behavior | | ✓ |
-| Business orchestration | fake port | selected end-to-end cases |
-
-Never use a production database or add a second database/test framework without approval.
+Without a reachable container runtime the harness skips; set
+`GOSTARTER_REQUIRE_CONTAINERS=1` to make that a failure. The
+`podman-operations` skill covers the socket setup.

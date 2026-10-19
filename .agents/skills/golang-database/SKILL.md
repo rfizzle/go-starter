@@ -1,119 +1,89 @@
 ---
 name: golang-database
-description: Write, review, test, and troubleshoot Go database code for PostgreSQL using pgx/v5, pgxpool, sqlc, squirrel, Goose, parameterized SQL, transactions, migrations, and repository patterns. Use for repository methods, SQL queries, connection pools, pgxmock tests, integration tests, migration changes, and database-to-domain error translation. Follow the repository's module/platform boundaries and approved backend specs.
+description: How PostgreSQL code is changed in this template — sqlc for fixed queries, squirrel for dynamic ones, Goose sequential migrations, pgx/v5 transactions through the repository's WithinTx, and the Makefile targets that regenerate and test them. Use when adding or changing a query, a migration, a repository method, a transaction, or database-to-domain error translation under internal/modules or internal/platform/database. Not for general SQL or pgx usage (their own docs), package placement (go-project-layout) or test design (golang-testing).
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
 
 # Go Database
 
-Use the repository's established PostgreSQL stack. Do not introduce `database/sql`,
-sqlx, an ORM, another query builder, or a second migration system without explicit
-architectural approval.
+The stack is fixed: PostgreSQL 16, pgx/v5 with `pgxpool`, sqlc, squirrel and
+Goose. Don't add `database/sql`, sqlx, an ORM, another query builder or a
+second migration system without a decision recorded for it.
 
-## Project stack
+## Where things are
 
-- PostgreSQL 16
-- `github.com/jackc/pgx/v5` and `pgxpool`
-- sqlc-generated fixed queries under `internal/platform/database/postgres/db`
-- `github.com/Masterminds/squirrel` for genuinely dynamic query shapes
-- Goose with sequential SQL migrations under `internal/platform/database/postgres/migrations`
-- `internal/domain` business-facing models, repository contracts, and sentinel errors
-- `github.com/pashagolub/pgxmock/v4` for repository unit tests
+- Query sources: `internal/platform/database/postgres/queries/` (sqlc input).
+- Generated code: `internal/platform/database/postgres/db/` (sqlc output,
+  never edited; `make generate-check` fails on drift).
+- Migrations: `internal/platform/database/postgres/migrations/`, sequential
+  `00001_name.sql` files, embedded in the binary and applied by `migrate up`.
+- The repository for a capability lives in its module
+  (`internal/modules/user/repository.go`) and maps generated rows to
+  `internal/domain` values. Only `modules/user` and `platform/database/postgres`
+  may import the generated `db` package (`make architecture-check`).
+- The pool is built in `internal/app` from `internal/platform/config`; modules
+  never open their own.
 
-Read the relevant module spec, repository implementation, migration history, and
-platform database code before changing behavior.
+## Change a fixed query
 
-## Repository rules
+1. Edit or add the query in the `queries/` directory.
+2. `make generate` (runs sqlc and ogen).
+3. Call the generated method through the repository's `queries`, map the row
+   with the module's `fromDB`-style function, and translate `pgx.ErrNoRows` to
+   the domain's not-found sentinel. Persistence-only fields (password hashes)
+   never leave the adapter.
+4. `make generate-check`, then the tests below.
 
-1. Keep repository implementations in the owning business module.
-2. Use sqlc's generated `db.DBTX` seam so fixed queries work with a pool, transaction,
-   or mock. Keep pool ownership and lifecycle in the composition root.
-3. Use explicit column lists and `db` tags. Never rely on `SELECT *`.
-4. Pass `context.Context` to every query and transaction operation.
-5. Parameterize every value. PostgreSQL placeholders are `$1`, `$2`, and so on.
-6. Use sqlc for fixed statements. Build genuinely dynamic filters with a local
-   PostgreSQL-configured squirrel builder. Allowlist identifiers; they cannot be bound.
-7. Map generated database rows to `domain` values inside the repository. Persistence-only
-   fields must not escape the adapter.
-8. Translate `pgx.ErrNoRows` to the module's documented domain sentinel and preserve
-   other error chains with `%w`.
-9. Close rows and check iteration errors when using raw pgx row iterators.
+## Change a dynamic query
 
-```go
-func (r *Repository) ByEmail(ctx context.Context, email string) (domain.User, error) {
-    row, err := r.queries.GetUserByEmail(ctx, email)
-    if errors.Is(err, pgx.ErrNoRows) {
-        return domain.User{}, domain.ErrNotFound
-    }
-    if err != nil {
-        return domain.User{}, fmt.Errorf("get user by email: %w", err)
-    }
-    return fromDB(row), nil
-}
-```
+Use squirrel only when the statement's shape varies at runtime. Use the
+module's PostgreSQL-configured builder (`$N` placeholders), select an explicit
+column list, bind every value and allowlist identifiers (they cannot be bound).
+Execute through the repository's `exec`, the same `db.DBTX` sqlc uses, so it
+works inside a transaction. See [scanning](references/scanning.md).
 
-Match the real helper signatures in the repository; the example shows the intended
-shape, not a substitute API.
+## Transactions
 
-## Transactions and locking
+Use the repository's `WithinTx`: it builds a transaction-scoped copy whose sqlc
+queries and squirrel executor share one `pgx.Tx`, commits on success and rolls
+back on error. Don't call `Commit` or `Rollback` in the callback or keep the
+scoped repository. Prefer one `UPDATE ... RETURNING` when it holds the
+invariant. See [transactions](references/transactions.md) for lock choices.
 
-- Use a transaction when multiple statements must commit or roll back as one invariant.
-- Build a transaction-scoped repository whose sqlc queries and dynamic executor both
-  use the same `pgx.Tx`; do not duplicate transactional query methods.
-- Prefer a single atomic `UPDATE ... RETURNING` when it expresses the invariant.
-- Use `SELECT ... FOR UPDATE` only when a read-then-write sequence genuinely requires a
-  row lock.
-- Use `FOR UPDATE SKIP LOCKED` for competing job claimers and keep the claiming
-  transaction short.
-- Retry serialization/deadlock failures only around an idempotent whole transaction and
-  with bounded, context-aware backoff.
+## Add a migration
 
-Read [transactions](references/transactions.md) for isolation and lock choices.
+1. Read the adjacent migrations and the current schema.
+2. `make migration name=<snake_case_name>`. Never bare `goose create`: its
+   timestamped name sorts after the sequential ones.
+3. Write both the Goose `Up` and `Down` sections unless the person agreed the
+   change is irreversible.
+4. Never edit a migration that may have been applied; add a new one.
+5. Consider row count, lock duration, defaults and backfills; for a
+   destructive or long-locking migration, state the rollout and rollback risk
+   before writing it.
+6. Keep secrets and environment-specific data out of migrations.
 
-## Migrations
+## Test and verify
 
-Migration SQL is allowed when the user requested the schema change and the relevant
-approved spec defines the behavior. Before writing it:
-
-1. Inspect adjacent migrations and the current schema.
-2. Use `make migration name=<name>` to choose the next sequential version.
-3. Write both Goose `Up` and `Down` paths unless irreversibility is explicitly approved.
-4. Consider existing row count, lock duration, defaults, backfills, indexes, and rollout
-   compatibility.
-5. Keep secrets and environment-specific data out of migrations.
-6. Never edit a migration that may already have been applied; add a new migration.
-
-For destructive, long-locking, or data-rewriting migrations, present the rollout and
-rollback risk before implementation.
-
-## Testing and verification
-
-- Use pgxmock for query shape, arguments, scanning, errors, and transaction boundaries.
-- Use integration tests for PostgreSQL semantics, constraints, locking, migrations, and
-  behavior pgxmock cannot prove.
-- Keep tests deterministic and independently runnable.
-- Before any test target, run the repository-required generation step.
+- Mapping and pure logic: unit tests beside the code (`make test`).
+- SQL, constraints, locking and migrations: integration tests with the
+  `postgrestest` harness behind the `integration` tag. See
+  [testing](references/testing.md).
 
 ```bash
 make generate
-go test ./internal/platform/database/... ./internal/modules/...
-make race
+go test -tags integration ./internal/modules/... ./internal/platform/database/...
+make test-integration
 make check
 ```
 
-Use focused `go test` commands only after `make generate`, and preserve the race detector
-when the project target normally enables it.
-
-Read [scanning](references/scanning.md), [testing](references/testing.md), and
-[performance](references/performance.md) only when those concerns are part of the task.
-
 ## Review gate
 
-- SQL is parameterized and identifiers are allowlisted.
-- Context and errors propagate correctly.
-- Not-found and constraint behavior match the module error contract.
-- Transaction scope preserves the documented invariant without unnecessary locking.
-- Rows/resources are closed and terminal iterator errors are checked.
-- Migration and rollback paths are reviewed when schema changes are present.
-- Tests cover success, no rows, database failure, and relevant constraint/concurrency
-  behavior.
+- Every value is bound; identifiers are allowlisted.
+- Not-found and constraint errors match the module's documented contract.
+- Transaction scope holds the invariant without needless locking.
+- Generated code and applied migrations are untouched; the new migration has a
+  `Down`.

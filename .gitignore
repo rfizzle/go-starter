@@ -42,3 +42,6 @@ dist/
 # overrides stay local.
 .claude/settings.local.json
 .aider
+
+# Local planning (the backlog is not part of the repository)
+.plan

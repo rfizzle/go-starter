@@ -1,14 +1,15 @@
 ---
 name: podman-operations
 description: "Operate Go Starter's container workflows with Podman: local PostgreSQL through podman compose (dev-up, dev-run, dev-reset), testcontainers-backed integration tests over the Podman API socket, rootless image builds with make container, multi-architecture manifests and OCI archives, and the GoReleaser release boundary. Use when preparing a Podman host, debugging compose-provider or API-socket failures, running the integration tier, building or exporting container images, or translating Docker habits to this repository. Not for writing repository or SQL code (golang-database) or for test design (golang-testing)."
-compatibility: Podman 4.7 or newer with a Compose provider (podman-compose or a Compose v2 docker-compose binary); qemu-user-static only for cross-architecture image builds.
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
 
 # Podman Operations
 
-Podman is this repository's container engine. It is daemonless, runs rootless by
-default, and serves the Docker-compatible API that testcontainers consumes, so
-no privileged daemon is required for any developer workflow. The one retained
+Podman is this repository's container engine, rootless, and its
+Docker-compatible API socket is what testcontainers talks to. The one retained
 Docker dependency is GoReleaser's image pipeline; see
 [Release boundary](#release-boundary-the-retained-docker-dependency).
 
@@ -109,8 +110,6 @@ Revisit this boundary if GoReleaser gains Podman support.
   `podman manifest rm` first. `scripts/container-build.bash` already does this.
 - `podman system reset` deletes every image, container, and volume, including
   the development database volume; prefer `make dev-reset` for a clean database.
-- Rootless Podman maps the container user into a user namespace; files a
-  container writes into mounted paths belong to a subuid, not root.
 
 ## Verification
 
