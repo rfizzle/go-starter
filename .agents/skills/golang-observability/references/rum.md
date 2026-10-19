@@ -44,7 +44,7 @@ posthogClient.Enqueue(posthog.Capture{
 **Why email is a bad identity key:**
 
 - **Mutable** — users change their email. Events before and after the change appear as two different users, breaking funnels, retention analysis, and cohort tracking.
-- **PII** — using email as the identity key means every event, session recording, and analytics query contains personally identifiable information. This complicates GDPR/CCPA compliance — you can't anonymize analytics without losing user identity.
+- **PII** — using email as the identity key means every event, session recording, and analytics query contains identifiable user information (PII). This complicates GDPR/CCPA compliance — you can't anonymize analytics without losing user identity.
 - **Non-unique across systems** — the same email might belong to different accounts in different services or environments.
 - **Leaks into third-party systems** — the distinct_id is sent to your analytics platform (PostHog, Segment, etc.). If it's an email, you've shared PII with every vendor in your analytics pipeline.
 

@@ -269,7 +269,6 @@ for i := 0; i < len(users); i += batchSize {
 }
 ```
 
-→ See `golang-database` skill for detailed batch patterns and connection pool configuration.
 
 ### HTTP: batch API calls
 

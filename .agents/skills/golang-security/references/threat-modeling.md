@@ -17,7 +17,7 @@ Apply STRIDE to every element in your system's data flow diagram. Each element t
 
 ### Go-Specific STRIDE Analysis
 
-**Spoofing** — Can an attacker impersonate a user or service?
+**Spoofing** — Can an attacker pose as a user or service?
 
 ```go
 // Check: Is every endpoint behind authentication?

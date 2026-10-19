@@ -2,8 +2,6 @@
 
 ## Cancellation
 
-`context.WithCancel` returns a derived context and a `cancel` function. When `cancel()` is called, the context's `Done()` channel is closed, signaling all listeners to stop.
-
 ```go
 func processItems(ctx context.Context, items []Item) error {
     ctx, cancel := context.WithCancel(ctx)
@@ -46,34 +44,6 @@ func fetch(ctx context.Context) error {
 ```
 
 ## Timeouts and Deadlines
-
-### `context.WithTimeout` — relative duration
-
-```go
-func (s *UserService) GetUser(ctx context.Context, id string) (*User, error) {
-    ctx, cancel := context.WithTimeout(ctx, 3*time.Second)
-    defer cancel()
-
-    return s.repo.FindByID(ctx, id)
-}
-```
-
-### `context.WithDeadline` — absolute point in time
-
-```go
-func (s *BatchService) ProcessBatch(ctx context.Context, batch Batch) error {
-    // The batch must complete by its SLA deadline
-    ctx, cancel := context.WithDeadline(ctx, batch.SLADeadline)
-    defer cancel()
-
-    for _, item := range batch.Items {
-        if err := s.process(ctx, item); err != nil {
-            return fmt.Errorf("processing batch item %s: %w", item.ID, err)
-        }
-    }
-    return nil
-}
-```
 
 ### Nested timeouts take the shorter deadline
 
@@ -126,23 +96,6 @@ func processLargeDataset(ctx context.Context, items []Item) error {
         process(item)
     }
     return nil
-}
-```
-
-## `context.AfterFunc` (Go 1.21+)
-
-Registers a callback that runs in its own goroutine when the context is cancelled. Useful for cleanup without blocking the main flow.
-
-```go
-func watchResource(ctx context.Context, res *Resource) {
-    stop := context.AfterFunc(ctx, func() {
-        // Runs in a new goroutine when ctx is cancelled
-        res.Release()
-    })
-
-    // If you no longer need the callback, cancel it:
-    // stop() returns true if the callback was successfully cancelled
-    _ = stop
 }
 ```
 

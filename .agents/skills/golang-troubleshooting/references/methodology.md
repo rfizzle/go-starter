@@ -49,11 +49,10 @@ go test ./... -v 2>&1
 # Static analysis
 go vet ./...
 
-# Run the repository's configured linters
-make lint
+# Also run the repository's lint target for its configured linters
 ```
 
-Run `make lint` early in the debugging workflow. It applies the repository's configured
+Run the repository's lint target early in the debugging workflow. It applies the repository's configured
 checks and catches unchecked errors and suspicious constructs that are easy to miss by
 inspection.
 
@@ -63,16 +62,16 @@ Narrow the scope before investigating deeper:
 
 ```bash
 # Does a single test fail?
-go test -run TestSpecificName -v ./pkg/...
+go test -run TestSpecificName -v ./...
 
 # Does it fail without cache?
-go test -count=1 -run TestSpecificName ./pkg/...
+go test -count=1 -run TestSpecificName ./...
 
 # Is it a specific package?
 go build ./pkg/suspect/...
 
 # Is it flaky? Run multiple times
-go test -count=10 -run TestSuspect ./pkg/...
+go test -count=10 -run TestSuspect ./...
 ```
 
 Write more tests if you suspect missing test cases or need to test something in different conditions.

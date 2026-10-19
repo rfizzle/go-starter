@@ -1,11 +1,11 @@
 ---
 name: golang-design-patterns
-description: "Idiomatic Golang design patterns — functional options, constructors, error flow and cascading, resource management and lifecycle, graceful shutdown, resilience, architecture, dependency injection, data handling, streaming, and more. Apply when explicitly choosing between architectural patterns, implementing functional options, designing constructor APIs, setting up graceful shutdown, applying resilience patterns, or asking which idiomatic Go pattern fits a specific problem."
+description: "Idiomatic Go design patterns: functional options, constructors, error flow, resource management and lifecycle, graceful shutdown, resilience, dependency injection, data handling, and streaming. Use when choosing between patterns, implementing functional options, designing constructor APIs, setting up graceful shutdown, or applying resilience patterns. Not for speculative abstraction or for choosing a project layout."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
-
-
-**Persona:** You are a Go architect who values simplicity and explicitness. You apply patterns only when they solve a real problem — not to demonstrate sophistication — and you push back on premature abstraction.
 
 **Modes:**
 
@@ -16,7 +16,7 @@ license: MIT
 
 # Go Design Patterns & Idioms
 
-Idiomatic Go patterns for production-ready code. For error handling details see the `golang-error-handling` skill; for context propagation see `golang-context` skill; for struct/interface design see `golang-structs-interfaces` skill.
+Idiomatic Go patterns for production-ready code. For error handling details see the `golang-error-handling` skill; for context propagation see `golang-context` skill.
 
 ## Best Practices Summary
 
@@ -33,7 +33,7 @@ Idiomatic Go patterns for production-ready code. For error handling details see 
 9. Every external call SHOULD **have a timeout** — a slow upstream hangs your goroutine indefinitely
 10. **Limit everything** (pool sizes, queue depths, buffers) — unbounded resources grow until they crash
 11. Retry logic MUST **check context cancellation** between attempts
-12. **Use `strings.Builder`** for concatenation in loops → see `golang-code-style`
+12. **Use `strings.Builder`** for concatenation in loops
 13. string vs []byte: **use `[]byte` for mutation and I/O**, `string` for display and keys — conversions allocate
 14. Iterators (Go 1.23+): **use for lazy evaluation** — avoid loading everything into memory
 15. **Stream large transfers** — loading millions of rows causes OOM; stream keeps memory constant
@@ -163,11 +163,10 @@ var version string
 
 ### Compile-Time Interface Checks
 
-→ See `golang-structs-interfaces` for the `var _ Interface = (*Type)(nil)` pattern.
 
 ## Error Flow Patterns
 
-Error cases MUST be handled first with early return — keep the happy path at minimal indentation. → See `golang-code-style` for the full pattern and examples.
+Error cases MUST be handled first with early return — keep the happy path at minimal indentation.
 
 ### When to Panic vs Return Error
 
@@ -230,10 +229,6 @@ resp, err := httpClient.Do(req.WithContext(ctx))
 
 Retry logic MUST check `ctx.Err()` between attempts and use exponential/linear backoff via `select` on `ctx.Done()`. Long loops MUST check `ctx.Err()` periodically. → See `golang-context` skill.
 
-## Database Patterns
-
-→ See `golang-database` for the project's pgx platform, transactions, nullable columns,
-connection pools, repository interfaces, and tests.
 
 ## Architecture
 
@@ -246,16 +241,14 @@ Core principles regardless of architecture:
 - **Keep domain pure** — no framework dependencies in the domain layer
 - **Fail fast** — validate at boundaries, trust internal code
 - **Make illegal states unrepresentable** — use types to enforce invariants
-- **Respect 12-factor app** principles — → see `go-project-layout`
+- **Respect 12-factor app** principles
 
 ## Detailed Guides
 
 | Guide | Scope |
 | --- | --- |
-| [Architecture Patterns](references/architecture.md) | High-level principles, when each architecture fits |
 | [Clean Architecture](references/clean-architecture.md) | Use cases, dependency rule, layered adapters |
 | [Hexagonal Architecture](references/hexagonal-architecture.md) | Ports and adapters, domain core isolation |
-| [Domain-Driven Design](references/ddd.md) | Aggregates, value objects, bounded contexts |
 
 ## Code Philosophy
 
@@ -267,7 +260,5 @@ Core principles regardless of architecture:
 
 - → See `golang-performance` for data-layout decisions after profiling identifies a bottleneck
 - → See `golang-error-handling` skill for error wrapping, sentinel errors, and the single handling rule
-- → See `golang-structs-interfaces` skill for interface design and composition
 - → See `golang-concurrency` skill for goroutine lifecycle and graceful shutdown
 - → See `golang-context` skill for timeout and cancellation patterns
-- → See `go-project-layout` skill for architecture and directory structure

@@ -1,7 +1,10 @@
 ---
 name: golang-testing
-description: Design, write, review, and debug Go tests, including table-driven unit tests, pgxmock repository tests, HTTP tests, integration tests, race detection, fuzzing, deterministic concurrency tests with testing/synctest, benchmarks, fixtures, and coverage. Use for any Go test change or test-strategy decision and follow the host repository's generation and test guardrails.
+description: "Design, write, review, and debug Go tests, including table-driven unit tests, HTTP tests, integration tests, race detection, fuzzing, deterministic concurrency tests with testing/synctest, benchmarks, fixtures, and coverage. Use for any Go test change or test-strategy decision. Not for database fakes (see the database skill) or benchmark measurement methodology (see golang-benchmark)."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
 
 # Go Testing
@@ -12,19 +15,10 @@ library solely because an example uses one.
 
 ## Required preflight
 
-Run generation before every test command:
+Run the repository's generation step before every test command.
 
-```bash
-make generate
-```
-
-Prefer the repository targets:
-
-```bash
-make go-test
-make go-test-integration
-make lint
-```
+Prefer the repository's test target, integration-test target, and lint target over ad hoc
+commands.
 
 Use a focused `go test` command only after the preflight and retain `-race` when relevant.
 
@@ -68,7 +62,8 @@ func TestParseStatus(t *testing.T) {
 
 ## Repository and integration tests
 
-- Use pgxmock for repository SQL, arguments, scanning, errors, and transaction behavior.
+A database fake belongs in the database skill.
+
 - Use `//go:build integration` for tests requiring PostgreSQL, object storage, or other
   containerized services.
 - Use unique IDs and cleanup so integration tests can run repeatedly and concurrently.

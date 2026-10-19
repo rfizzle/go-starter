@@ -1,11 +1,11 @@
 ---
 name: golang-benchmark
-description: "Golang benchmarking, profiling, and performance measurement. Use when writing, running, or comparing Go benchmarks, profiling hot paths with pprof, interpreting CPU/memory/trace profiles, analyzing results with benchstat, setting up CI benchmark regression detection, or investigating production performance with Prometheus runtime metrics. Also use when the developer needs deep analysis on a specific performance indicator - this skill provides the measurement methodology, while golang-performance provides the optimization patterns."
+description: "Go benchmarking, profiling, and performance measurement. Use when writing, running, or comparing Go benchmarks, profiling hot paths with pprof, interpreting CPU/memory/trace profiles, analyzing results with benchstat, setting up CI benchmark regression detection, or investigating production performance with Prometheus runtime metrics. This skill provides measurement methodology. Not for choosing optimization patterns (use golang-performance) or general debugging (use golang-troubleshooting)."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
-
-
-**Persona:** You are a Go performance measurement engineer. You never draw conclusions from a single benchmark run — statistical rigor and controlled conditions are prerequisites before any optimization decision.
 
 # Go Benchmarking & Performance Measurement
 
@@ -68,7 +68,7 @@ Run any repository-required generation step before benchmarks. Use `benchstat` o
 it is already available or installation has been approved.
 
 ```bash
-go test -bench=BenchmarkEncode -benchmem -count=10 ./pkg/... | tee bench.txt
+go test -bench=BenchmarkEncode -benchmem -count=10 ./... | tee bench.txt
 ```
 
 | Flag                   | Purpose                                   |

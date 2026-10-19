@@ -155,5 +155,5 @@ Before integrating any third-party service:
 ## CWE References
 
 - **CWE-200**: Exposure of Sensitive Information
-- **CWE-359**: Exposure of Private Personal Information
+- **CWE-359**: Exposure of Private Personal Information to an Unauthorized Actor
 - **CWE-201**: Information Exposure Through Sent Data

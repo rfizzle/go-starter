@@ -111,7 +111,7 @@ check_command gofmt
 check_command git
 check_command make
 check_command podman
-# make skills-check runs the Node-based skill-library validator.
+# make skills-lint runs the Node-based skill-library validator.
 check_command node
 
 # `podman compose` delegates to an external Compose provider (podman-compose

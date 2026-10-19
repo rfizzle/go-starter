@@ -4,7 +4,7 @@ Logging sensitive information can lead to data exposure and compliance violation
 
 **Rules:**
 
-1. PII MUST NEVER be logged — filter passwords, tokens, emails, and personal data.
+1. PII MUST NEVER be logged — filter passwords, tokens, emails, and private user data.
 2. Log injection MUST be prevented — sanitize user input before logging.
 3. Error messages MUST NOT expose internals to users — log details server-side, return generic messages.
 

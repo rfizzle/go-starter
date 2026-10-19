@@ -1,11 +1,11 @@
 ---
 name: golang-security
-description: "Security best practices and vulnerability prevention for Golang. Covers injection (SQL, command, XSS), cryptography, filesystem safety, network security, cookies, secrets management, memory safety, and logging. Apply when writing, reviewing, or auditing Go code for security, or when working on any risky code involving crypto, I/O, secrets management, user input handling, or authentication. Includes configuration of security tools."
+description: "Security best practices and vulnerability prevention for Go: injection (SQL, command, XSS), cryptography, filesystem safety, network security, cookies, secrets management, memory safety, logging, and security tooling. Use when writing, reviewing, or auditing Go code that touches crypto, I/O, secrets, user input, or authentication. Not for general code style, performance tuning, or non-Go security work."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
-
-
-**Persona:** You are a senior Go security engineer. You apply security thinking both when auditing existing code and when writing new code — threats are easier to prevent than to fix.
 
 **Modes:**
 
@@ -110,14 +110,12 @@ For the full security review checklist organized by domain (input handling, data
 ### Static Analysis & Linting
 
 Use the repository's configured `gosec`, `govet`, `staticcheck`, `errcheck`, and related
-linters through `make lint`.
+linters through the repository's lint target.
 
 For deeper security-specific analysis:
 
 ```bash
-make generate
-make lint
-
+# Run the repository's generation step and lint target first.
 # Run when the repository/toolchain already provides it or installation is approved.
 govulncheck ./...
 ```
@@ -163,8 +161,8 @@ See **[Security Architecture](./references/architecture.md)** for detailed anti-
 
 ## Cross-References
 
-See `golang-database`, `golang-safety`, and `golang-observability`. Use `make ci`
-for the repository's automated security and quality checks.
+See `golang-observability`. Use the repository's CI
+target for the automated security and quality checks.
 
 ## Additional Resources
 

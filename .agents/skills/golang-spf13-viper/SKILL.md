@@ -1,30 +1,17 @@
 ---
 name: golang-spf13-viper
-description: "Load, layer, unmarshal, test, and review Go configuration with spf13/viper, including flag, environment, YAML file, remote, and default precedence; BindPFlag; env prefixes and replacers; mapstructure tags; subtrees; optional files; and isolated viper.New instances. Use when the code imports github.com/spf13/viper. Use golang-spf13-cobra for CLI structure and go-project-layout for configuration package placement."
+description: "Load, layer, unmarshal, test, and review Go configuration with spf13/viper, including flag, environment, YAML file, remote, and default precedence; BindPFlag; env prefixes and replacers; mapstructure tags; subtrees; optional files; and isolated viper.New instances. Use when the code imports github.com/spf13/viper. Not for CLI structure (use golang-spf13-cobra) or configuration package placement (use go-project-layout)."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
 
-
-**Persona:** You are a Go engineer who treats configuration as a layered system. Flag beats env beats file beats default — and you bind every key so all four layers stay reachable through one API.
-
 # Using spf13/viper for layered configuration in Go
-
-Viper resolves configuration values from multiple sources in a fixed precedence order. It has no user-facing surface — it doesn't define commands or flags. Its job is to answer "what is the value of key X right now?" by walking its source layers from highest to lowest priority.
-
-**Official Resources:**
-
-- [pkg.go.dev/github.com/spf13/viper](https://pkg.go.dev/github.com/spf13/viper)
-- [github.com/spf13/viper](https://github.com/spf13/viper)
 
 Use the Viper version already pinned in `go.mod`; do not upgrade or add dependencies as
 a side effect of ordinary configuration work. Consult official documentation for that
 version.
-
-## Viper vs. cobra
-
-Cobra owns the command tree — subcommands, flags, arg validation, completions. Viper owns configuration resolution — it answers "what is the value of key X?" by walking its source layers. Viper has no user-facing surface; it is purely a key-value resolver. Use cobra alone for flag-only CLIs; viper alone for config-file daemons; both when you need both, binding flags at `PersistentPreRunE` via `BindPFlag`.
-
-→ See `golang-spf13-cobra` for the cobra side of this integration.
 
 ## The precedence pipeline
 
@@ -170,8 +157,5 @@ For `t.Setenv` interactions and `Reset()` limitations, see [testing-and-isolatio
 
 ## Cross-References
 
-- → See `go-project-layout` for configuration/CLI placement, lifecycle, and composition-root boundaries
 - → See `golang-spf13-cobra` skill for the cobra side of this integration (flag definition and binding)
 - → See `golang-testing` skill for general Go testing patterns
-
-If you encounter a bug or unexpected behavior in spf13/viper, open an issue at <https://github.com/spf13/viper/issues>.

@@ -2,8 +2,7 @@
 
 ## Error Wrapping with `%w`
 
-Wrapping preserves the original error in a chain that callers can inspect with `errors.Is`
-and `errors.As`. Add context when crossing a meaningful package/operation boundary; do
+Add context when crossing a meaningful package/operation boundary; do
 not add redundant wrappers at every call frame.
 
 ```go
@@ -39,39 +38,16 @@ func (r *Repository) Get(ctx context.Context, id uuid.UUID) (*User, error) {
 
 ## Inspecting Errors: `errors.Is` and `errors.As`
 
-### `errors.Is` — match against a sentinel value
+### Prefer `errors.AsType` on Go 1.26+
 
 ```go
-// ✗ Bad — direct comparison breaks on wrapped errors
-if err == database.ErrNotFound {
-
-// ✓ Good — traverses the entire error chain
-if errors.Is(err, database.ErrNotFound) {
-    return nil, ErrNotFound
-}
-```
-
-### `errors.As / errors.AsType` — extract a typed error from the chain
-
-```go
-// ✗ Bad — type assertion breaks on wrapped errors
-if ve, ok := err.(*ValidationError); ok {
-
-// ✓ Good — traverses the entire error chain
-var ve *ValidationError
-if errors.As(err, &ve) {
-    log.Printf("validation failed on field %s: %s", ve.Field, ve.Msg)
-}
-
-// ✓ Better (Go 1.26+) — same behavior, simpler syntax
+// Go 1.26+: same chain traversal as errors.As, without the pre-declared variable
 if ve, ok := errors.AsType[*ValidationError](err); ok {
     log.Printf("validation failed on field %s: %s", ve.Field, ve.Msg)
 }
 ```
 
 ## Combining Errors with `errors.Join`
-
-`errors.Join` (Go 1.20+) combines multiple independent errors into one. The combined error works with `errors.Is` and `errors.As` — each inner error is inspectable.
 
 ### Use case: validating multiple fields
 
@@ -102,13 +78,4 @@ func closeAll(closers ...io.Closer) error {
     }
     return errors.Join(errs...)
 }
-```
-
-### `errors.Is` works through joined errors
-
-```go
-err := errors.Join(ErrNotFound, ErrUnauthorized)
-
-errors.Is(err, ErrNotFound)    // true
-errors.Is(err, ErrUnauthorized) // true
 ```

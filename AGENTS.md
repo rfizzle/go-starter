@@ -23,8 +23,7 @@ This file provides guidance to AI Agents when working with code in this reposito
 - **Release snapshot**: `make release-snapshot` - Build the GoReleaser archive matrix
 - **CI pipeline**: `make ci` - Run the read-only validation workflow (`check`, `secrets-check`, and `vuln`); see [docs/development/ci-contract.md](docs/development/ci-contract.md) for what each workflow enforces
 - **Container image**: `make container` - Build the container image with Podman using build scripts
-- **Skill validation**: `make skills-check` - Validate the skill library and its discovery links
-- **Agent wiring**: `make agents-setup` - Regenerate the `.claude/` discovery symlinks
+- **Skill validation**: `make skills-lint` - Validate the project skills; `make skills-check` - Fail if a vendored shared skill was edited here
 
 ## Skills
 
@@ -32,11 +31,9 @@ Reusable task guidance lives in `.agents/skills/`, the canonical client-neutral
 library described in [.agents/skills/README.md](.agents/skills/README.md). Each skill is a
 directory holding a portable `SKILL.md`.
 
-`.claude/skills/` and `.claude/agents/` contain **relative** symlinks back into
-that library and into `docs/ai/prompts/`, so a clone gets working discovery
-without copies that drift. `make agents-setup` regenerates them idempotently and
-`make skills-check` validates the library and fails on a missing, misdirected, or
-dangling link. Never copy a skill into `.claude/`; edit the canonical directory.
+`.claude/skills` is a relative symlink to that library, so a clone gets working
+discovery without copies that drift. Never copy a skill into `.claude/`; edit the
+canonical directory.
 
 Route by task type; load the narrowest skill that covers the change:
 

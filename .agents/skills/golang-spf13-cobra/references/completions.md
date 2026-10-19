@@ -2,20 +2,6 @@
 
 Cobra generates shell completion scripts for bash, zsh, fish, and PowerShell automatically. Subcommand names and flag names are completed for free. You add completions for flag values and positional arguments.
 
-## Built-in completion command
-
-Cobra registers a `completion` subcommand automatically:
-
-```bash
-myapp completion bash   # generate bash script
-myapp completion zsh    # generate zsh script
-myapp completion fish   # generate fish script
-myapp completion powershell
-
-# Install (example for zsh):
-myapp completion zsh > "${fpath[1]}/_myapp"
-```
-
 ## ShellCompDirective
 
 The `ShellCompDirective` controls shell behavior after your completion function returns:

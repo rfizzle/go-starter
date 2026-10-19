@@ -5,7 +5,7 @@
 - [Profile Types](#profile-types)
 - [Generating Profiles](#generating-profiles)
 - [Interactive CLI Commands](#interactive-cli-commands)
-- [Graphical / Web UI](#graphical-web-ui)
+- [Graphical / Web UI](#graphical--web-ui)
 - [Comparing Profiles](#comparing-profiles)
 - [Common Patterns](#common-patterns)
 - [Which Profile for Which Symptom?](#which-profile-for-which-symptom)

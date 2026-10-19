@@ -186,4 +186,4 @@ credentials/
 - **CWE-798**: Use of Hard-coded Credentials
 - **CWE-312**: Cleartext Storage of Sensitive Information
 - **CWE-532**: Insertion of Sensitive Information into Log File
-- **CWE-359**: Exposure of Private Personal Information
+- **CWE-359**: Exposure of Private Personal Information to an Unauthorized Actor

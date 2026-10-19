@@ -13,8 +13,8 @@ go get github.com/spf13/cobra/doc
 ```go
 import "github.com/spf13/cobra/doc"
 
-err := doc.GenMarkdownTree(rootCmd, "/tmp/docs/")
-// generates /tmp/docs/myapp.md, /tmp/docs/myapp_serve.md, etc.
+err := doc.GenMarkdownTree(rootCmd, "./bench/docs/")
+// generates ./bench/docs/myapp.md, ./bench/docs/myapp_serve.md, etc.
 
 // Single command
 var buf bytes.Buffer
@@ -37,52 +37,14 @@ err := doc.GenManTree(rootCmd, header, "/usr/local/share/man/man1/")
 ### YAML
 
 ```go
-err := doc.GenYamlTree(rootCmd, "/tmp/docs/")
+err := doc.GenYamlTree(rootCmd, "./bench/docs/")
 ```
 
 ### RST (reStructuredText)
 
 ```go
-err := doc.GenReSTTree(rootCmd, "/tmp/docs/")
+err := doc.GenReSTTree(rootCmd, "./bench/docs/")
 ```
-
-## cobra-cli scaffolder
-
-`cobra-cli` generates command files and wires them into your project:
-
-```bash
-# Use cobra-cli only if the repository already provides it or installation of an
-# explicitly pinned version is approved.
-
-# Initialize a new cobra project
-cobra-cli init myapp
-
-# Add a subcommand
-cobra-cli add serve
-cobra-cli add migrate
-
-# Add with a parent other than root
-cobra-cli add list --parent serve
-```
-
-Generated files follow the standard pattern:
-
-```go
-// cmd/serve.go
-var serveCmd = &cobra.Command{
-    Use:   "serve",
-    Short: "A brief description of your command",
-    RunE: func(cmd *cobra.Command, args []string) error {
-        return nil
-    },
-}
-
-func init() {
-    rootCmd.AddCommand(serveCmd)
-}
-```
-
-`cobra-cli` is optional — many teams write command files by hand following the same pattern.
 
 ## Help and usage template customization
 

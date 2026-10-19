@@ -1,24 +1,5 @@
 # Viper Unmarshal and Struct Mapping
 
-## Basic Unmarshal
-
-```go
-type Config struct {
-    Port     int    `mapstructure:"port"`
-    Host     string `mapstructure:"host"`
-    LogLevel string `mapstructure:"log_level"`
-    Database struct {
-        DSN     string `mapstructure:"dsn"`
-        MaxConn int    `mapstructure:"max_conn"`
-    } `mapstructure:"database"`
-}
-
-var cfg Config
-if err := viper.Unmarshal(&cfg); err != nil {
-    return fmt.Errorf("decoding config: %w", err)
-}
-```
-
 ## mapstructure tags
 
 Always use `mapstructure` tags. Without them, mapstructure falls back to case-insensitive field name matching, which works for simple cases but silently fails for:

@@ -19,6 +19,7 @@ YAMLFMT=yamlfmt -conf "${ROOT}/.yamlfmt"
 COVERAGE_PROFILE=coverage.out
 COVERAGE_MAINTAINED_PROFILE=coverage.maintained.out
 TOOL_BIN?=
+SKILLS_SOURCE ?= ../skills
 
 # Both branches define the same variables. The fallback assigns a truly empty
 # value (no quotes): `:= ""` would expand to two literal characters and print
@@ -39,7 +40,7 @@ else
 	RESET   :=
 endif
 
-.PHONY: all help build clean dev-up dev-down dev-run dev-reset init tools agents-setup fmt fmt-check lint architecture-check docs-check skills-check check tidy test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
+.PHONY: all help build clean dev-up dev-down dev-run dev-reset init tools fmt fmt-check lint architecture-check docs-check skills-lint skills-check skills-sync check tidy test test-unit test-integration test-all race cover vuln secrets-check ci env generate generate-check sqlc migration release-snapshot container container-check check-goreleaser
 
 all: help
 
@@ -80,10 +81,6 @@ init: ## Initialize this clone once (required: module app-name binary env-prefix
 
 tools: ## Install the exact development tool versions (set TOOL_BIN to isolate)
 	@TOOL_BIN="$(TOOL_BIN)" ./scripts/bootstrap-tools.bash
-
-agents-setup: ## Regenerate the relative .claude skill and agent discovery links
-	@echo "${MAGENTA}Regenerating agent discovery links...${RESET}"
-	@./scripts/setup-agents.bash
 
 dev-up: ## Start local PostgreSQL and wait until it is healthy
 	@podman compose up --detach --wait postgres
@@ -134,13 +131,18 @@ architecture-check: ## Verify module, domain, platform, and generated-transport 
 docs-check: ## Verify documentation links, commands, paths, and Go version
 	@./scripts/check-docs.bash
 
-skills-check: ## Validate the portable skill library and its discovery links
+skills-lint: ## Validate the skill library's frontmatter, links, and portability
 	@command -v node >/dev/null 2>&1 || { echo "${RED}node not found. Install Node.js to validate the skill library.${RESET}"; exit 1; }
 	@echo "${MAGENTA}Validating skill library...${RESET}"
 	@node .agents/skills/scripts/validate-skills.mjs
-	@./scripts/setup-agents.bash --check
 
-check: architecture-check docs-check skills-check generate-check fmt-check lint test ## Run all fast validation checks
+skills-check: ## Fail if a vendored shared skill differs from the copy recorded in .agents/skills/shared.sum
+	@$(GOCMD) run ./scripts/skillscheck
+
+skills-sync: ## Refresh the shared skills from $(SKILLS_SOURCE); add new ones with SKILLS="a b" (local only)
+	@$(SKILLS_SOURCE)/scripts/sync -C . $(SKILLS)
+
+check: architecture-check docs-check skills-lint skills-check generate-check fmt-check lint test ## Run all fast validation checks
 
 ## Dependencies:
 tidy: ## Rebuild go.mod with only required dependencies

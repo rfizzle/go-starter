@@ -29,14 +29,11 @@ enter ordinary unit-test compilation.
 
 ## Infrastructure
 
-Use the repository's containerized test infrastructure (a Podman-backed
-testcontainers harness) and Make target. Do not create a second per-package
+Use the repository's containerized test infrastructure (a harness backed by a container
+runtime) and its integration-test target. Do not create a second per-package
 container stack unless the project deliberately adopts that pattern.
 
-```bash
-make generate
-make test-integration
-```
+Run the repository's generation step, then its integration-test target.
 
 Use environment-provided test DSNs and credentials. Never point tests at production or a
 shared environment containing valuable data.

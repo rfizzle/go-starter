@@ -1,7 +1,10 @@
 ---
 name: golang-observability
-description: Instrument and review Go services with structured slog logging, Prometheus metrics, OpenTelemetry traces, secured profiling, dashboards, alerts, and privacy-safe product telemetry. Use when adding production signals, correlating logs and traces, defining metric labels or buckets, adding spans, exposing pprof, creating alerts, or auditing whether a feature can be operated safely.
+description: "Instrument and review Go services with structured slog logging, Prometheus metrics, OpenTelemetry traces, secured profiling, dashboards, alerts, and privacy-safe product telemetry. Use when adding production signals, correlating logs and traces, defining metric labels or buckets, adding spans, exposing pprof, creating alerts, or auditing whether a feature can be operated safely. Not for benchmarking methodology (use golang-benchmark) or non-Go services."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
 
 # Go Observability
@@ -25,7 +28,7 @@ Prometheus, OpenTelemetry, or `slog` facilities already cover the need.
 - Use the repository's structured `slog.Logger` and context-aware methods.
 - Use stable messages and consistent attribute names.
 - Return errors through lower layers and log once at the request, job, or process boundary.
-- Do not log credentials, authorization headers, raw recordings, or unnecessary personal
+- Do not log credentials, authorization headers, raw recordings, or unnecessary private
   data.
 
 ## Metrics

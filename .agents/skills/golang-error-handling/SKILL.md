@@ -1,7 +1,10 @@
 ---
 name: golang-error-handling
-description: Create, wrap, inspect, join, translate, and log Go errors using the standard library and structured slog. Use when defining sentinel or typed errors, preserving chains with %w, applying errors.Is/As, mapping database or HTTP errors, handling cleanup failures, recovering panics at boundaries, or reviewing swallowed and duplicate error handling.
+description: "Create, wrap, inspect, join, translate, and log Go errors using the standard library and structured slog. Use when defining sentinel or typed errors, preserving chains with %w, applying errors.Is/As, mapping database or HTTP errors, handling cleanup failures, recovering panics at boundaries, or reviewing swallowed and duplicate error handling. Not for introducing an error framework or for context cancellation design (use golang-context)."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
 
 # Go Error Handling

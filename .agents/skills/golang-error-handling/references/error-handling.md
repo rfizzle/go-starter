@@ -43,7 +43,7 @@ logger.ErrorContext(
 ```
 
 Do not log credentials, authorization headers, raw session recordings, or unnecessary
-personal data.
+private user data.
 
 ## Panic recovery
 

@@ -212,8 +212,8 @@ never included in validation errors or logs.
 | `make generate-check` | Fail if committed generated code is stale. |
 | `make architecture-check` | Verify module, domain, platform, and transport boundaries. |
 | `make docs-check` | Verify documentation links, commands, paths, and Go version. |
-| `make skills-check` | Validate the agent skill library and its discovery links. |
-| `make agents-setup` | Regenerate the relative `.claude/` skill and agent links. |
+| `make skills-lint` | Validate the project skills. |
+| `make skills-check` | Fail if a vendored shared skill was edited here. |
 | `make dev-up` | Start local PostgreSQL and wait for health. |
 | `make dev-run` | Start PostgreSQL, migrate, seed, and serve using `.env`. |
 | `make dev-down` | Stop local services without deleting database data. |
@@ -377,11 +377,9 @@ automatically.
 The skills themselves ship with the template in
 [`.agents/skills/`](.agents/skills/README.md), a client-neutral library that
 follows the [Agent Skills specification](https://agentskills.io/specification).
-`.claude/skills/` and `.claude/agents/` hold relative symlinks into that library
-and into `docs/ai/prompts/`, so discovery works in a fresh clone. Regenerate the
-links with `make agents-setup` after adding a skill; `make skills-check` runs as
-part of `make check` and fails on an invalid skill or a broken link. It needs
-Node.js on `PATH`.
+`.claude/skills` is a relative symlink to that library, so discovery works in a
+fresh clone. `make skills-lint` and `make skills-check` run as part of
+`make check`; the first needs Node.js on `PATH`.
 
 `.claude/settings.json` is the committed permission baseline shared by the
 project. Keep personal overrides in the ignored `.claude/settings.local.json`.

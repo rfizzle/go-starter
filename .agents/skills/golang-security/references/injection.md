@@ -2,15 +2,15 @@
 
 ## Contents
 
-- [SQL Injection — Critical](#sql-injection-critical)
-- [XPath Injection — High](#xpath-injection-high)
-- [Code Injection — Critical](#code-injection-critical)
-- [Command Injection — Critical](#command-injection-critical)
-- [Template Injection — High](#template-injection-high)
-- [Cross-Site Scripting (XSS) — High](#cross-site-scripting-xss-high)
-- [HTML Tag Injection — High](#html-tag-injection-high)
-- [Server-Side Request Forgery (SSRF) — High](#server-side-request-forgery-ssrf-high)
-- [Unsafe Deserialization — Critical](#unsafe-deserialization-critical)
+- [SQL Injection — Critical](#sql-injection--critical)
+- [XPath Injection — High](#xpath-injection--high)
+- [Code Injection — Critical](#code-injection--critical)
+- [Command Injection — Critical](#command-injection--critical)
+- [Template Injection — High](#template-injection--high)
+- [Cross-Site Scripting (XSS) — High](#cross-site-scripting-xss--high)
+- [HTML Tag Injection — High](#html-tag-injection--high)
+- [Server-Side Request Forgery (SSRF) — High](#server-side-request-forgery-ssrf--high)
+- [Unsafe Deserialization — Critical](#unsafe-deserialization--critical)
 - [CWE References](#cwe-references)
 
 

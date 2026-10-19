@@ -83,7 +83,7 @@ those events are operationally useful, but the final failure still needs one cle
 
 ## Privacy and cardinality
 
-Never log secrets, credentials, session tokens, raw request bodies, or sensitive personal
+Never log secrets, credentials, session tokens, raw request bodies, or sensitive private
 data. Treat emails, IP addresses, object keys, and free-form input as policy-controlled
 data rather than safe defaults. Prefer stable identifiers only when project policy permits
 them, and keep metric-style labels out of log-message text.

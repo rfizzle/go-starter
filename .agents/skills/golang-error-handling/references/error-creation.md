@@ -2,18 +2,9 @@
 
 ## Contents
 
-- [Plain errors](#plain-errors)
 - [Sentinel errors](#sentinel-errors)
 - [Typed errors](#typed-errors)
 - [Messages and context](#messages-and-context)
-
-## Plain errors
-
-Use `errors.New` for a fixed local failure and `fmt.Errorf` when adding context or values.
-
-```go
-return errors.New("empty session id")
-```
 
 ## Sentinel errors
 
@@ -29,8 +20,6 @@ Wrap it without destroying identity:
 return fmt.Errorf("sessions.GetByID: %w", ErrNotFound)
 ```
 
-Callers use `errors.Is(err, ErrNotFound)`.
-
 ## Typed errors
 
 Use a type when callers need structured fields:
@@ -44,8 +33,6 @@ type ValidationError struct {
 func (e *ValidationError) Error() string { return "invalid " + e.Field }
 func (e *ValidationError) Unwrap() error { return e.Err }
 ```
-
-Callers use `errors.As` to retrieve it.
 
 ## Messages and context
 

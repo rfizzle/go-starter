@@ -57,7 +57,7 @@ for _, tt := range tests {
 
 ```bash
 go test -v ./...                          # verbose output
-go test -run TestName -v ./pkg/...        # single test
+go test -run TestName -v ./...        # single test
 go test -count=1 ./...                    # disable cache
 go test -timeout 10s ./...                # short timeout (find hangs)
 go test -parallel 1 ./...                 # sequential execution
@@ -87,11 +87,11 @@ Flaky tests (pass sometimes, fail sometimes) are usually caused by one of:
 
 ```bash
 # Confirm flakiness by running many times
-go test -count=100 -run TestSuspect ./pkg/... -failfast
+go test -count=100 -run TestSuspect ./... -failfast
 
 # Check for parallelism issues
-go test -parallel 1 -count=10 ./pkg/...
+go test -parallel 1 -count=10 ./...
 
 # Check for order dependence
-go test -shuffle=on ./pkg/...
+go test -shuffle=on ./...
 ```

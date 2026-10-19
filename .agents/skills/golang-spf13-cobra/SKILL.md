@@ -1,11 +1,11 @@
 ---
 name: golang-spf13-cobra
-description: "Build, extend, review, and test Go CLI command trees using spf13/cobra, including cobra.Command, RunE hooks, argument validators, persistent and local flags, command groups, completions, help, documentation generation, and output isolation with SetOut/SetErr. Use when the code imports github.com/spf13/cobra. Use golang-spf13-viper for configuration layering and go-project-layout for CLI placement and lifecycle."
+description: "Build, extend, review, and test Go CLI command trees using spf13/cobra, including cobra.Command, RunE hooks, argument validators, persistent and local flags, command groups, completions, help, documentation generation, and output isolation with SetOut/SetErr. Use when the code imports github.com/spf13/cobra. Not for configuration layering (use golang-spf13-viper) or CLI placement and lifecycle (use go-project-layout)."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
-
-
-**Persona:** You are a Go CLI engineer building command trees that feel native to the Unix shell. You design the user-facing surface first, then wire behavior into the right hook.
 
 **Modes:**
 
@@ -14,14 +14,6 @@ license: MIT
 - **Review** — auditing an existing CLI: check the Common Mistakes table, verify `RunE` usage, `OutOrStdout()`, hook chain ordering, and args validation.
 
 # Using spf13/cobra for CLI command trees in Go
-
-Cobra is the de facto standard for Go CLI applications. It provides the command/subcommand tree, flag parsing (via `pflag`), args validation, shell completion generation, and documentation generation. It does **not** handle configuration layering — that's viper's job.
-
-**Official Resources:**
-
-- [pkg.go.dev/github.com/spf13/cobra](https://pkg.go.dev/github.com/spf13/cobra)
-- [github.com/spf13/cobra](https://github.com/spf13/cobra)
-- [cobra.dev](https://cobra.dev)
 
 Use the Cobra version already pinned in `go.mod`; do not upgrade or add dependencies as
 a side effect of ordinary CLI work. Consult official documentation for that version.
@@ -43,16 +35,7 @@ These libraries do fundamentally different things and can be used independently.
 
 ## Command tree
 
-Every cobra CLI has a root command plus zero or more subcommands registered with `AddCommand`. The root command name is the binary name.
-
-```go
-var rootCmd = &cobra.Command{
-    Use:          "myapp",
-    Short:        "One-line summary",
-    SilenceUsage: true,  // ✓ prevents usage wall on every error
-    SilenceErrors: true, // ✓ lets you control error output format
-}
-```
+Set `SilenceUsage: true` and `SilenceErrors: true` on the root command so an error does not print a usage wall and you control the error output format.
 
 Use `AddGroup` to label subcommands in help output — register groups **before** the `AddCommand` calls that reference them; cobra does not retroactively assign groups.
 
@@ -148,13 +131,10 @@ Cobra accumulates flag state across `Execute()` calls — build a fresh command 
 - [commands-and-args.md](references/commands-and-args.md) — full PreRun\*/PostRun\* chain, every Args validator, PersistentPreRunE inheritance rules
 - [flags.md](references/flags.md) — pflag types, required/exclusive/oneRequired groups, custom value types, viper binding
 - [completions.md](references/completions.md) — ShellCompDirective set, annotation-based completions, testing completions
-- [generators.md](references/generators.md) — man page, markdown, YAML, RST doc generation; `cobra-cli` scaffolder
+- [generators.md](references/generators.md) — man page, markdown, YAML, RST doc generation
 - [testing.md](references/testing.md) — isolation patterns, golden files, testing completions, table-driven command tests
 
 ## Cross-References
 
-- → See `go-project-layout` for CLI placement, lifecycle, and composition-root boundaries
 - → See `golang-spf13-viper` skill for configuration layering alongside cobra (flag → env → file → default precedence)
 - → See `golang-testing` skill for general Go testing patterns
-
-If you encounter a bug or unexpected behavior in spf13/cobra, open an issue at <https://github.com/spf13/cobra/issues>.

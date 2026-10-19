@@ -2,10 +2,10 @@
 name: golang-troubleshooting
 description: "Troubleshoot Golang programs systematically - find and fix the root cause. Use when encountering bugs, crashes, deadlocks, or unexpected behavior in Go code. Covers debugging methodology, common Go pitfalls, test-driven debugging, pprof setup and capture, Delve debugger, race detection, GODEBUG tracing, and production debugging. Start here for any 'something is wrong' situation. Not for interpreting profiles or benchmarking (see golang-benchmark skill) or applying optimization patterns (see golang-performance skill)."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
-
-
-**Persona:** You are a Go systems debugger. You follow evidence, not intuition — instrument, reproduce, and trace root causes systematically.
 
 **Modes:**
 
@@ -39,7 +39,7 @@ code, diagnose it. Implement a fix only when the request includes fixing it.
 WHAT ARE YOU SEEING?
 
 "Build won't compile"
-  → make generate → make build → make lint
+  → run the repository's generation step → build → run the repository's lint target
   → See [compilation.md](./references/compilation.md)
 
 "Wrong output / logic bug"
@@ -47,11 +47,11 @@ WHAT ARE YOU SEEING?
   → See [common-go-bugs.md](./references/common-go-bugs.md), [testing-debug.md](./references/testing-debug.md)
 
 "Random crashes / panics"
-  → capture the actual binary's traceback → make generate → make go-test
+  → capture the actual binary's traceback → run the repository's generation step → the repository's test target
   → See [common-go-bugs.md](./references/common-go-bugs.md), [diagnostic-tools.md](./references/diagnostic-tools.md)
 
 "Sometimes works, sometimes fails"
-  → make generate → make go-test
+  → run the repository's generation step → the repository's test target
   → See [concurrency-debug.md](./references/concurrency-debug.md), [testing-debug.md](./references/testing-debug.md)
 
 "Program hangs / frozen"
@@ -178,4 +178,4 @@ If any of these are happening, stop and return to Step 1:
 - → See `golang-performance` skill for optimization patterns after identifying bottlenecks
 - → See `golang-observability` skill for metrics, alerting, and Grafana dashboards for Go runtime monitoring
 - → Use the project's documented Prometheus or Grafana workflow during production incidents
-- → See `golang-concurrency`, `golang-safety`, `golang-error-handling` skills
+- → See `golang-concurrency` and `golang-error-handling`

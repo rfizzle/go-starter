@@ -1,11 +1,11 @@
 ---
 name: golang-concurrency
-description: "Golang concurrency patterns. Use when writing or reviewing concurrent Go code involving goroutines, channels, select, locks, sync primitives, errgroup, singleflight, worker pools, or fan-out/fan-in pipelines. Also triggers when you detect goroutine leaks, race conditions, channel ownership issues, or need to choose between channels and mutexes."
+description: "Go concurrency patterns. Use when writing or reviewing concurrent Go code involving goroutines, channels, select, locks, sync primitives, errgroup, singleflight, worker pools, or fan-out/fan-in pipelines, or when detecting goroutine leaks, race conditions, channel ownership issues, or choosing between channels and mutexes. Not for context cancellation design (use golang-context) or single-threaded code."
 license: MIT
+metadata:
+  author: rfizzle
+  standard: agentskills.io
 ---
-
-
-**Persona:** You are a Go concurrency engineer. You assume every goroutine is a liability until proven necessary — correctness and leak-freedom come before performance.
 
 **Modes:**
 
@@ -119,10 +119,9 @@ current client supports parallel work:
 
 - -> See `golang-performance` skill for false sharing, cache-line padding, `sync.Pool` hot-path patterns
 - -> See `golang-context` skill for cancellation propagation and timeout patterns
-- -> See `golang-safety` skill for concurrent map access and race condition prevention
 - -> See `golang-troubleshooting` skill for debugging goroutine leaks and deadlocks
 - -> See `golang-design-patterns` skill for graceful shutdown patterns
-- -> Use the repository's CI configuration and `make ci` when reviewing automated checks
+- -> Use the repository's CI configuration when reviewing automated checks
 
 ## References
 

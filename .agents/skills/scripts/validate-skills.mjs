@@ -154,13 +154,22 @@ if (!fs.existsSync(root) || !fs.statSync(root).isDirectory()) {
   process.exit(1);
 }
 
-const skills = fs.readdirSync(root, { withFileTypes: true })
+// Shared skills are vendored from another repository and verified by hash
+// (make skills-check); they are linted where they are edited, not here.
+const sharedSum = path.join(root, 'shared.sum');
+const shared = new Set(fs.existsSync(sharedSum)
+  ? fs.readFileSync(sharedSum, 'utf8').split(/\r?\n/)
+    .map((line) => line.match(/^\.agents\/skills\/([a-z0-9-]+)\s/)?.[1])
+    .filter(Boolean)
+  : []);
+const allSkills = fs.readdirSync(root, { withFileTypes: true })
   .filter((entry) => entry.isDirectory() && fs.existsSync(path.join(root, entry.name, 'SKILL.md')))
   .map((entry) => entry.name)
   .sort();
-const skillNames = new Set(skills);
+const skillNames = new Set(allSkills);
+const skills = allSkills.filter((name) => !shared.has(name));
 
-if (skills.length === 0) {
+if (allSkills.length === 0) {
   report('error', root, 'no skill directories containing SKILL.md were found');
 }
 

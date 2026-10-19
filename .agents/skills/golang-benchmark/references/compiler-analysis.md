@@ -140,8 +140,8 @@ GOSSAFUNC='(*Parser).Parse' go build ./pkg/parser
 GOSSAFUNC=myapp/pkg/parser.Parse go build ./...
 
 # Combine with a specific output directory
-GOSSAFUNC=Parse GOSSADIR=/tmp/ssa go build ./pkg/parser
-# Creates /tmp/ssa/ssa.html
+GOSSAFUNC=Parse GOSSADIR=./bench/ssa go build ./pkg/parser
+# Creates ./bench/ssa/ssa.html
 ```
 
 ### Reading ssa.html
