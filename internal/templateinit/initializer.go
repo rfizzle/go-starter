@@ -358,7 +358,7 @@ func rewrite(path string, contents []byte, cfg Config) ([]byte, error) {
 		replacements = append(replacements, replacement{defaultReleaseName, cfg.BinaryName})
 	case ".dockerignore":
 		replacements = append(replacements, replacement{"/" + defaultReleaseName, "/" + cfg.BinaryName})
-	case "README.md":
+	case "docs/development/deployment.md":
 		replacements = append(replacements, replacement{
 			"dist/" + defaultReleaseName + "-image.tar",
 			"dist/" + cfg.BinaryName + "-image.tar",

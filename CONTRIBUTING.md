@@ -18,16 +18,8 @@ change.
 
 ## Development workflow
 
-1. Add or update tests for behavioral changes.
-2. Change `api/openapi.yml` before changing an API contract.
-3. Change SQL query sources or add a new migration before regenerating sqlc.
-4. Run `make generate` after generator inputs change.
-5. Run `make fmt` for changed Go or YAML files.
-6. Run `make architecture-check`, `make docs-check`, and focused package
-   tests, then `make check`.
-7. Run `make race` for concurrency, lifecycle, middleware, storage, or test
-   infrastructure changes.
-8. Confirm `git diff --check` is clean and review the staged diff.
+The commands, and which to run for which change, are in the Commands section
+of [AGENTS.md](AGENTS.md#commands); finish with `make check`.
 
 `make ci` runs the same read-only gates the pipeline enforces. The
 [CI contract](docs/development/ci-contract.md) records what each workflow
@@ -37,8 +29,8 @@ locally.
 Never edit ogen files under `internal/api/v1/` or sqlc files under
 `internal/platform/database/postgres/db/` directly. The
 [ogen workflow](docs/development/ogen-workflow.md),
-[database guide](docs/development/database.md), and the engineering policy in
-[AGENTS.md](AGENTS.md) provide more detail.
+[database guide](docs/development/database.md), and the invariants in
+[AGENTS.md](AGENTS.md#invariants) provide more detail.
 
 Use a conventional commit subject such as `feat(auth): add token rotation` or
 `fix(storage): preserve transaction errors`. Keep pull requests small, explain

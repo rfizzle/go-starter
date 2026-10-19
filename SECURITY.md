@@ -68,5 +68,5 @@ seeded example account and local-development credentials in the README must
 never be used in production.
 
 Run `make vuln` to scan Go dependencies and `make check` for the standard
-validation gates. See the [deployment notes](README.md#deployment-notes) before
+validation gates. See the [deployment notes](docs/development/deployment.md) before
 shipping a derived service.
