@@ -128,8 +128,13 @@ lint: ## Run go vet and golangci-lint
 architecture-check: ## Verify module, domain, platform, and generated-transport import boundaries
 	@./scripts/check-architecture.bash
 
-docs-check: ## Verify documentation links, commands, paths, and Go version
+# The vendored checker's own sources are skipped: its tests hold sample ids
+# that the GS- pattern below would match.
+DOCSCHECK_FLAGS=-workitem '\b(GS|[SE])-\d{2,4}\b' -skip .plan,.cache,node_modules,vendor,bin,dist,scripts/docscheck,.agents/skills/project-docs/scripts
+
+docs-check: ## Verify documentation links, citations, commands, paths, ids, and Go version
 	@./scripts/check-docs.bash
+	@$(GOCMD) run ./scripts/docscheck $(DOCSCHECK_FLAGS)
 
 skills-lint: ## Validate the skill library's frontmatter, links, and portability
 	@command -v node >/dev/null 2>&1 || { echo "${RED}node not found. Install Node.js to validate the skill library.${RESET}"; exit 1; }

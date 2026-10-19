@@ -35,7 +35,7 @@ version section when the `vX.Y.Z` tag is pushed.
   packaging is the one retained Docker dependency.
 - Integration tests now require `GOSTARTER_REQUIRE_CONTAINERS=1` (previously
   `GOSTARTER_REQUIRE_DOCKER=1`) to make a missing container engine fatal.
-- `scripts/docker-build.bash` is now `scripts/container-build.bash`;
+- scripts/docker-build.bash is now `scripts/container-build.bash`;
   multi-platform builds produce a Podman manifest list and the
   `CONTAINER_OUTPUT` Buildx option is replaced by `CONTAINER_ARCHIVE`.
 - `make container-check` validates the GoReleaser packaging configuration;

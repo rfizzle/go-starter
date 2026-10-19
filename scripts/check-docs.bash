@@ -118,7 +118,7 @@ for required_path in "${required_paths[@]}"; do
   fi
 done
 
-retired_pattern='Dockerfile\.dev|pkg/config|internal/platform/(middleware|web)|make (clean-gen|test-cover|test-race|docker)|docker compose |docker-build\.bash|GOSTARTER_REQUIRE_DOCKER'
+retired_pattern='docs/(ai|reviews)/|agents-setup|setup-agents|Dockerfile\.dev|pkg/config|internal/platform/(middleware|web)|make (clean-gen|test-cover|test-race|docker)|docker compose |docker-build\.bash|GOSTARTER_REQUIRE_DOCKER'
 while IFS= read -r file; do
   while IFS= read -r retired_reference; do
     report "${file#${project_dir}/}: retired reference: ${retired_reference}"
