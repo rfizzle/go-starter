@@ -259,7 +259,7 @@ make race
 ## Related documentation
 
 - [Project context](project-context.md)
-- [Module and platform boundaries](../architecture/module-platform-boundaries.md)
+- [Module and platform boundaries](../decisions.md#d1-module-and-platform-boundaries)
 - [Engineering and testing policy](../../AGENTS.md)
 - [pgx documentation](https://github.com/jackc/pgx)
 - [sqlc documentation](https://docs.sqlc.dev/)

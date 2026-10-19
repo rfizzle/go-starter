@@ -92,7 +92,7 @@ finishing. The pipeline itself is described in `docs/development/ci-contract.md`
 ## Architecture
 
 Package doc comments are the detailed map; the boundary rules and their
-reasons are in `docs/architecture/module-platform-boundaries.md`.
+reasons are in `docs/decisions.md`.
 
 ```
 main.go, cmd/            Cobra commands (serve, migrate, seed, version); process wiring only

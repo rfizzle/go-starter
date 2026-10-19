@@ -47,8 +47,8 @@ Business capabilities live under `internal/modules`; technical services live
 under `internal/platform`.
 
 See the accepted
-[module/platform boundary decision](../architecture/module-platform-boundaries.md)
-and the [current architecture map](../architecture/current-state.md).
+[module/platform boundary decision](../decisions.md#d1-module-and-platform-boundaries)
+and the [current architecture map](../architecture.md).
 
 ## Implemented HTTP surface
 

@@ -17,8 +17,9 @@ var ErrInvalidCredentials = errors.New("invalid credentials")
 // embed in an issued token — the user's email, matching the convention
 // GetCurrentUser already uses when resolving a token's subject to a stored
 // user. It is satisfied by a small composition-root adapter over
-// internal/modules/credential.Service; this package never imports that module
-// (see docs/architecture/module-platform-boundaries.md, rule 6).
+// internal/modules/credential.Service; this package never imports that module,
+// because the controller only maps transport and the composition root adapts.
+// See docs/decisions.md#d1-module-and-platform-boundaries
 type Authenticator interface {
 	Authenticate(ctx context.Context, email, password string) (string, error)
 }

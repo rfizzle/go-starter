@@ -14,7 +14,7 @@ Documentation agent.
 Follow [AGENTS.md](/AGENTS.md) first: it carries the commands, the layout,
 the testing tiers and the invariants; `.agents/skills/README.md` lists the
 skills. Start with the `go-project-layout` skill for placement and
-[docs/architecture/module-platform-boundaries.md](/docs/architecture/module-platform-boundaries.md)
+[docs/decisions.md](/docs/decisions.md#d1-module-and-platform-boundaries)
 for import direction.
 
 ## Plan step

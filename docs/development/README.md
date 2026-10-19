@@ -16,7 +16,7 @@ use the focused guide for the boundary you are changing.
    reproduce it locally
 
 The accepted package-placement rules live in
-[module-platform-boundaries.md](../architecture/module-platform-boundaries.md).
+[decisions.md](../decisions.md#d1-module-and-platform-boundaries).
 Commands, testing tiers and invariants live in
 [AGENTS.md](../../AGENTS.md); procedures live in the `.agents/skills/` library.
 

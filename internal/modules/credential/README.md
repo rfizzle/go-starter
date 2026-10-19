@@ -19,5 +19,5 @@ structurally by `internal/modules/user.Repository`'s `CredentialByEmail`
 method. A future composition root constructs the concrete repository and
 injects it; this package never imports `internal/modules/user`.
 
-See [the module/platform decision](../../../docs/architecture/module-platform-boundaries.md)
+See [the module/platform decision](../../../docs/decisions.md#d1-module-and-platform-boundaries)
 for dependency rules.

@@ -14,5 +14,5 @@ repository already expresses those behaviors without extra orchestration. Add a
 service inside this module only when a user operation must coordinate multiple
 repositories or other business collaborators as one business workflow.
 
-See [the module/platform decision](../../../docs/architecture/module-platform-boundaries.md)
+See [the module/platform decision](../../../docs/decisions.md#d1-module-and-platform-boundaries)
 for dependency rules.

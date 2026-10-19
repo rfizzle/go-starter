@@ -12,9 +12,8 @@ the code is; skills say how a change is made.
 | `development/ci-contract.md` | What does each CI workflow enforce, and how do I reproduce a failure? | a workflow or a tool pin changes |
 | `development/deployment.md` | How are releases and images built and deployed? | the release or deployment process changes |
 | `development/project-context.md` | What does the service do today, and with what? | the implemented surface changes |
-| `architecture/README.md` | Which architecture document covers what? | an architecture document is added or removed |
-| `architecture/module-platform-boundaries.md` | Where does a package go, and which way may it import? | the boundary decision changes |
-| `architecture/current-state.md` | What runtime and packages exist now? | the wiring changes |
+| `architecture.md` | What are the big shapes, and why those? | a structural shape changes |
+| `decisions.md` | What was decided, when and why? | a decision is made or superseded |
 | `research/` | Dated snapshots | never; a new look is a new dated file |
 
 - Documents name no code symbol; code cites documents by path and heading.

@@ -10,8 +10,8 @@ metadata:
 # Go Project Layout
 
 The layout and its reasons are the accepted decision in
-`docs/architecture/module-platform-boundaries.md`; `make architecture-check`
-enforces the import rules. This skill is the procedure for placing a change.
+`docs/decisions.md`; `make architecture-check` enforces the import rules.
+This skill is the procedure for placing a change.
 
 ## The shape
 

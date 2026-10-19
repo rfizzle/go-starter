@@ -143,4 +143,4 @@ Related guidance:
 - [OpenAPI specification](https://spec.openapis.org/oas/latest.html)
 - [ogen documentation](https://ogen.dev/)
 - [project context](project-context.md)
-- [module/platform boundaries](../architecture/module-platform-boundaries.md)
+- [module/platform boundaries](../decisions.md#d1-module-and-platform-boundaries)
