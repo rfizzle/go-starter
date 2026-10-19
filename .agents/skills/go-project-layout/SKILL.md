@@ -88,8 +88,8 @@ adding a port, not by widening the check.
 3. Declare the ports it consumes as local interfaces.
 4. Add its queries and repository per the `golang-database` skill.
 5. Construct it in `internal/app` and inject it into the controller.
-6. Change `api/openapi.yml` first if it is exposed, `make generate`, then map
-   it in `internal/controller/`.
+6. If it is exposed, change `api/openapi.yml` first, `make generate`, then map
+   it in `internal/controller/`; see the `api-contract` skill.
 
 ## Plan and review checklist
 

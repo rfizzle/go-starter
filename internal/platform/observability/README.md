@@ -14,5 +14,4 @@ Business and domain packages must not construct exporters or loggers. Process
 composition roots create them here and inject only the dependencies their
 consumers require.
 
-See [the environment guide](../../../docs/development/environment.md) for the
-supported logging and OpenTelemetry settings.
+`go run . serve --help` lists the logging and OpenTelemetry settings.

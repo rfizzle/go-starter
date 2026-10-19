@@ -14,5 +14,7 @@ includes configured values in its errors because some fields contain secrets.
 Add a validation scope only when a command consumes a genuinely different
 subset of settings.
 
-See [the environment guide](../../../docs/development/environment.md) for
-configuration precedence and environment-variable mappings.
+Configuration precedence is in
+[the architecture document](../../../docs/architecture.md#configuration-and-observability);
+`.env.example` lists the environment variables, and each command's `--help`
+lists every setting.

@@ -27,5 +27,5 @@ output. `make generate-check` verifies that generated SQL remains current.
 Apply the embedded set explicitly with `go run . migrate up`; inspect it with
 `go run . migrate status`.
 
-See [the database development guide](../../../../docs/development/database.md)
+See [the golang-database skill](../../../../.agents/skills/golang-database/SKILL.md)
 for transaction, sqlc-versus-squirrel, testing, and migration guidance.

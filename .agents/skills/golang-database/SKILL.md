@@ -9,7 +9,7 @@ metadata:
 
 # Go Database
 
-The stack is fixed: PostgreSQL 16, pgx/v5 with `pgxpool`, sqlc, squirrel and
+The stack is fixed: PostgreSQL 17, pgx/v5 with `pgxpool`, sqlc, squirrel and
 Goose. Don't add `database/sql`, sqlx, an ORM, another query builder or a
 second migration system without a decision recorded for it.
 
@@ -25,7 +25,13 @@ second migration system without a decision recorded for it.
   `internal/domain` values. Only `modules/user` and `platform/database/postgres`
   may import the generated `db` package (`make architecture-check`).
 - The pool is built in `internal/app` from `internal/platform/config`; modules
-  never open their own.
+  never open their own. It is shared by migrations, readiness and the
+  repositories, and is closed after the HTTP server drains.
+- pgx pools connect lazily: the short-lived commands ping within
+  `database.ping-timeout` before doing any work, and the server registers the
+  ping as a readiness check. `internal/platform/database/postgres` exposes only
+  lifecycle and migration functions over the caller-owned pool; it is not a
+  query abstraction, and repositories receive the pool directly.
 
 ## Change a fixed query
 
@@ -33,8 +39,10 @@ second migration system without a decision recorded for it.
 2. `make generate` (runs sqlc and ogen).
 3. Call the generated method through the repository's `queries`, map the row
    with the module's `fromDB`-style function, and translate `pgx.ErrNoRows` to
-   the domain's not-found sentinel. Persistence-only fields (password hashes)
-   never leave the adapter.
+   the domain's not-found sentinel. Other failures keep their wrapped pgx
+   error so the layer that owns a policy can inspect it with `errors.Is` or
+   `errors.As`. Persistence-only fields (password hashes) never leave the
+   adapter.
 4. `make generate-check`, then the tests below.
 
 ## Change a dynamic query
@@ -66,15 +74,39 @@ invariant. See [transactions](references/transactions.md) for lock choices.
    before writing it.
 6. Keep secrets and environment-specific data out of migrations.
 
+## Apply migrations and seed
+
+```bash
+go run . migrate status   # none, partial or complete
+go run . migrate up       # idempotent; pending forward migrations only
+go run . seed             # development environment only
+```
+
+- Every `migrate up` holds a PostgreSQL session advisory lock for the whole
+  Goose run, so concurrent commands and replicas serialize instead of racing.
+- `serve` migrates only when `database.auto-migrate` is true (off by default);
+  a failure returns before the listener is built.
+- `migrate status` creates Goose's version table if it is missing, so it is
+  not read-only on a pristine database.
+- `seed` expects a current schema and needs `seed.email` and `seed.password`.
+  It matches records by natural key and skips existing ones; it never
+  overwrites a name or password hash and never prints the password.
+
 ## Test and verify
 
 - Mapping and pure logic: unit tests beside the code (`make test`).
+- Query arguments, row scanning and transaction boundaries without a
+  database: pgxmock (`github.com/pashagolub/pgxmock/v4`, added on first use).
+- Consumers of a repository (the seeder's user store, a service port): a
+  small hand-written fake of the consumer's interface, never a broad database
+  client.
 - SQL, constraints, locking and migrations: integration tests with the
   `postgrestest` harness behind the `integration` tag. See
   [testing](references/testing.md).
 
 ```bash
 make generate
+go test ./internal/platform/database/... ./internal/modules/user ./internal/cli/seed
 go test -tags integration ./internal/modules/... ./internal/platform/database/...
 make test-integration
 make check

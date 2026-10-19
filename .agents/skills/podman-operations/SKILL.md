@@ -15,6 +15,18 @@ Docker dependency is GoReleaser's image pipeline; see
 
 ## Host requirements
 
+- Go at the version `go.mod` declares, and Make.
+- The pinned development tools: `make tools` installs the exact versions in
+  `scripts/tool-versions.env` (into `GOBIN` or the first `GOPATH` bin) and
+  `make env` verifies them. To keep them isolated, pick a directory and put it
+  first on `PATH`:
+
+  ```sh
+  TOOL_BIN=/absolute/path/to/project-tools make tools
+  PATH="/absolute/path/to/project-tools:${PATH}" make env
+  ```
+
+  ogen is not among them: it is a module dependency run by `go generate`.
 - Podman 4.7 or newer (`podman --version`).
 - A Compose provider: `podman compose` delegates to `podman-compose` or a
   Compose v2 `docker-compose` binary on `PATH`. The Make targets pass Compose v2
@@ -37,9 +49,31 @@ socket state).
 ## Local development services
 
 `make dev-up`, `make dev-run`, `make dev-down`, and `make dev-reset` wrap
-`podman compose` around the committed `compose.yaml` PostgreSQL service.
-`dev-down` preserves the named data volume; `dev-reset` is the only target that
-deletes it. Diagnose the service with:
+`podman compose` around the committed `compose.yaml` PostgreSQL service: the
+pinned `postgres:17.5-alpine` image, bound to `127.0.0.1:5432`, data in a named
+volume, and development-only `gostarter` credentials that match
+`.env.example`. `dev-down` preserves the volume; `dev-reset` is the only target
+that deletes it.
+
+First run:
+
+```sh
+cp .env.example .env
+make dev-run
+curl --fail http://localhost:8080/api/v1/healthz/liveness
+curl --fail http://localhost:8080/api/v1/healthz/readiness
+```
+
+`dev-run` starts the service, waits for `pg_isready`, exports `.env`, then
+runs `migrate up`, `seed` and `serve`. Only `dev-run` reads `.env`; to run a
+command by hand, export it first:
+
+```sh
+set -a; . ./.env; set +a
+go run . serve
+```
+
+Diagnose the service with:
 
 ```sh
 podman compose ps

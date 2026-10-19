@@ -39,7 +39,7 @@ make test-all
 ```
 
 The harness reaches Podman through its Docker-compatible API socket; the
-[environment guide](../../../../docs/development/environment.md) covers the
+[podman-operations skill](../../../../.agents/skills/podman-operations/SKILL.md) covers the
 one-time socket setup and `DOCKER_HOST` export. When no container engine is
 reachable, local integration tests skip with a diagnostic. CI sets
 `GOSTARTER_REQUIRE_CONTAINERS=1`, making container startup failures fatal.

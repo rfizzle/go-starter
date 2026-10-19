@@ -119,10 +119,14 @@ generated transport, `auth` and `domain`; `modules` import `domain` and
 selected `platform` packages; `platform` imports neither `domain` nor
 `modules`; `domain` and `auth` import nothing internal.
 
+Besides the stack named at the top: Chi routes, Viper layers configuration,
+Zap logs, Prometheus and OpenTelemetry observe. Tool versions are pinned in `scripts/tool-versions.env`
+(ogen in `go.mod`), the release in `.goreleaser.yaml`.
+
 Skills for this layout: `go-project-layout` (where a package goes),
-`golang-database` (queries, migrations, repositories), `podman-operations`
-(local services, Testcontainers, images). The full list is
-`.agents/skills/README.md`.
+`api-contract` (changing the OpenAPI contract), `golang-database` (queries,
+migrations, repositories), `podman-operations` (host setup, local services,
+Testcontainers, images). The full list is `.agents/skills/README.md`.
 
 ## Invariants
 
@@ -157,6 +161,10 @@ Skills for this layout: `go-project-layout` (where a package goes),
   (the CI workflow shows the three lines).
 - **A migration runs out of order.** Bare `goose create` writes a timestamped
   name that sorts after the sequential ones; always use `make migration`.
+- **A setting in `.env` is ignored.** Only `make dev-run` loads `.env`; the
+  binary reads no dotenv file, so export it before `go run .`. A variable is
+  `GOSTARTER_` plus the key with dots and dashes as underscores
+  (`GOSTARTER_RATE_LIMIT_MAX_KEYS`); a flag beats it.
 - **`make init` says the clone is already initialized.** It deletes
   `tools/initialize` and `internal/templateinit` when it finishes, so it runs
   once per clone.

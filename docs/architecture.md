@@ -15,7 +15,8 @@ shutdown ordering; everything it builds is handed to consumers through small
 interfaces the consumers declare. Commands that need less than the whole
 service (seeding, migrating) are smaller composition roots of their own rather
 than reaching into the full one. Business and domain packages never construct
-loggers, exporters or connections.
+loggers, exporters or connections. Shutdown drains in-flight requests before
+the database pool closes, and cancellation reaches every running component.
 
 ## Transport
 
@@ -23,6 +24,17 @@ loggers, exporters or connections.
 and are never edited, so the controller is the only place that maps between
 transport and domain, and it contains no business logic. Generated types stay
 at the edge so a contract change cannot leak into the business packages.
+
+Beside the contract the server exposes metrics, profiling (off by default and
+outside the contract) and the embedded static site, which is served only
+outside the reserved API, metrics and profiling paths.
+
+Login is rate limited per client address by a bounded, in-memory limiter, so
+each replica enforces its own limit rather than a global one. Forwarding
+headers are believed only when the immediate peer is inside a configured
+trusted-proxy range, walking from that peer toward the client and stopping at
+the first untrusted address; with no range configured, the peer itself is the
+key.
 
 ## Persistence
 
@@ -32,13 +44,16 @@ with a database-level lock, and applying them at startup is off by default in
 favour of a one-shot migrate command, so a rolling deploy does not race
 itself. Fixed queries are generated from SQL; dynamic ones are built in code.
 Rows are mapped to domain data, which deliberately cannot carry a password
-hash. How persistence code is written is in
-[development/database.md](development/database.md).
+hash. How persistence code is written is the `golang-database` skill.
 
 ## Configuration and observability
 
 Configuration is decoded and validated in a package with no side effects;
 reading files and the environment belongs to each command's composition root.
+Flags override `GOSTARTER_*` environment variables, which override an
+explicitly selected configuration file, and validation finishes before any
+listener or database work begins. Trace and metric export is off unless
+enabled with a collector.
 Logging and tracing providers are built once and passed down. Metrics and
 profiling are HTTP and database platform concerns, not business ones.
 

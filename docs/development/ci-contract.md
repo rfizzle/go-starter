@@ -113,6 +113,6 @@ make ci
 
 Add `make race` and `make cover` when the failure is in those steps; the
 integration tier needs a reachable Podman socket (see the
-[environment guide](environment.md)). `make container-check`,
+[podman-operations skill](../../.agents/skills/podman-operations/SKILL.md)). `make container-check`,
 `make container`, and `make release-snapshot` reproduce the container and
 release-packaging steps.

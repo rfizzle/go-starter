@@ -40,6 +40,7 @@ whose frontmatter has a `name` (matching the directory) and a `description`.
 | `golang-spf13-viper` | yes | Viper configuration and precedence |
 | `golang-testing` | yes | Test design, integration tests, fuzzing |
 | `golang-troubleshooting` | yes | Finding the root cause of a defect |
+| `api-contract` | | Changing `api/openapi.yml`, regenerating ogen, adapting `internal/controller/` |
 | `go-project-layout` | | Where a package goes under `internal/`; `make architecture-check` |
 | `golang-database` | | sqlc, squirrel, Goose and pgx changes with their make targets |
 | `podman-operations` | | Local PostgreSQL, testcontainers and image builds with Podman |
