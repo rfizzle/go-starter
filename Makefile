@@ -130,7 +130,7 @@ architecture-check: ## Verify module, domain, platform, and generated-transport 
 
 # The vendored checker's own sources are skipped: its tests hold sample ids
 # that the GS- pattern below would match.
-DOCSCHECK_FLAGS=-workitem '\b(GS|[SE])-\d{2,4}\b' -skip .plan,.cache,node_modules,vendor,bin,dist,scripts/docscheck,.agents/skills/project-docs/scripts
+DOCSCHECK_FLAGS=-workitem '\b(GS|[SE])-\d{2,4}\b'
 
 docs-check: ## Verify documentation links, citations, commands, paths, ids, and Go version
 	@./scripts/check-docs.bash
