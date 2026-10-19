@@ -1,6 +1,8 @@
 // Package user implements PostgreSQL persistence for the example user business
 // module. Shared user data, inputs, and errors live in internal/domain;
-// SQL and pgx types remain inside this adapter.
+// SQL and pgx types remain inside this adapter. The callback given to
+// Repository.WithinTx receives a transaction-scoped repository that it must not
+// commit, roll back, retain, or use after the callback returns.
 //
 // It is intentionally small: copy it as the template for real domains.
 package user
