@@ -126,9 +126,7 @@ enforce:
 - no forbidden grab-bag package directory.
 
 The target is part of `make check`. The repository-local `go-project-layout`
-skill supplies the planning and review checklist, `backend-spec` governs
-business module contracts, and `project-conventions` routes cross-cutting work
-to this decision.
+skill supplies the planning and review checklist.
 
 ## Consequences and non-goals
 

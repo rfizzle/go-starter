@@ -6,11 +6,13 @@ whose frontmatter has a `name` (matching the directory) and a `description`.
 
 ```text
 .agents/skills/       the skills themselves
+.agents/agents/       the role-agent definitions (development, documentation, planning, review)
 .claude/skills -> ../.agents/skills
+.claude/agents -> ../.agents/agents
 ```
 
-- `.claude/skills` is a relative symlink to this directory, tracked in git.
-  Never copy a skill into a client directory; copies drift.
+- `.claude/skills` and `.claude/agents` are relative symlinks, tracked in git.
+  Never copy a skill or an agent into a client directory; copies drift.
 - Shared skills are copies from `../skills`, listed with their source commit
   and content hash in `shared.sum`. `make skills-check` fails on a copy edited
   here; edit the source, commit it there, then `make skills-sync`. Add a new

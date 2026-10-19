@@ -1,137 +1,26 @@
-# Documentation Index
+# Go Starter · documents
 
-Welcome to the Go Starter project documentation. This index provides a comprehensive overview of all documentation and helps both humans and AI agents navigate the codebase effectively.
+Each file answers one question. Facts live here once; `AGENTS.md` says where
+the code is; skills say how a change is made.
 
-## Quick Start
+| File | Question it answers | Changes when |
+|---|---|---|
+| `development/README.md` | Which guide covers the boundary I am changing? | a guide is added or removed |
+| `development/environment.md` | How do I set up and run the service locally? | a prerequisite or local service changes |
+| `development/database.md` | How is PostgreSQL code written, migrated and tested here? | the database tooling or patterns change |
+| `development/ogen-workflow.md` | How does an API change flow from the OpenAPI spec to a controller? | the generation workflow changes |
+| `development/ci-contract.md` | What does each CI workflow enforce, and how do I reproduce a failure? | a workflow or a tool pin changes |
+| `development/deployment.md` | How are releases and images built and deployed? | the release or deployment process changes |
+| `development/project-context.md` | What does the service do today, and with what? | the implemented surface changes |
+| `architecture/README.md` | Which architecture document covers what? | an architecture document is added or removed |
+| `architecture/module-platform-boundaries.md` | Where does a package go, and which way may it import? | the boundary decision changes |
+| `architecture/current-state.md` | What runtime and packages exist now? | the wiring changes |
+| `research/` | Dated snapshots | never; a new look is a new dated file |
 
-1. **New to the project?** Start with [development/project-context.md](development/project-context.md)
-2. **Setting up development?** See [development/environment.md](development/environment.md)
-3. **Understanding the layout and rules?** Read [AGENTS.md](../AGENTS.md), then [architecture/module-platform-boundaries.md](architecture/module-platform-boundaries.md)
-4. **Working with AI agents?** Read [AGENTS.md](../AGENTS.md), then [ai/README.md](ai/README.md)
-
-## Documentation Structure
-
-Engineering policy (priorities, simplicity, package contracts, testing) lives in
-[AGENTS.md](../AGENTS.md) and the `.agents/skills/` library; the directories below
-record project facts — environment, database, generation, CI, and architecture.
-
-### 📁 development/
-Core development documentation for engineers working on this codebase.
-
-- **[README.md](development/README.md)** - Development documentation overview
-- **[project-context.md](development/project-context.md)** - Project overview, architecture, tech stack, and workflows
-- **[environment.md](development/environment.md)** - Development environment setup, tools, and troubleshooting
-- **[database.md](development/database.md)** - PostgreSQL, sqlc, migrations, repositories, and integration testing
-- **[ogen-workflow.md](development/ogen-workflow.md)** - OpenAPI-first generation and controller workflow
-- **[ci-contract.md](development/ci-contract.md)** - What each GitHub Actions workflow enforces, release provenance, and tool-pin maintenance
-
-### 📁 architecture/
-Architectural decisions, patterns, and system design documentation.
-
-- **[README.md](architecture/README.md)** - Architecture documentation overview
-- **[module-platform-boundaries.md](architecture/module-platform-boundaries.md)** - Accepted package placement, dependency direction, and enforcement
-- **[current-state.md](architecture/current-state.md)** - Implemented runtime and package map
-
-### 📁 reviews/
-Point-in-time code review records. These are historical artifacts, not current
-guidance — they are excluded from the documentation linter's freshness checks.
-
-- **[README.md](reviews/README.md)** - Review workflow and document conventions
-- **[2026-07-03-starter-hardening-review.md](reviews/2026-07-03-starter-hardening-review.md)** - Starter hardening review
-
-### 📁 ai/
-Supporting material for AI-assisted work. [AGENTS.md](../AGENTS.md) holds the
-authoritative rules and the task type → skill → verification routing table; the
-skill library itself lives in [`.agents/skills/`](../.agents/skills/README.md).
-
-- **[README.md](ai/README.md)** - How AGENTS.md, skills, and the role agents fit together; agent scopes, handoffs, and plan-then-execute criteria
-
-#### ai/prompts/
-Role agent definitions, surfaced to Claude Code as relative symlinks under `.claude/agents/`.
-
-- **[documentation.md](ai/prompts/documentation.md)** - Documentation and feature-specification agent
-- **[planning.md](ai/prompts/planning.md)** - Senior engineer agent for implementation planning
-- **[review.md](ai/prompts/review.md)** - Code review agent for quality assurance
-- **[development.md](ai/prompts/development.md)** - Implementation and bug-fix agent
-
-#### ai/templates/
-- **[review.md](ai/templates/review.md)** - Code review report template used for `docs/reviews/`
-
-## Key Concepts
-
-### OpenAPI-First Development
-This project follows an OpenAPI-first approach where:
-1. API definitions in `api/openapi.yml` drive code generation
-2. Controllers implement generated interfaces
-3. Changes start with the OpenAPI specification
-
-### Package Contracts and Implementations
-Every nontrivial package documents its contract in a package doc comment; generated
-packages (`internal/api/v1`, `internal/platform/database/postgres/db`) are exempt because
-their sources define the contract. An interface is added only for a real substitution
-boundary or a consumer that needs a narrower seam:
-- Keep one natural implementation in the contract package
-- Keep multiple real implementations in named subpackages
-- Prefer small consumer-owned interfaces and concrete constructor returns
-
-### Module and Platform Layout
-Application code is divided into `internal/modules` for business capabilities,
-`internal/platform` for technical infrastructure, and `internal/domain` for
-shared infrastructure-free contracts. The composition root lives in
-`internal/app`; generated transport remains quarantined under `internal/api`.
-
-## Development Workflow
-
-### Standard Development Cycle
-1. **API Changes** (if needed): Modify `api/openapi.yml`
-2. **Generate Code**: Run `make generate`
-3. **Select Verification**: Map requirements and risks to the narrowest effective checks
-4. **Implement**: Make the smallest change that satisfies the approved contract
-5. **Quality Checks**: Run focused tests, then `make check`
-6. **Build**: Run `make build`
-
-### Key Commands
-- `make build` - Build the local binary in `bin/`
-- `make test` - Run tests that do not require external services
-- `make test-integration` - Run disposable-service integration tests
-- `make test-all` - Run both test tiers
-- `make lint` - Code quality checks
-- `make fmt` - Format code
-- `make generate` - Regenerate API code
-- `make docs-check` - Validate documentation links, commands, paths, and Go version
-- `make secrets-check` - Scan the git history for committed secrets
-- `make ci` - CI pipeline checks (see [development/ci-contract.md](development/ci-contract.md))
-
-## For AI Agents
-
-### Navigation Tips
-1. Start with [AGENTS.md](../AGENTS.md) — it is authoritative and carries the task type → skill → verification routing table
-2. Load the narrowest applicable skill from [`.agents/skills/`](../.agents/skills/README.md)
-3. Use [development/project-context.md](development/project-context.md) for project understanding
-4. See [ai/README.md](ai/README.md) for how the role agents fit around AGENTS.md
-
-### Best Practices
-- Always reference specific file paths when discussing code
-- Use [ai/templates/review.md](ai/templates/review.md) for review records
-- Define clear package contracts and add interfaces only at justified seams
-- Maintain consistency with existing patterns
-
-## Contributing
-
-When adding new documentation:
-1. Place files in the appropriate directory
-2. Update this README.md index
-3. Follow existing naming conventions
-4. Cross-reference related documents
-
-## Version Information
-
-- **Go Version**: 1.26.5 (from `go.mod`)
-- **Project Type**: REST API service
-- **Architecture**: OpenAPI-first with ogen code generation
-- **Database**: PostgreSQL with pgx driver
-- **Web Framework**: Chi router v5
-
----
-
-*This documentation structure enables effective collaboration between human developers and AI agents while maintaining high code quality and consistency.*
+- Documents name no code symbol; code cites documents by path and heading.
+  `make docs-check` fails on a citation that does not resolve and lists
+  headings nothing cites.
+- Anything time-bound goes in `research/` with the date in the filename and
+  is not edited afterwards.
+- Planning is not in this repository. Nothing here names a story, ticket or
+  sprint.

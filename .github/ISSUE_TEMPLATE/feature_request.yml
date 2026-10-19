@@ -8,7 +8,7 @@ body:
       value: |
         Go Starter is a starter template. Proposals that add functionality,
         abstraction, or configuration without a concrete current need are
-        usually declined; see the engineering policy in
+        usually declined; see the scope rules in
         [AGENTS.md](https://github.com/rfizzle/go-starter/blob/master/AGENTS.md).
   - type: textarea
     id: problem

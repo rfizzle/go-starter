@@ -22,9 +22,9 @@ documentation_files() {
 current_guidance_files() {
   documentation_files | while IFS= read -r file; do
     case "${file#${project_dir}/}" in
-      # Reviews and the changelog are historical records; they may name
-      # retired targets and paths without making them current guidance.
-      docs/reviews/* | CHANGELOG.md)
+      # Research snapshots and the changelog are historical records; they may
+      # name retired targets and paths without making them current guidance.
+      docs/research/* | CHANGELOG.md)
         ;;
       *)
         printf '%s\n' "${file}"

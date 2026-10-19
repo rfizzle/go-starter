@@ -19,6 +19,5 @@ decision, consequences, and rejected complexity.
 Related guidance:
 
 - [Database patterns](../development/database.md)
-- Engineering, package-contract, and testing policy in [AGENTS.md](../../AGENTS.md)
-- Repository-local `go-project-layout`, `golang-structs-interfaces`,
-  `golang-testing`, and `backend-spec` skills
+- Invariants and the package map in [AGENTS.md](../../AGENTS.md)
+- The `go-project-layout` and `golang-testing` skills

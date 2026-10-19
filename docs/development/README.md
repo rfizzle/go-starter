@@ -17,8 +17,8 @@ use the focused guide for the boundary you are changing.
 
 The accepted package-placement rules live in
 [module-platform-boundaries.md](../architecture/module-platform-boundaries.md).
-Engineering, package-contract, and testing policy live in
-[AGENTS.md](../../AGENTS.md) and the `.agents/skills/` library.
+Commands, testing tiers and invariants live in
+[AGENTS.md](../../AGENTS.md); procedures live in the `.agents/skills/` library.
 
 ## Supported commands
 
