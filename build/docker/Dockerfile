@@ -1,7 +1,7 @@
 # Multi-platform index digests are pinned for reproducible amd64 and arm64
 # builds. Dependabot proposes weekly updates; see README.md for the validation
 # steps required when either digest changes.
-FROM --platform=$BUILDPLATFORM golang:1.26.5-alpine3.24@sha256:0178a641fbb4858c5f1b48e34bdaabe0350a330a1b1149aabd498d0699ff5fb2 AS build
+FROM --platform=$BUILDPLATFORM golang:1.27.3-alpine3.24@sha256:b8c9b82affbbb82a020bbcf998dad2ba9516944ac7e883524642a481a9505e9c AS build
 
 WORKDIR /src
 
